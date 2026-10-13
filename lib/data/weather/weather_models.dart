@@ -218,7 +218,7 @@ class WxProvenance {
         '位置颗粒度': wxGranularityLabel(granularity),
         '空间分辨率': spatialResolutionNote ?? '来源未提供',
         '数据有效时间': '见各时段标注（UTC）',
-        '获取时间': '${fetchedAtUtc.toIso8601String()}',
+        '获取时间': fetchedAtUtc.toIso8601String(),
         '起报/发布时间': modelRunUtc == null ? '未提供' : modelRunUtc!.toIso8601String(),
         '来源时区偏移': 'UTC${utcOffsetSeconds >= 0 ? '+' : ''}${(utcOffsetSeconds / 3600).toStringAsFixed(1)}',
         '插值说明': interpolationNote ?? '未插值',

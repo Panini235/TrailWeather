@@ -685,7 +685,7 @@ class _HintsCard extends StatelessWidget {
     final sunset = (sunsetUtc != null && finishEta != null)
         ? sunsetHint(sunsetUtc: sunsetUtc!, finishEtaUtc: finishEta!)
         : null;
-    final all = [...hints, if (sunset != null) sunset];
+    final all = [...hints, ?sunset];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),

@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,7 +50,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     try {
       final content = await file.readAsString();
       _textCtrl.text = content;
-      _import(content, file.name);
+      unawaited(_import(content, file.name));
     } catch (e) {
       setState(() {
         _error = '读取文件失败：$e';
@@ -79,8 +81,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       }
       await ref.read(favoritesProvider.notifier).add(route);
       if (mounted) {
-        context.push('/route/${route.id}',
-            extra: RouteDetailArgs(route: route));
+        unawaited(context.push('/route/${route.id}',
+            extra: RouteDetailArgs(route: route)));
       }
     } on GpxImportException catch (e) {
       setState(() => _error = e.message);
