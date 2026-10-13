@@ -93,5 +93,18 @@ test/              单元 / 来源契约(fixture) / 组件 / 集成
 
 ## 当前状态
 
-**原型可运行**（等 CI 全绿后更新为“核心功能已验证”）。边界与未验证项如实列于
-`docs/acceptance.md` 与 `agent/blockers.md`，不混称“已商品化”。
+**核心功能已验证**：CI 全绿（analyze / 83 项测试 / Web release / Android APK，产物见
+Actions Artifacts）。iOS 构建为手动工作流。边界与未验证项（真机性能/耗电、浏览器冒烟、
+商业授权）如实列于 `docs/acceptance.md` 与 `agent/blockers.md`，不混称“已商品化”。
+
+## 本地开发
+
+已配置本地 Flutter 3.47.7（`~/flutter-sdk`，flutter-io.cn 镜像，无模拟器）：
+
+```bash
+export PATH="$HOME/flutter-sdk/bin:$PATH"
+export PUB_HOSTED_URL=https://pub.flutter-io.cn
+export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+flutter pub get && flutter analyze && flutter test   # 全绿后再推送，减少 CI 次数
+flutter run -d chrome                                  # 本地跑 Web 端
+```

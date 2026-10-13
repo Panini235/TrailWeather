@@ -93,11 +93,12 @@
 | 来源契约（正常/空/字段变化/点数不符/超范围/损坏） | ✅ | test/weather/ |
 | 组件（缺失值/演示/颗粒度/过期/错误） | ✅ | test/widget/ |
 | 集成（选线→详情→时间→收藏→恢复） | ✅ | test/integration/ |
-| flutter analyze / test / web release / apk release | 🟡 | CI 定义完成，结果以 run 为准 |
-| iOS 构建 | 🚫 | 手动工作流，未触发（无 macOS 本地环境） |
+| flutter analyze / test / web release / apk release | ✅ | CI run 38402622454 全绿（2026-10-13） |
+| iOS 构建 | 🟡 | 手动工作流已触发，结果待记录 |
 | 真实联网验证 | 🟡 | 本机已实测（data-sources.md）；CI smoke 手动 |
 
 ## 状态结论（当前批次）
 
-**原型可运行；等 CI 首轮全绿后升级为“核心功能已验证（Android/Web 构建级）”。**
-iOS、真机性能/耗电、生产环境核验未完成，不宣称“三端全部验证通过”与“可商用”。
+**核心功能已验证（Android/Web 构建级 + 83 项自动化测试，CI run 38402622454，2026-10-13）。**
+iOS 构建已触发待记录；真机性能/耗电、Web 浏览器人工冒烟、生产环境核验未完成，
+不宣称“三端全部验证通过”与“可商用”。
