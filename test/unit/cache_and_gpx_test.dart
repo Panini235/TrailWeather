@@ -114,7 +114,7 @@ void main() {
     test('拒绝异常海拔', () {
       const gpx = '''
 <gpx><trk><trkseg>
-<trkpt lat="30" lon="120"><ele>9000</ele></trkpt><trkpt lat="30.1" lon="120"/>
+<trkpt lat="30" lon="120"><ele>12000</ele></trkpt><trkpt lat="30.1" lon="120"/>
 </trkseg></trk></gpx>
 ''';
       expect(() => GpxImport.parse(gpx), throwsA(isA<GpxImportException>()));

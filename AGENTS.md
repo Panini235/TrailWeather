@@ -4,14 +4,17 @@
 
 ## 执行环境约束（最高优先级）
 
-1. **本地不安装开发环境**（无 Flutter/Dart SDK）。构建与测试全部在 GitHub Actions 上完成。
-2. **尽可能降低 workflow 构建次数**：批量提交改动，一次 push 验证一批；CI 已设
+1. **构建与产物验证在 GitHub Actions 上完成**（web/apk 构建）；本地 Flutter 仅用于
+   analyze/test 快速迭代（2026-10-13 用户批准本地安装，SDK 位于 `~/flutter-sdk`，
+   走 flutter-io.cn 镜像，未安装模拟器/Android Studio）。
+2. **尽可能降低 workflow 构建次数**：本地 analyze+test 全绿后才 push；CI 设
    `concurrency.cancel-in-progress`，同分支新 push 会取消进行中的旧运行。
 3. 外网访问需走代理：`export https_proxy=http://127.0.0.1:7897 http_proxy=http://127.0.0.1:7897 all_proxy=socks5://127.0.0.1:7897`
-4. 远端：`https://github.com/Panini235/TrailWeather.git`（gh CLI 已认证）。
+4. 远端：`https://github.com/Panini235/TrailWeather.git`（gh CLI 已认证，SSH 推送）。
 5. 平台目录策略：不提交 android/ios 模板；仅提交
    `android/app/src/main/AndroidManifest.xml`、`ios/Runner/Info.plist`、`web/`。
-   CI 中用 `flutter create` 生成其余文件（步骤已内置，勿删）。
+   CI 中用 `flutter create` 生成其余文件（步骤已内置，勿删）。本地 analyze/test
+   不需要平台目录。
 
 ## 每轮迭代流程
 

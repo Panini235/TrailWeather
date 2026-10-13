@@ -173,30 +173,35 @@ class WeatherRepository {
     return 'v1|$providerId|$coords|$s|$e';
   }
 
-  String _encode(WxSourceResult r) => jsonEncode({
-        'providerId': r.providerId,
-        'fetchedAt': r.fetchedAtUtc.toIso8601String(),
-        'points': [
-          for (final p in r.points)
-            {
-              'lat': p.lat,
-              'lon': p.lon,
-              'sunset': p.dailySunsetUtc?.toIso8601String(),
-              'hours': [
-                for (final h in p.hours)
-                  {
-                    't': h.validFromUtc.toIso8601String(),
-                    'v': {
-                      for (final e in h.values.entries)
-                        if (e.value != null) e.key.index: e.value,
-                    },
-                    's': h.symbols,
-                  },
-              ],
-              'prov': _provToJson(p.provenance),
-            },
-        ],
+  String _encode(WxSourceResult r) {
+    final points = <Map<String, dynamic>>[];
+    for (final p in r.points) {
+      final hours = <Map<String, dynamic>>[];
+      for (final h in p.hours) {
+        final v = <String, double>{};
+        h.values.forEach((k, val) {
+          if (val != null) v['${k.index}'] = val;
+        });
+        hours.add({
+          't': h.validFromUtc.toIso8601String(),
+          'v': v,
+          's': h.symbols,
+        });
+      }
+      points.add({
+        'lat': p.lat,
+        'lon': p.lon,
+        'sunset': p.dailySunsetUtc?.toIso8601String(),
+        'hours': hours,
+        'prov': _provToJson(p.provenance),
       });
+    }
+    return jsonEncode({
+      'providerId': r.providerId,
+      'fetchedAt': r.fetchedAtUtc.toIso8601String(),
+      'points': points,
+    });
+  }
 
   WxSourceResult? _decode(String raw) {
     try {

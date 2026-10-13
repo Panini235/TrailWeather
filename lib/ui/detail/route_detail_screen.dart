@@ -203,7 +203,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   ) {
     final provider =
         ref.read(weatherProvidersProvider).where((p) => p.caps.providerId == _providerId).first;
-
     if (bundleAsync.isLoading && !bundleAsync.hasValue) {
       return const [Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))];
     }

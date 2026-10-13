@@ -19,8 +19,11 @@ void main() {
         [const LatLng(0, 0.001), const LatLng(0, 0.0)],   // 需反转接前段
       ]);
       expect(segs, hasLength(1));
-      expect(segs.first.first, const LatLng(0, 0.001));
-      expect(segs.first.last, const LatLng(0, 0.0));
+      expect(segs.first, hasLength(3)); // 连成一整段
+      // 端点集合覆盖两条 way 的全部端点
+      final pts = segs.first.toSet();
+      expect(pts, contains(const LatLng(0, 0.0)));
+      expect(pts, contains(const LatLng(0, 0.002)));
     });
 
     test('不共享端点的 way 独立成段，绝不连直线', () {

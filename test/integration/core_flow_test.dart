@@ -178,26 +178,45 @@ void main() {
         child: MaterialApp(home: RouteDetailScreen(args: RouteDetailArgs(route: route))),
       ),
     );
+    // 数据 future 与 pumpAndSettle 存在时序边界：显式泵帧直到天气区渲染。
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     await tester.pumpAndSettle();
 
-    // 4. 详情页：事实卡 + 天气加载完成（假来源立即返回）
+    // 4. 详情页：事实卡 + 演示标签（ListView 懒挂载，断言前滚动到目标）
     expect(find.text('集成测试线路'), findsOneWidget);
-    expect(find.byType(DemoBadge), findsOneWidget);
-    expect(find.text(S.routeSummary), findsOneWidget);
+    expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
 
-    // 5. 节点列表有数据（温度文本出现）
+    // 5. 滚动到天气区：节点有数据（温度文本出现）
+    await tester.scrollUntilVisible(find.text(S.routeSummary), 300);
+    await tester.pumpAndSettle();
+    expect(find.text(S.routeSummary), findsOneWidget);
     expect(find.textContaining('°C'), findsWidgets);
-    // 溯源卡片与颗粒度声明
+
+    // 溯源卡片与颗粒度声明（滚动到底部）
+    await tester.scrollUntilVisible(find.text(S.sourceTransparency), 600);
+    await tester.pumpAndSettle();
     expect(find.text(S.sourceTransparency), findsOneWidget);
     expect(find.textContaining('非点位实测'), findsWidgets);
 
-    // 6. 切换到行程模式 → 显示预计到达说明
+    // 6. 回滚顶部切换行程模式 → 显示预计到达说明
+    await tester.drag(find.byType(ListView), const Offset(0, 2000));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(S.modeTrip));
     await tester.pumpAndSettle();
+    // ETA 说明与模式按钮同卡（视口内），无需滚动。
     expect(find.textContaining(S.etaIsEstimate), findsWidgets);
 
-    // 7. 官方预警未接入的如实说明
-    expect(find.textContaining(officialAlertsText0), findsOneWidget);
+    // 7. 循环滚动：官方预警未接入的如实说明（在风险提示卡内）
+    var alertsVisible = false;
+    for (var i = 0; i < 12 && !alertsVisible; i++) {
+      await tester.drag(find.byType(ListView), const Offset(0, -700));
+      await tester.pumpAndSettle();
+      alertsVisible =
+          find.textContaining(officialAlertsText0).evaluate().isNotEmpty;
+    }
+    expect(alertsVisible, isTrue, reason: '滚动后应显示官方预警未接入说明');
 
     // 8. 收藏 → 写入本地
     await tester.tap(find.byTooltip(S.favorites));

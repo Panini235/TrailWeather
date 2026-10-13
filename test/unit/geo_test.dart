@@ -13,9 +13,10 @@ void main() {
       expect(d, closeTo(111195, 500));
     });
 
-    test('纬度 1° 约 111 km', () {
+    test('纬度 1° 约 111 km（球体模型）', () {
       final d = Geo.distanceM(const LatLng(0, 0), const LatLng(1, 0));
-      expect(d, closeTo(110575, 500));
+      // 球体近似：R(6371008.8) * pi/180 ≈ 111195 m（椭球约 110574，本实现用球体）
+      expect(d, closeTo(111195, 500));
     });
   });
 
@@ -59,7 +60,7 @@ void main() {
 
   group('Geo.totalAscentM', () {
     test('只累计上升', () {
-      expect(Geo.totalAscentM([100, 200, 150, 300]), 350.0);
+      expect(Geo.totalAscentM([100, 200, 150, 300]), 250.0); // 100->200 + 150->300
     });
 
     test('任一海拔缺失返回 null（不编造）', () {

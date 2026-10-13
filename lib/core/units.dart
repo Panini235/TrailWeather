@@ -39,10 +39,10 @@ class Units {
     if (imperial) {
       final mi = kmToMi(km);
       if (mi < 0.1) return '${Units.mToFt(km * 1000).toStringAsFixed(0)} ft';
-      return '${mi.toStringAsFixed(mi < 10 ? 1 : 0)} mi';
+      return '${mi.toStringAsFixed(mi < 100 ? 1 : 0)} mi';
     }
     if (km < 1) return '${(km * 1000).toStringAsFixed(0)} m';
-    return '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
+    return '${km.toStringAsFixed(km < 100 ? 1 : 0)} km';
   }
 
   static String elevationM(double m, {required bool imperial}) {

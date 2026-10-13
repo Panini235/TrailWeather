@@ -117,6 +117,8 @@ class OpenMeteoProvider extends WeatherProvider {
   int _forecastDays(DateTime nowUtc, DateTime startUtc, DateTime endUtc) {
     final horizonEnd =
         nowUtc.add(Duration(days: caps.forecastHorizonDays));
+    // 请求起点已超出来源真实预报窗口：如实抛出，由 UI 显示“此来源暂无该日期数据”。
+    if (startUtc.isAfter(horizonEnd)) return 0;
     final effEnd = endUtc.isAfter(horizonEnd) ? horizonEnd : endUtc;
     if (effEnd.isBefore(nowUtc)) return 0;
     var days = effEnd.difference(DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day)).inDays + 1;
