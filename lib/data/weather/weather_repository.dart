@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/cache_store.dart';
-import 'route_sampling.dart';
+import '../routes/route_sampling.dart';
 import 'weather_models.dart';
 import 'weather_provider.dart';
 
@@ -96,16 +96,11 @@ class WeatherRepository {
     // 请求点去重（近似网格策略）。
     final gridKeys = <String>[];
     final queryPoints = <LatLng>[];
-    final nodeToQuery = <int>{}; // nodeIndex -> queryIndex
     for (var i = 0; i < nodes.length; i++) {
       final k = approxGridKey(nodes[i].pos);
-      final idx = gridKeys.indexOf(k);
-      if (idx >= 0) {
-        nodeToQuery[i] = idx;
-      } else {
+      if (!gridKeys.contains(k)) {
         gridKeys.add(k);
         queryPoints.add(nodes[i].pos);
-        nodeToQuery[i] = queryPoints.length - 1;
       }
     }
 

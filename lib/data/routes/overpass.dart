@@ -63,7 +63,7 @@ class OverpassRouteSource {
       try {
         final uri = Uri.parse('$ep?data=${Uri.encodeQueryComponent(query)}');
         final body = await _http.getText(uri);
-        return _parse(body);
+        return parseResponse(body);
       } catch (e) {
         lastErr = e;
         // 轮换下一个镜像。

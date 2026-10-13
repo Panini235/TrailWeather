@@ -112,7 +112,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ])),
           _section(context, '缓存与数据'),
-          _CacheCard(ref: ref),
+          const _CacheCard(),
           Card(child: Column(children: [
             ListTile(
               dense: true,

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/geo.dart';
-
 /// 海拔剖面：距离 × 海拔。支持点击选节点（onTapNode 回调 index）。
 /// 图表必须与底层真实采样点对应：直接绘制传入的节点序列，不做平滑。
 class ElevationProfile extends StatelessWidget {

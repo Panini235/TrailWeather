@@ -61,11 +61,11 @@ class Geo {
       final y = pts[i].latitude * latScale;
       double d;
       if (len2 == 0) {
-        d = math.hypot(x - x1, y - y1);
+        d = _hypot(x - x1, y - y1);
       } else {
         var t = ((x - x1) * dx + (y - y1) * dy) / len2;
         t = t.clamp(0.0, 1.0);
-        d = math.hypot(x - (x1 + t * dx), y - (y1 + t * dy));
+        d = _hypot(x - (x1 + t * dx), y - (y1 + t * dy));
       }
       if (d > maxDist) {
         maxDist = d;
@@ -89,10 +89,10 @@ class Geo {
     final bx = b.longitude * lonScale, by = b.latitude * latScale;
     final dx = bx - ax, dy = by - ay;
     final len2 = dx * dx + dy * dy;
-    if (len2 == 0) return math.hypot(px - ax, py - ay);
+    if (len2 == 0) return _hypot(px - ax, py - ay);
     var t = ((px - ax) * dx + (py - ay) * dy) / len2;
     t = t.clamp(0.0, 1.0);
-    return math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    return _hypot(px - (ax + t * dx), py - (ay + t * dy));
   }
 
   static (double, double) minMaxLat(List<LatLng> pts) {
@@ -120,10 +120,13 @@ class Geo {
     var ascent = 0.0;
     for (final e in elevations.skip(1)) {
       if (e == null) return null;
-      final d = e - prev;
+      final d = e - prev!;
       if (d > 0) ascent += d;
       prev = e;
     }
     return ascent;
   }
+
+  /// Dart math 无 hypot，自实现。
+  static double _hypot(double a, double b) => math.sqrt(a * a + b * b);
 }

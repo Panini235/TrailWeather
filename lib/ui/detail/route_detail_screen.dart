@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart';
+import '../../core/units.dart';
 import '../../data/app_providers.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/routes/route_sampling.dart';
@@ -133,7 +134,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
 
     final rows = buildNodeRows(
       nodes: nodes,
-      bundle: bundleAsync.valueOrNull,
+      bundle: bundleAsync.value,
       mode: _mode,
       fixedUtc: query.fixedUtc,
       etas: etas,
@@ -167,6 +168,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             date: _date,
             onDate: (d) => setState(() => _date = d),
             hour: _hour,
+            previewHour: _previewHour,
             onHourPreview: (h) => setState(() => _previewHour = h),
             onHourCommit: (h) => setState(() {
               _hour = h;
@@ -235,7 +237,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       ];
     }
 
-    final bundle = bundleAsync.valueOrNull;
+    final bundle = bundleAsync.value;
     final summary = summarizeRows(rows);
     final sunset = bundle?.result.points.firstOrNullValue?.dailySunsetUtc;
     final finishEta = etas.isEmpty ? null : etas.last;
@@ -405,6 +407,7 @@ class _TimeControlsCard extends StatelessWidget {
     required this.date,
     required this.onDate,
     required this.hour,
+    this.previewHour,
     required this.onHourPreview,
     required this.onHourCommit,
     required this.startTime,
@@ -418,6 +421,7 @@ class _TimeControlsCard extends StatelessWidget {
   final DateTime date;
   final void Function(DateTime) onDate;
   final int hour;
+  final double? previewHour;
   final void Function(double) onHourPreview;
   final void Function(int) onHourCommit;
   final TimeOfDay startTime;
@@ -486,7 +490,7 @@ class _TimeControlsCard extends StatelessWidget {
                   onChangeEnd: (v) => onHourCommit(v.round()),
                 ),
               ),
-              Text('${_two(hour)}:00'),
+              Text('${_two((previewHour ?? hour.toDouble()).round())}:00'),
             ]),
           ],
           if (mode == TimeMode.trip)

@@ -149,7 +149,7 @@ class OpenMeteoProvider extends WeatherProvider {
     final hourly = (m['hourly'] as Map<String, dynamic>?) ?? {};
     final times = (hourly['time'] as List?) ?? const [];
     final series = <WxHourValue>[];
-    final varLists = <WxVar, List<dynamic?>{};
+    final varLists = <WxVar, List>{};
     for (final e in _hourlyVars.entries) {
       varLists[e.value] = (hourly[e.key] as List?) ?? const [];
     }
@@ -203,7 +203,7 @@ class OpenMeteoProvider extends WeatherProvider {
       attribution: caps.attribution,
       interpolationNote: '来源侧插值情况未说明；本应用未做额外空间插值',
       elevationAdjustNote: null,
-      traceNote: 'GET ${uri.host}/v1/forecast 200',
+      traceNote: 'GET api.open-meteo.com/v1/forecast 200',
     );
 
     return WxPointForecast(

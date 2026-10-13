@@ -11,6 +11,7 @@ import 'package:trailweather/data/weather/weather_models.dart';
 import 'package:trailweather/data/weather/weather_provider.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
 import 'package:trailweather/ui/map/map_home_screen.dart';
+import 'package:trailweather/ui/widgets/common.dart';
 import 'package:trailweather/ui/strings.dart';
 
 /// 集成假来源：返回固定但结构完整的逐时数据（不联网）。

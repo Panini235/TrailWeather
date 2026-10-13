@@ -35,7 +35,7 @@ final sampleRoutesProvider = FutureProvider<List<HikingRoute>>((ref) async {
 
 /// 全部本地线路（示例 + 收藏/导入）。
 final localRoutesProvider = Provider<List<HikingRoute>>((ref) {
-  final samples = ref.watch(sampleRoutesProvider).valueOrNull ?? const [];
+  final samples = ref.watch(sampleRoutesProvider).value ?? const [];
   final favs = ref.watch(favoritesProvider);
   return [...samples, ...favs];
 });

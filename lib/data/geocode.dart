@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../../core/wx_http.dart';
+import '../core/wx_http.dart';
 
 /// 地点搜索结果（Open-Meteo Geocoding API）。
 class PlaceSuggestion {
