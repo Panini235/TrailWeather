@@ -62,6 +62,26 @@ class SettingsScreen extends ConsumerWidget {
               onSelectionChanged: (s) => notifier.update(settings.copyWith(themeMode: s.first)),
             ),
           )),
+          _section(context, '地图底图'),
+          Card(child: ListTile(
+            dense: true,
+            title: const Text('底图来源', style: TextStyle(fontSize: 14)),
+            subtitle: const Text(
+              '高德（国内直连快，GCJ-02 显示坐标，业务数据仍为 WGS-84）/ OSM（海外网络）',
+              style: TextStyle(fontSize: 11),
+            ),
+            trailing: SegmentedButton<BasemapSource>(
+              segments: const [
+                ButtonSegment(value: BasemapSource.amap, label: Text('高德', style: TextStyle(fontSize: 12))),
+                ButtonSegment(value: BasemapSource.osm, label: Text('OSM', style: TextStyle(fontSize: 12))),
+              ],
+              selected: {settings.basemap},
+              onSelectionChanged: (sel) =>
+                  notifier.update(settings.copyWith(basemap: sel.first)),
+            ),
+          )),
+          _section(context, '数据源密钥'),
+          const _QweatherCredentialsCard(),
           _section(context, '天气来源'),
           Card(child: Column(children: [
             for (final p in providers)
@@ -247,6 +267,98 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text(S.close))],
+      ),
+    );
+  }
+}
+
+/// 和风天气密钥配置（仅存本机，不上传）。
+/// 免费订阅即可获得；2024 起新账号需使用控制台分配的专属 API Host。
+class _QweatherCredentialsCard extends ConsumerStatefulWidget {
+  const _QweatherCredentialsCard();
+
+  @override
+  ConsumerState<_QweatherCredentialsCard> createState() =>
+      _QweatherCredentialsCardState();
+}
+
+class _QweatherCredentialsCardState
+    extends ConsumerState<_QweatherCredentialsCard> {
+  late final TextEditingController _host =
+      TextEditingController(text: ref.read(settingsProvider).qweatherApiHost);
+  late final TextEditingController _key =
+      TextEditingController(text: ref.read(settingsProvider).qweatherApiKey);
+
+  @override
+  void dispose() {
+    _host.dispose();
+    _key.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.vpn_key_outlined, size: 16),
+            const SizedBox(width: 6),
+            const Expanded(child: Text('和风天气（大陆直连推荐）', style: TextStyle(fontSize: 14))),
+            if (settings.qweatherConfigured)
+              const Icon(Icons.check_circle, size: 16, color: Colors.green)
+            else
+              const Text('未配置', style: TextStyle(fontSize: 11, color: Colors.orange)),
+          ]),
+          const SizedBox(height: 4),
+          const Text(
+            '在 dev.qweather.com 免费注册订阅后，于“控制台”查看你的 API Key 与 API Host'
+            '（新账号为专属域名，形如 abc123.qweatherapi.com；旧账号可用 devapi.qweather.com）。'
+            '密钥仅保存在本机。未配置时该来源会显示配置指引，其余来源不受影响。',
+            style: TextStyle(fontSize: 11, height: 1.5, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _host,
+            decoration: const InputDecoration(
+              labelText: 'API Host',
+              hintText: 'abc123.qweatherapi.com',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _key,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'API Key',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonal(
+              onPressed: () async {
+                await ref.read(settingsProvider.notifier).update(
+                      settings.copyWith(
+                        qweatherApiHost: _host.text.trim(),
+                        qweatherApiKey: _key.text.trim(),
+                      ),
+                    );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('已保存（仅本机）')));
+                }
+              },
+              child: const Text('保存', style: TextStyle(fontSize: 13)),
+            ),
+          ),
+        ]),
       ),
     );
   }

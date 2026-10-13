@@ -17,6 +17,7 @@ import '../../data/weather/weather_provider.dart';
 import '../../data/weather/weather_repository.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
+import '../map/basemap.dart';
 import 'detail_state.dart';
 import 'elevation_profile.dart';
 import 'node_detail_sheet.dart';
@@ -306,7 +307,7 @@ extension on List<WxPointForecast> {
   WxPointForecast? get firstOrNullValue => isEmpty ? null : first;
 }
 
-class _RouteMiniMap extends StatelessWidget {
+class _RouteMiniMap extends ConsumerWidget {
   const _RouteMiniMap({required this.route, required this.rows, required this.selectedIndex});
 
   final HikingRoute route;
@@ -314,7 +315,8 @@ class _RouteMiniMap extends StatelessWidget {
   final int? selectedIndex;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final basemap = Basemap(ref.watch(settingsProvider).basemap);
     final pts = route.mainSegment;
     final (minLat, maxLat) = Geo.minMaxLat(pts);
     final (minLon, maxLon) = Geo.minMaxLon(pts);
@@ -325,20 +327,20 @@ class _RouteMiniMap extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: FlutterMap(
           options: MapOptions(
-            initialCenter: center,
+            initialCenter: basemap.toDisplay(center),
             initialZoom: 12,
             interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'dev.trailweather.trailweather',
-            ),
+            basemap.tileLayer(),
             PolylineLayer(
               polylines: [
                 for (final seg in route.segments)
                   Polyline(
-                    points: Geo.simplify(seg, 15),
+                    points: [
+                      for (final pt in Geo.simplify(seg, 15))
+                        basemap.toDisplay(pt),
+                    ],
                     strokeWidth: 4,
                     color: const Color(0xFF1565C0),
                   ),
@@ -348,7 +350,7 @@ class _RouteMiniMap extends StatelessWidget {
               markers: [
                 for (var i = 0; i < rows.length; i++)
                   Marker(
-                    point: rows[i].node.pos,
+                    point: basemap.toDisplay(rows[i].node.pos),
                     width: 26,
                     height: 26,
                     child: GestureDetector(

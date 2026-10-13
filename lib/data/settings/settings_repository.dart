@@ -4,6 +4,11 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// 底图来源。
+/// amap：高德栅格瓦片（大陆直连快；GCJ-02 坐标系，业务坐标渲染时转换）。
+/// osm：OpenStreetMap 标准瓦片（WGS-84；大陆直连通常不可用）。
+enum BasemapSource { amap, osm }
+
 /// 单位与偏好设置。
 class AppSettings {
   const AppSettings({
@@ -14,6 +19,9 @@ class AppSettings {
     this.enabledProviderIds = defaultProviderIds,
     this.samplingSpacingKm = 1.5,
     this.maxNodesPerRoute = 24,
+    this.basemap = BasemapSource.amap,
+    this.qweatherApiHost = '',
+    this.qweatherApiKey = '',
   });
 
   static const defaultProviderIds = <String>[
@@ -33,6 +41,18 @@ class AppSettings {
   final double samplingSpacingKm;
   final int maxNodesPerRoute;
 
+  final BasemapSource basemap;
+
+  /// 和风天气 API Host（控制台专属域名，如 abc123.qweatherapi.com；
+  /// 旧账号可为 devapi.qweather.com）。仅保存在本机。
+  final String qweatherApiHost;
+
+  /// 和风天气 API Key（仅保存在本机，不上传）。
+  final String qweatherApiKey;
+
+  bool get qweatherConfigured =>
+      qweatherApiHost.trim().isNotEmpty && qweatherApiKey.trim().isNotEmpty;
+
   double get effectiveSamplingSpacingKm =>
       lowPower ? (samplingSpacingKm * 2).clamp(1.0, 5.0) : samplingSpacingKm;
 
@@ -46,6 +66,9 @@ class AppSettings {
     List<String>? enabledProviderIds,
     double? samplingSpacingKm,
     int? maxNodesPerRoute,
+    BasemapSource? basemap,
+    String? qweatherApiHost,
+    String? qweatherApiKey,
   }) =>
       AppSettings(
         imperial: imperial ?? this.imperial,
@@ -56,6 +79,9 @@ class AppSettings {
             enabledProviderIds ?? List.of(this.enabledProviderIds),
         samplingSpacingKm: samplingSpacingKm ?? this.samplingSpacingKm,
         maxNodesPerRoute: maxNodesPerRoute ?? this.maxNodesPerRoute,
+        basemap: basemap ?? this.basemap,
+        qweatherApiHost: qweatherApiHost ?? this.qweatherApiHost,
+        qweatherApiKey: qweatherApiKey ?? this.qweatherApiKey,
       );
 
   Map<String, dynamic> toJson() => {
@@ -66,6 +92,9 @@ class AppSettings {
         'enabledProviderIds': enabledProviderIds,
         'samplingSpacingKm': samplingSpacingKm,
         'maxNodesPerRoute': maxNodesPerRoute,
+        'basemap': basemap.name,
+        'qweatherApiHost': qweatherApiHost,
+        'qweatherApiKey': qweatherApiKey,
       };
 
   static AppSettings fromJson(Map<String, dynamic> m) => AppSettings(
@@ -80,6 +109,10 @@ class AppSettings {
             List.of(defaultProviderIds),
         samplingSpacingKm: (m['samplingSpacingKm'] as num?)?.toDouble() ?? 1.5,
         maxNodesPerRoute: (m['maxNodesPerRoute'] as num?)?.toInt() ?? 24,
+        basemap: BasemapSource.values
+            .byName(m['basemap'] as String? ?? BasemapSource.amap.name),
+        qweatherApiHost: m['qweatherApiHost'] as String? ?? '',
+        qweatherApiKey: m['qweatherApiKey'] as String? ?? '',
       );
 }
 

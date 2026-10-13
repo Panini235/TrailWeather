@@ -14,6 +14,7 @@ import '../../data/routes/route_models.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
 import '../detail/route_detail_screen.dart';
+import 'basemap.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 
@@ -55,14 +56,20 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     }
   }
 
+  /// 业务坐标（WGS-84）包围盒：底图为 GCJ-02 时把可视范围逆变换，
+  /// 供 Overpass 查询与本地线路过滤使用。
   (double, double, double, double) get _bbox {
     try {
-      final b = _mapController.camera.visibleBounds;
+      final b = _basemap.toBusinessBounds(
+          _mapController.camera.visibleBounds);
       return (b.south, b.west, b.north, b.east);
     } catch (_) {
       return (39.9, 116.0, 40.1, 116.3);
     }
   }
+
+  Basemap get _basemap =>
+      Basemap(ref.read(settingsProvider).basemap);
 
   void _onTapMap(TapPosition pos, LatLng latlng) {
     // 命中检测由 PolylineLayer 的 hitNotifier 完成（见 GestureDetector onTap）。
@@ -158,7 +165,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
-      _mapController.move(LatLng(pos.latitude, pos.longitude), 13);
+      _mapController.move(
+          _basemap.toDisplay(LatLng(pos.latitude, pos.longitude)), 13);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -184,6 +192,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     ]..sort((a, b) => a.name.compareTo(b.name));
 
     final selectedId = _selected?.id;
+    final basemap = Basemap(ref.watch(settingsProvider).basemap);
 
     return Scaffold(
       body: Stack(
@@ -201,10 +210,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               onTap: _onTapMap,
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'dev.trailweather.trailweather',
-              ),
+              basemap.tileLayer(),
               GestureDetector(
                 behavior: HitTestBehavior.deferToChild,
                 onTap: () {
@@ -226,8 +232,12 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                     for (final r in visible)
                       for (final seg in r.segments)
                         Polyline<String>(
-                          points: Geo.simplify(
-                              seg, _zoom >= 14 ? 15 : 40),
+                          // 简化在 WGS-84 业务几何上做，渲染坐标按底图转换
+                          points: [
+                            for (final pt in Geo.simplify(
+                                seg, _zoom >= 14 ? 15 : 40))
+                              basemap.toDisplay(pt),
+                          ],
                           strokeWidth: r.id == selectedId ? 7 : 4,
                           color: r.id == selectedId
                               ? const Color(0xFF1565C0)
@@ -241,14 +251,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                   ],
                 ),
               ),
-              RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution(
-                    '© OpenStreetMap 贡献者',
-                    onTap: () {},
-                  ),
-                ],
-              ),
+              basemap.attributionWidget(),
             ],
           ),
 
@@ -387,7 +390,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                 style: const TextStyle(fontSize: 12)),
             onTap: () {
               setState(() => _suggestions = const []);
-              _mapController.move(LatLng(s.lat, s.lon), 12.5);
+              _mapController
+                  .move(_basemap.toDisplay(LatLng(s.lat, s.lon)), 12.5);
             },
           );
         },
