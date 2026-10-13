@@ -249,6 +249,30 @@
       "acceptance": "release-checklist 全勾",
       "verify": "docs 更新",
       "result": ""
+    },
+    {
+      "id": "T-070",
+      "p": "P1",
+      "title": "大陆网络适配（高德底图+GCJ-02+和风来源）",
+      "deps": [
+        "T-030"
+      ],
+      "status": "done",
+      "acceptance": "直连实测驱动：默认底图大陆可用；和风可配置接入",
+      "verify": "flutter test（93/93）+ CI run 38408260872",
+      "result": "完成；和风真实联网待用户配置 key"
+    },
+    {
+      "id": "T-071",
+      "p": "P2",
+      "title": "和风真实联网验证（Live Smoke）",
+      "deps": [
+        "T-070"
+      ],
+      "status": "blocked",
+      "acceptance": "配置 Secrets 后 smoke 通过",
+      "verify": "live-smoke.yml",
+      "result": "需用户注册和风并配置 Secrets"
     }
   ]
 }

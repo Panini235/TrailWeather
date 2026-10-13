@@ -45,3 +45,13 @@ jobs:
           if [ "$code" != "200" ]; then
             echo "::warning::Overpass 返回 $code（外部服务状态，非代码问题）"
           fi
+
+      - name: 和风天气（可选：需配置 Secrets QWEATHER_API_HOST / QWEATHER_API_KEY）
+        if: ${{ secrets.QWEATHER_API_HOST != '' && secrets.QWEATHER_API_KEY != '' }}
+        run: |
+          code=$(curl -s -o /tmp/qw.json -w "%{http_code}" \
+            -H "X-QW-Api-Key: ${{ secrets.QWEATHER_API_KEY }}" \
+            "https://${{ secrets.QWEATHER_API_HOST }}/v7/grid-weather/24h?location=116.18,39.99&lang=zh&unit=m")
+          echo "HTTP $code"
+          head -c 200 /tmp/qw.json; echo
+          grep -q '"code":"200"' /tmp/qw.json
