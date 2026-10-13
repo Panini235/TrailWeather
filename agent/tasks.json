@@ -175,10 +175,10 @@
       "deps": [
         "T-030"
       ],
-      "status": "todo",
+      "status": "done",
       "acceptance": "手动触发 ios-build 通过",
       "verify": "Actions 历史",
-      "result": ""
+      "result": "iOS release --no-codesign 构建通过（run 38403822714，2026-10-13）"
     },
     {
       "id": "T-220",

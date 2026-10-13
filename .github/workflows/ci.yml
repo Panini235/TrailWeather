@@ -3,7 +3,16 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'agent/**'
+      - '.env.example'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'agent/**'
   workflow_dispatch:
 
 concurrency:
