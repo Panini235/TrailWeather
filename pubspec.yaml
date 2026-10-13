@@ -1,0 +1,40 @@
+name: trailweather
+description: "TrailWeather 徒步天气：地图找徒步线路、查看沿途天气、比较多来源预报"
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  # 地图：纯 Dart 实现，Android/iOS/Web 三端一致
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  # 状态管理与路由
+  flutter_riverpod: ^3.4.3
+  go_router: ^18.0.2
+  # 网络：支持取消（CancelToken）、限流与退避
+  dio: ^5.11.1
+  # GPX 解析（纯 Dart XML，不解析外部实体）
+  xml: ^7.1.0
+  # 持久化（三端）：设置/收藏/缓存
+  shared_preferences: ^2.5.6
+  intl: ^0.20.3
+  # 文件导入（GPX/GeoJSON）
+  file_selector: ^1.1.0
+  # 定位（仅用户主动请求时）
+  geolocator: ^14.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/routes/

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailWeather Demo Assets">
+  <metadata><name>西湖群山环线（示例）</name><desc>演示数据：杭州西湖群山走向示意轨迹，几何与海拔均为演示，非实测线路。</desc></metadata>
+  <trk>
+    <name>西湖群山环线（示例）</name>
+    <trkseg>
+      <trkpt lat="30.232262" lon="120.134586"><ele>10.5</ele></trkpt>
+      <trkpt lat="30.232256" lon="120.134812"><ele>17.7</ele></trkpt>
+      <trkpt lat="30.233095" lon="120.133551"><ele>15.9</ele></trkpt>
+      <trkpt lat="30.233798" lon="120.132219"><ele>13.5</ele></trkpt>
+      <trkpt lat="30.234101" lon="120.132003"><ele>19.2</ele></trkpt>
+      <trkpt lat="30.234923" lon="120.130839"><ele>12.7</ele></trkpt>
+      <trkpt lat="30.235553" lon="120.129996"><ele>25.2</ele></trkpt>
+      <trkpt lat="30.235123" lon="120.129864"><ele>10.1</ele></trkpt>
+      <trkpt lat="30.236210" lon="120.128682"><ele>34.4</ele></trkpt>
+      <trkpt lat="30.235981" lon="120.128718"><ele>27.5</ele></trkpt>
+      <trkpt lat="30.236570" lon="120.127613"><ele>34.6</ele></trkpt>
+      <trkpt lat="30.237456" lon="120.126653"><ele>38.0</ele></trkpt>
+      <trkpt lat="30.237850" lon="120.126027"><ele>39.5</ele></trkpt>
+      <trkpt lat="30.238709" lon="120.124895"><ele>35.6</ele></trkpt>
+      <trkpt lat="30.238884" lon="120.124186"><ele>32.3</ele></trkpt>
+      <trkpt lat="30.238937" lon="120.123956"><ele>50.5</ele></trkpt>
+      <trkpt lat="30.239260" lon="120.122779"><ele>46.6</ele></trkpt>
+      <trkpt lat="30.240240" lon="120.121737"><ele>50.6</ele></trkpt>
+      <trkpt lat="30.240325" lon="120.122098"><ele>68.0</ele></trkpt>
+      <trkpt lat="30.241408" lon="120.120238"><ele>69.7</ele></trkpt>
+      <trkpt lat="30.240906" lon="120.119718"><ele>64.7</ele></trkpt>
+      <trkpt lat="30.242207" lon="120.119707"><ele>70.1</ele></trkpt>
+      <trkpt lat="30.242580" lon="120.118343"><ele>77.8</ele></trkpt>
+      <trkpt lat="30.242152" lon="120.118150"><ele>83.2</ele></trkpt>
+      <trkpt lat="30.243244" lon="120.117134"><ele>86.3</ele></trkpt>
+      <trkpt lat="30.243210" lon="120.116310"><ele>88.1</ele></trkpt>
+      <trkpt lat="30.241659" lon="120.115631"><ele>101.1</ele></trkpt>
+      <trkpt lat="30.241634" lon="120.114571"><ele>119.7</ele></trkpt>
+      <trkpt lat="30.242027" lon="120.113061"><ele>119.6</ele></trkpt>
+      <trkpt lat="30.240664" lon="120.112153"><ele>131.3</ele></trkpt>
+      <trkpt lat="30.240814" lon="120.111477"><ele>130.8</ele></trkpt>
+      <trkpt lat="30.240501" lon="120.111136"><ele>129.7</ele></trkpt>
+      <trkpt lat="30.239644" lon="120.110161"><ele>142.2</ele></trkpt>
+      <trkpt lat="30.239092" lon="120.109486"><ele>135.6</ele></trkpt>
+      <trkpt lat="30.239236" lon="120.109415"><ele>149.1</ele></trkpt>
+      <trkpt lat="30.237636" lon="120.108408"><ele>159.2</ele></trkpt>
+      <trkpt lat="30.237232" lon="120.107404"><ele>169.4</ele></trkpt>
+      <trkpt lat="30.237200" lon="120.107665"><ele>177.9</ele></trkpt>
+      <trkpt lat="30.235964" lon="120.107289"><ele>180.0</ele></trkpt>
+      <trkpt lat="30.235687" lon="120.106413"><ele>186.0</ele></trkpt>
+      <trkpt lat="30.234412" lon="120.105490"><ele>187.1</ele></trkpt>
+      <trkpt lat="30.234835" lon="120.105985"><ele>199.9</ele></trkpt>
+      <trkpt lat="30.233805" lon="120.105402"><ele>216.6</ele></trkpt>
+      <trkpt lat="30.233224" lon="120.104078"><ele>220.5</ele></trkpt>
+      <trkpt lat="30.232053" lon="120.103770"><ele>211.7</ele></trkpt>
+      <trkpt lat="30.232354" lon="120.103855"><ele>215.9</ele></trkpt>
+      <trkpt lat="30.231683" lon="120.103479"><ele>232.3</ele></trkpt>
+      <trkpt lat="30.230277" lon="120.102199"><ele>241.1</ele></trkpt>
+      <trkpt lat="30.229523" lon="120.102336"><ele>239.8</ele></trkpt>
+      <trkpt lat="30.229961" lon="120.102638"><ele>257.1</ele></trkpt>
+      <trkpt lat="30.229145" lon="120.103085"><ele>261.0</ele></trkpt>
+      <trkpt lat="30.229016" lon="120.104688"><ele>264.5</ele></trkpt>
+      <trkpt lat="30.228571" lon="120.105373"><ele>258.9</ele></trkpt>
+      <trkpt lat="30.227958" lon="120.105180"><ele>263.3</ele></trkpt>
+      <trkpt lat="30.227284" lon="120.106299"><ele>263.9</ele></trkpt>
+      <trkpt lat="30.227017" lon="120.107613"><ele>273.8</ele></trkpt>
+      <trkpt lat="30.226437" lon="120.108373"><ele>283.7</ele></trkpt>
+      <trkpt lat="30.225220" lon="120.109220"><ele>296.9</ele></trkpt>
+      <trkpt lat="30.224530" lon="120.110197"><ele>282.2</ele></trkpt>
+      <trkpt lat="30.224930" lon="120.110292"><ele>294.1</ele></trkpt>
+      <trkpt lat="30.224380" lon="120.111452"><ele>302.7</ele></trkpt>
+      <trkpt lat="30.223266" lon="120.112729"><ele>295.4</ele></trkpt>
+      <trkpt lat="30.222673" lon="120.112678"><ele>310.4</ele></trkpt>
+      <trkpt lat="30.222132" lon="120.113919"><ele>308.3</ele></trkpt>
+      <trkpt lat="30.222437" lon="120.115560"><ele>304.7</ele></trkpt>
+      <trkpt lat="30.222110" lon="120.116295"><ele>316.7</ele></trkpt>
+      <trkpt lat="30.222630" lon="120.117827"><ele>302.9</ele></trkpt>
+      <trkpt lat="30.223168" lon="120.118902"><ele>322.4</ele></trkpt>
+      <trkpt lat="30.223038" lon="120.120064"><ele>324.2</ele></trkpt>
+      <trkpt lat="30.223489" lon="120.121180"><ele>309.3</ele></trkpt>
+      <trkpt lat="30.223969" lon="120.121280"><ele>317.6</ele></trkpt>
+      <trkpt lat="30.224546" lon="120.123149"><ele>312.1</ele></trkpt>
+      <trkpt lat="30.225000" lon="120.124000"><ele>331.0</ele></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

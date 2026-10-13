@@ -1,0 +1,34 @@
+name: iOS Build (manual)
+
+# iOS 构建需要 macOS/Xcode 与签名证书；默认不在每次 push 触发（节省 runner 分钟）。
+# 手动触发：Actions → iOS Build (manual) → Run workflow
+on:
+  workflow_dispatch:
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+          cache: true
+
+      - name: 生成 iOS 平台目录
+        run: flutter create --platforms=ios --org dev.trailweather --project-name trailweather .
+
+      - name: 依赖
+        run: flutter pub get
+
+      - name: iOS 构建（无签名，仅验证可编译）
+        run: flutter build ios --release --no-codesign
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-nocodesign
+          path: build/ios/iphoneos/Runner.app

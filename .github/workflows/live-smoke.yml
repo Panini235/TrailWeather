@@ -1,0 +1,47 @@
+name: Live Smoke (manual)
+
+# 真实联网 smoke：直接请求已接入的公开数据服务并断言可用性。
+# 与日常 CI（fixture 契约测试）分离，避免消耗外部配额。手动触发。
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Open-Meteo Forecast
+        run: |
+          code=$(curl -s -o /tmp/om.json -w "%{http_code}" \
+            "https://api.open-meteo.com/v1/forecast?latitude=39.99&longitude=116.19&hourly=temperature_2m&forecast_days=1&timezone=UTC&models=best_match")
+          echo "HTTP $code"
+          cat /tmp/om.json | head -c 300; echo
+          [ "$code" = "200" ]
+
+      - name: MET Norway Locationforecast（User-Agent 标识）
+        run: |
+          code=$(curl -s -o /tmp/met.json -w "%{http_code}" \
+            -H "User-Agent: TrailWeather/0.1.0 (github.com/Panini235/TrailWeather)" \
+            "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=39.99&lon=116.19")
+          echo "HTTP $code"
+          cat /tmp/met.json | head -c 300; echo
+          [ "$code" = "200" ]
+
+      - name: Open-Meteo Geocoding
+        run: |
+          code=$(curl -s -o /tmp/geo.json -w "%{http_code}" \
+            "https://geocoding-api.open-meteo.com/v1/search?name=%E8%A5%BF%E6%B9%96&count=3&language=zh")
+          echo "HTTP $code"
+          [ "$code" = "200" ]
+
+      - name: Overpass（OSM 徒步路线，可能过载，失败不阻塞但如实记录）
+        run: |
+          code=$(curl -s -o /tmp/op.json -w "%{http_code}" --max-time 60 \
+            -H "User-Agent: TrailWeather/0.1.0 (github.com/Panini235/TrailWeather)" \
+            "https://overpass-api.de/api/interpreter" \
+            --data-urlencode 'data=[out:json][timeout:25];relation[route=hiking](39.96,116.10,40.05,116.25);out tags geom 5;')
+          echo "HTTP $code（504=官方镜像过载，属外部状态，如实记录）"
+          cat /tmp/op.json | head -c 200; echo
+          if [ "$code" != "200" ]; then
+            echo "::warning::Overpass 返回 $code（外部服务状态，非代码问题）"
+          fi

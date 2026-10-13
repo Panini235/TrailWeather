@@ -1,0 +1,27 @@
+{
+  "schema": "trailweather/tasks@1",
+  "note": "状态：todo|in_progress|done|blocked。验证命令以 CI 为准（本地无 SDK）。",
+  "tasks": [
+    {"id": "T-001", "p": "P0", "title": "工程初始化与依赖三端核验", "deps": [], "status": "done", "acceptance": "pubspec 解析、依赖版本经 pub.dev 核验、平台目录生成策略文档化", "verify": "CI 第一步", "result": "2026-10-13 完成核验（实测 pub.dev/官方 release JSON），CI 待首跑"},
+    {"id": "T-002", "p": "P0", "title": "天气统一数据模型与溯源（真实性红线）", "deps": ["T-001"], "status": "done", "acceptance": "WxProvenance 全字段；缺失 null；概率/量、阵风/风速分键", "verify": "flutter test test/weather", "result": "模型+契约测试完成，CI 待跑"},
+    {"id": "T-003", "p": "P0", "title": "Open-Meteo 适配器（含批量与单位换算）", "deps": ["T-002"], "status": "done", "acceptance": "多坐标批量、km/h→m/s、elevation/offset 溯源、超窗抛 WxOutOfRange", "verify": "test/weather/provider_contract_test.dart", "result": "完成；发现并修复单位换算缺失"},
+    {"id": "T-004", "p": "P0", "title": "MET Norway 适配器（UA 与缺失字段如实）", "deps": ["T-002"], "status": "done", "acceptance": "UA 标识、compact 缺失字段保持 null、updated_at 作为发布时间", "verify": "同上", "result": "完成"},
+    {"id": "T-010", "p": "P0", "title": "地图+线路+天气核心闭环（M1）", "deps": ["T-003"], "status": "in_progress", "acceptance": "地图选线→详情→节点天气→来源切换，CI 可构建", "verify": "flutter test test/integration + CI build", "result": "代码完成，待 CI 首跑验证"},
+    {"id": "T-011", "p": "P1", "title": "行程模式 ETA（跨午夜/DST 安全）", "deps": ["T-010"], "status": "done", "acceptance": "UTC 运算、爬升加时、休息分摊、无海拔降级", "verify": "test/unit/eta_and_sampling_test.dart", "result": "完成"},
+    {"id": "T-012", "p": "P1", "title": "节点多来源对比（对齐与重叠说明）", "deps": ["T-010"], "status": "done", "acceptance": "独立卡片、时刻差值提示、模型重叠标注", "verify": "widget/集成测试", "result": "完成"},
+    {"id": "T-013", "p": "P1", "title": "GPX/GeoJSON 导入（安全与限制）", "deps": ["T-010"], "status": "done", "acceptance": "2MB/5000点/范围校验/XXE 防护/损坏拒绝", "verify": "test/unit/cache_and_gpx_test.dart", "result": "完成"},
+    {"id": "T-014", "p": "P1", "title": "Overpass 线路发现（限流+几何拼装）", "deps": ["T-010"], "status": "done", "acceptance": "bbox 限制、镜像轮换、端点拼装不连直线", "verify": "test/unit/overpass_test.dart", "result": "完成；主站 504 为外部状态"},
+    {"id": "T-020", "p": "P1", "title": "缓存体系（命名空间/TTL/SWR/管理UI）", "deps": ["T-002"], "status": "done", "acceptance": "四命名空间、天气键含来源/网格/时间窗、旧数据标记", "verify": "test/unit + weather_repository_test", "result": "完成"},
+    {"id": "T-021", "p": "P1", "title": "设置页（单位/主题/来源/低耗电/缓存/授权/隐私）", "deps": ["T-020"], "status": "done", "acceptance": "全部首版设置项可用", "verify": "代码审查+人工", "result": "完成"},
+    {"id": "T-030", "p": "P1", "title": "CI 流水线（analyze/test/web/apk + 手动 iOS/smoke）", "deps": ["T-001"], "status": "in_progress", "acceptance": "push 触发单 job 全量验证；产物上传", "verify": "gh run watch", "result": "workflow 定义完成，待首跑"},
+    {"id": "T-040", "p": "P2", "title": "Web 端人工冒烟（浏览器实际请求）", "deps": ["T-030"], "status": "todo", "acceptance": "浏览器打开 web release，真实走一次闭环并记录 CORS/UA 表现", "verify": "人工记录于 progress.md", "result": ""},
+    {"id": "T-050", "p": "P2", "title": "真机性能与耗电（协议执行）", "deps": ["T-030"], "status": "blocked", "acceptance": "docs/performance.md 协议执行并记录", "verify": "数据入 performance.md", "result": "无真机"},
+    {"id": "T-060", "p": "P1", "title": "iOS 构建验证", "deps": ["T-030"], "status": "todo", "acceptance": "手动触发 ios-build 通过", "verify": "Actions 历史", "result": ""},
+    {"id": "T-220", "p": "P3", "title": "ARB/gen-l10n 国际化迁移（zh/en）", "deps": ["T-010"], "status": "todo", "acceptance": "文案迁入 ARB，S 类替换为生成访问器", "verify": "flutter test", "result": ""},
+    {"id": "T-310", "p": "P3", "title": "远期趋势产品调研（次季节/集合）", "deps": [], "status": "todo", "acceptance": "找到合规来源并按不确定性展示，或文档化不可行", "verify": "data-sources.md 更新", "result": "当前诚实显示无趋势数据"},
+    {"id": "T-320", "p": "P3", "title": "官方预警接入（如 MET alerts API）", "deps": [], "status": "todo", "acceptance": "真实接入或维持未接入标注", "verify": "新适配器+测试", "result": "当前如实标注未接入"},
+    {"id": "T-330", "p": "P2", "title": "分享线路链接（含敏感位置提示）", "deps": ["T-010"], "status": "todo", "acceptance": "链接编码线路或引用，含提示", "verify": "人工", "result": "当前提供导出 JSON"},
+    {"id": "T-402", "p": "P2", "title": "集成测试帧统计哨兵", "deps": ["T-030"], "status": "todo", "acceptance": "CI 输出慢帧比例", "verify": "CI 日志", "result": ""},
+    {"id": "T-501", "p": "P3", "title": "发布候选与授权/成本核验", "deps": ["T-040", "T-050", "T-060"], "status": "blocked", "acceptance": "release-checklist 全勾", "verify": "docs 更新", "result": ""}
+  ]
+}

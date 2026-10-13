@@ -1,0 +1,41 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 平台目录由 CI 中 `flutter create` 按当前 Flutter 版本生成，
+# 仅提交需要定制的关键文件（AndroidManifest.xml / Info.plist / web/）
+linux/
+macos/
+windows/
+android/*
+!android/app/
+android/app/*
+!android/app/src/
+android/app/src/*
+!android/app/src/main/
+android/app/src/main/*
+!android/app/src/main/AndroidManifest.xml
+ios/*
+!ios/Runner/
+ios/Runner/*
+!ios/Runner/Info.plist
+
+# 本地环境与密钥（不入库）
+.env
+*.env
+!*.env.example
+
+# 杂项
+.DS_Store
+*.log
