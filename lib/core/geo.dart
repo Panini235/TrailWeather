@@ -15,7 +15,8 @@ class Geo {
     final dLon = _rad(b.longitude - a.longitude);
     final la1 = _rad(a.latitude);
     final la2 = _rad(b.latitude);
-    final h = math.pow(math.sin(dLat / 2), 2) +
+    final h =
+        math.pow(math.sin(dLat / 2), 2) +
         math.cos(la1) * math.cos(la2) * math.pow(math.sin(dLon / 2), 2);
     return 2 * _earthRadiusM * math.asin(math.sqrt(h.clamp(0.0, 1.0)));
   }
@@ -43,7 +44,100 @@ class Geo {
     ];
   }
 
-  static void _dp(List<LatLng> pts, int first, int last, double tol, List<bool> keep) {
+  /// 轨迹自适应抽稀（带海拔同步与关键极值点保留）。
+  ///
+  /// - 当点数 <= targetMaxPoints 时直接返回副本；
+  /// - 当点数超过时，保留首尾点、海拔最高点与最低点，并基于 Douglas-Peucker 算法抽稀；
+  /// - 容差动态递增调整，直到保留的点数 <= targetMaxPoints；
+  /// - 返回：(抽稀后的坐标点集, 抽稀后的海拔列表)，两列表严格 1:1 对齐。
+  static (List<LatLng>, List<double?>) simplifyTrack(
+    List<LatLng> points,
+    List<double?> elevations, {
+    int targetMaxPoints = 3000,
+  }) {
+    if (points.length <= targetMaxPoints || points.length <= 2) {
+      return (List.of(points), List.of(elevations));
+    }
+
+    final hasElevations = elevations.length == points.length;
+
+    // 寻找必须保留的特殊关键点：首尾点 + 海拔最高点 + 海拔最低点
+    final mandatory = <int>{0, points.length - 1};
+    if (hasElevations) {
+      var minEle = double.infinity;
+      var maxEle = -double.infinity;
+      var minIdx = -1;
+      var maxIdx = -1;
+      for (var i = 0; i < elevations.length; i++) {
+        final ele = elevations[i];
+        if (ele != null) {
+          if (ele < minEle) {
+            minEle = ele;
+            minIdx = i;
+          }
+          if (ele > maxEle) {
+            maxEle = ele;
+            maxIdx = i;
+          }
+        }
+      }
+      if (minIdx >= 0) mandatory.add(minIdx);
+      if (maxIdx >= 0) mandatory.add(maxIdx);
+    }
+
+    // 动态调整容差（从 2 米开始，逐步放大，直到抽稀后点数 <= targetMaxPoints）
+    var tolerance = 2.0;
+    var keep = List<bool>.filled(points.length, false);
+
+    for (var iter = 0; iter < 15; iter++) {
+      keep = List<bool>.filled(points.length, false);
+      for (final idx in mandatory) {
+        keep[idx] = true;
+      }
+
+      final sortedMandatory = mandatory.toList()..sort();
+      for (var m = 0; m < sortedMandatory.length - 1; m++) {
+        _dp(
+          points,
+          sortedMandatory[m],
+          sortedMandatory[m + 1],
+          tolerance,
+          keep,
+        );
+      }
+
+      var count = 0;
+      for (var i = 0; i < keep.length; i++) {
+        if (keep[i]) count++;
+      }
+
+      if (count <= targetMaxPoints) {
+        break;
+      }
+      tolerance *= 1.8;
+    }
+
+    final outPoints = <LatLng>[];
+    final outElevations = <double?>[];
+    for (var i = 0; i < points.length; i++) {
+      if (keep[i]) {
+        outPoints.add(points[i]);
+        if (hasElevations) {
+          outElevations.add(elevations[i]);
+        }
+      }
+    }
+
+    return (outPoints, outElevations);
+  }
+
+  static void _dp(
+    List<LatLng> pts,
+    int first,
+    int last,
+    double tol,
+    List<bool> keep,
+  ) {
     if (last <= first + 1) return;
     final latScale = 111320.0; // 每纬度米数
     final lonScale = 111320.0 * math.cos(_rad(pts[first].latitude));

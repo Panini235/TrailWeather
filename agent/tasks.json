@@ -85,6 +85,18 @@
       "result": "CI run 38510507584 全绿；外链 URI 单测 2 项与混合搜索组件测试 1 项通过"
     },
     {
+      "id": "T-082",
+      "p": "P0",
+      "title": "商业级轨迹导入重构（解除硬限制、自适应 RDP 抽稀、KML 支持、异常海拔容错与系统关联）",
+      "deps": [
+        "T-013"
+      ],
+      "status": "done",
+      "acceptance": "上限放宽至 30MB；超过 3000 点自动进行自适应 RDP 抽稀并保留最高/最低海拔极值；异常漂移海拔自动置空不崩溃；新增 KML/KMZ 解析器（支持奥维/两步路/Google Earth 的 LineString、MultiGeometry 与 gx:Track）；扩展文件选择器与 Android/iOS 系统级文件打开关联",
+      "verify": "flutter analyze + flutter test（108 项全部通过）",
+      "result": "本地 analyze 0 问题；108/108 项测试全绿；新增 KmlImport、Geo.simplifyTrack 与对应单元测试"
+    },
+    {
       "id": "T-011",
       "p": "P1",
       "title": "行程模式 ETA（跨午夜/DST 安全）",

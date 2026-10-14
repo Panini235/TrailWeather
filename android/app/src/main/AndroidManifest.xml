@@ -24,6 +24,19 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- 支持从外部应用（微信/文件管理器/网盘等）打开 GPX / KML / GeoJSON 轨迹文件 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.gpx" />
+                <data android:pathPattern=".*\\.kml" />
+                <data android:pathPattern=".*\\.kmz" />
+                <data android:pathPattern=".*\\.geojson" />
+            </intent-filter>
         </activity>
         <meta-data
             android:name="flutterEmbedding"

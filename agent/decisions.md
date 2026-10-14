@@ -56,3 +56,10 @@
   `ExternalUrlLauncher` 测试边界，避免组件测试真的打开浏览器。
 - 真正线路目录下一阶段优先评测自建 Waymarked Trails/OSM；路线生成另行评测
   openrouteservice `foot-hiking` 与 GraphHopper `hike`，不把规划器冒充热门线路库。
+
+## D-013 轨迹导入系统重构：容错清洗、自适应 RDP 抽稀与全格式扩展
+- 放弃原有的 5,000 点和 2MB 硬上限：真实户外轨迹常包含万级密集打点，硬性拒绝严重伤害可用性，放宽至 30MB。
+- 引入 `Geo.simplifyTrack`（自适应 Douglas-Peucker）：点数超过阈值（3,000 点）时自动抽稀，保留起点、终点以及最高/最低海拔极值点，保证高程与经纬度 1:1 对齐，并在 UI 中如实提示。
+- 异常海拔容错清洗：遇到传感器漂移噪点（<-500m 或 >10000m）时置为 null 并提示警告，严格遵守“缺失值=null不编造”真实性红线，绝不因个别噪点使整条轨迹报错崩溃。
+- 支持 KML 格式（奥维互动地图、两步路、Google Earth）：解析 LineString、MultiGeometry 与 gx:Track；文件选择器扩展至 gpx/kml/kmz/geojson/json/gsx；移动端配置 Intent-filter / Document Types 关联。
+

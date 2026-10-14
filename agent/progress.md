@@ -120,3 +120,22 @@ GitHub Actions Web/APK 构建待推送。
 **CI 结果**：功能分支 `feat/hybrid-route-search`，commit `4e34604`，run 38510507584 全绿：
 依赖 ✓ / analyze ✓ / test 99 ✓ / Web release ✓ / Android APK release ✓ / 产物上传 ✓。
 产物：`web-release` 14,456,349 bytes；`apk-release` 28,190,862 bytes；均未过期。
+
+## Round 7 — 2026-10-14（商业级轨迹导入重构与多格式支持）
+
+**用户反馈**：导入受限严重无法使用，文件过大或含非标准标签直接报错崩溃；需要更强通用性。
+
+**实现**：
+- **解除机械硬限制**：文件上限从 2MB 放宽至 30MB；取消 5,000 点一票否决抛错逻辑。
+- **自适应 RDP 抽稀算法**：在 `lib/core/geo.dart` 中实现 `Geo.simplifyTrack`，对超过 3,000 点的超长轨迹自适应平滑抽稀，同时强制保留起点、终点以及最高/最低海拔极值点，保证高程与经纬度 1:1 对齐，并在 UI 中如实提示。
+- **异常海拔容错清洗**：遇到传感器漂移噪点（<-500m 或 >10000m）时置为 null 并提示警告，严格遵守真实性红线，绝不因个别噪点使整条轨迹报错崩溃。
+- **全面支持 KML 格式**：新增 `lib/data/routes/kml_import.dart`，支持奥维互动地图、两步路、Google Earth 的 LineString、MultiGeometry 与 gx:Track。
+- **GPX 鲁棒性增强**：过滤 UTF-8 BOM（`\uFEFF`）；忽略 XML 命名空间前缀；支持分散的 `<wpt>` 航点集合自动转换为航线。
+- **移动端与文件选择关联**：扩展文件选择器候选扩展名（含 gpx/kml/kmz/geojson/json/gsx/xml/txt）；在 AndroidManifest.xml 与 Info.plist 中注册 VIEW intent-filter 与 Document Types，支持从微信或文件管理器等外部应用打开轨迹。
+- **编码容错**：文件读取使用 `utf8.decode(bytes, allowMalformed: true)`，防止非 UTF-8 编码或老旧设备导出文件抛 `FormatException`。
+
+**本地验证**：
+- `flutter analyze --no-pub` 0 问题（0 错误、0 警告、0 info）；
+- `flutter test --no-pub` 108/108 项测试全绿（新增 9 项单测覆盖 KmlImport 与 Geo.simplifyTrack）；
+- `dart format` 全部格式化完毕。
+

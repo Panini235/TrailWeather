@@ -39,3 +39,7 @@ ios/Runner/*
 # 杂项
 .DS_Store
 *.log
+# Widget Preview related
+.widget_preview/
+.kiro/
+devtools_options.yaml
