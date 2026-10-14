@@ -61,6 +61,30 @@
       "result": "CI 全绿：地图选线→详情→节点天气→来源切换（run 38402622454）"
     },
     {
+      "id": "T-080",
+      "p": "P0",
+      "title": "首页自动定位、地图点位天气与定位按钮复用",
+      "deps": [
+        "T-010"
+      ],
+      "status": "in_progress",
+      "acceptance": "首页一次定位成功后显示当前位置多来源天气并查询当地线路；地图点选可查天气；定位按钮请求结束后可再次使用；拒绝/永久拒绝/服务关闭/超时可恢复",
+      "verify": "flutter analyze + flutter test（96 项）；GitHub Actions web/apk 待推送",
+      "result": "本地 analyze 0 问题、96 项测试通过；覆盖自动定位与第二次定位、OSM 路径段解析、相邻点位缓存隔离"
+    },
+    {
+      "id": "T-081",
+      "p": "P0",
+      "title": "混合线路搜索（本地/地点/附近 OSM/外部攻略/导入）",
+      "deps": [
+        "T-080"
+      ],
+      "status": "in_progress",
+      "acceptance": "搜索框明确支持地点、山峰与线路；本地和已加载线路可按名称匹配；地点选择后查询附近 OSM；小红书/两步路/六只脚仅用户主动外链检索；可进入 GPX/GeoJSON 导入；不抓取外部内容",
+      "verify": "flutter analyze + flutter test（99 项）；GitHub Actions web/apk 待推送",
+      "result": "本地 analyze 0 问题、99 项测试通过；新增外链 URI 单测 2 项与混合搜索组件测试 1 项"
+    },
+    {
       "id": "T-011",
       "p": "P1",
       "title": "行程模式 ETA（跨午夜/DST 安全）",
@@ -106,7 +130,7 @@
       "status": "done",
       "acceptance": "bbox 限制、镜像轮换、端点拼装不连直线",
       "verify": "test/unit/overpass_test.dart",
-      "result": "完成；主站 504 为外部状态"
+      "result": "完成；正式 route=hiking 关系与具名 path/footway/track 路径段分开标注；主站 504 仍为外部状态"
     },
     {
       "id": "T-020",

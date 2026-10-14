@@ -13,6 +13,7 @@
 | 地点搜索/地理编码 | Open-Meteo Geocoding（GeoNames 等） | 知识共享 | 设置页 |
 | 地图瓦片 | OpenStreetMap 标准瓦片 | ODbL（数据）；瓦片使用政策（仅在线显示，不预下载） | 地图页脚 + 设置页 |
 | 徒步线路几何 | OpenStreetMap（Overpass 查询） | ODbL 1.0 | 线路来源行 + 设置页 |
+| 外部攻略检索 | 百度网页搜索（用户主动打开 `site:` 查询） | 仅链接跳转；不抓取、不缓存、不再分发结果内容 | 搜索结果面板隐私说明 |
 | 示例线路 | 本项目自制 | 项目内 | “演示”标签 |
 
 ## 第三方 Dart/Flutter 依赖（以 pubspec 为准）
@@ -30,6 +31,7 @@
 | intl | ^0.20 | BSD-3-Clause |
 | file_selector | ^1.1 | BSD-3-Clause |
 | geolocator | ^14 | MIT |
+| url_launcher | 6.3.3（精确锁定） | BSD-3-Clause |
 | flutter_lints（dev） | ^6.0 | BSD-3-Clause |
 
 发布前用 `flutter pub deps --style=compact` 复核传递依赖许可（任务 T-501）。

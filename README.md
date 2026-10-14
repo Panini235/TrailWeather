@@ -61,7 +61,7 @@ iOS 构建为手动工作流（节省 runner 分钟）。
 
 ## 配置
 
-无密钥需求（全部公开数据源）。预留网关等变量见 `.env.example`。
+默认来源无需密钥；和风天气为可选来源，需要用户自己的 API Host 与 Key（仅存本机）。预留网关等变量见 `.env.example`。
 
 ## 故障排查
 
@@ -72,7 +72,7 @@ iOS 构建为手动工作流（节省 runner 分钟）。
 | 和风天气显示“未配置” | 在 设置→数据源密钥 填入和风 API Host 与 Key（dev.qweather.com 免费注册） |
 | MET Norway 在 Web 失败 | 浏览器禁止自定义 User-Agent（服务条款要求标识），已在来源能力中标注 |
 | “搜索此区域”失败 | Overpass 公共镜像过载（504）常见；稍后重试，App 内置镜像轮换 |
-| Android 定位无权限 | 拒绝授权后仍可完整浏览；仅“定位到我”需要权限 |
+| Android 定位无权限 | 首页会请求一次前台定位；拒绝后仍可点选地图查天气。永久拒绝可点“打开设置”；定位按钮每次请求结束后恢复可用 |
 
 ## 目录导览
 
@@ -94,9 +94,12 @@ test/              单元 / 来源契约(fixture) / 组件 / 集成
 
 ## 当前状态
 
-**核心功能已验证**：CI 全绿（analyze / 83 项测试 / Web release / Android APK，产物见
-Actions Artifacts）。iOS 构建为手动工作流。边界与未验证项（真机性能/耗电、浏览器冒烟、
-商业授权）如实列于 `docs/acceptance.md` 与 `agent/blockers.md`，不混称“已商品化”。
+**上一版 CI 全绿**：analyze / 93 项测试 / Web release / Android APK；iOS 手动构建通过。
+**本轮本地验证**：analyze 0 问题 / 99 项测试通过；新增地图点位天气、首页自动定位天气、
+可重复定位、混合线路搜索（本地/地点/附近 OSM/外部攻略/导入）和更广的 OSM 线路发现，
+待推送后由 GitHub Actions 构建验证。边界与未验证项
+（真机性能/耗电、浏览器冒烟、商业授权）如实列于 `docs/acceptance.md` 与
+`agent/blockers.md`，不混称“已商品化”。
 
 ## 本地开发
 

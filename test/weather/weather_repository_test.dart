@@ -120,6 +120,28 @@ void main() {
     expect(fake.callCount, 1);
   });
 
+  test('相近但不同请求坐标不共享跨请求缓存', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final fake = FakeProvider(responses: {});
+    final repo = WeatherRepository(
+        cache: CacheStore(prefs), providers: [fake], approxGridDeg: 0.1);
+    final t0 = DateTime.utc(2026, 10, 13, 10);
+
+    await repo.getRouteWeather(
+        providerId: 'fake:test',
+        nodes: [node(40.0000, 116.0000)],
+        startUtc: t0,
+        endUtc: t0.add(const Duration(hours: 1)));
+    await repo.getRouteWeather(
+        providerId: 'fake:test',
+        nodes: [node(40.0100, 116.0100)],
+        startUtc: t0,
+        endUtc: t0.add(const Duration(hours: 1)));
+
+    expect(fake.callCount, 2,
+        reason: '近似网格只用于单次请求去重，不能让独立点位复用缓存');
+  });
+
   test('缓存命中：相同键不重复请求', () async {
     final prefs = await SharedPreferences.getInstance();
     final fake = FakeProvider(responses: {});
@@ -164,9 +186,7 @@ void main() {
     final cache = CacheStore(prefs);
     await cache.write(
         CacheNs.weather,
-        repo.approxGridKey(const LatLng(40.0, 116.0)).isEmpty
-            ? 'v1|fake:test|${repo.approxGridKey(const LatLng(40.0, 116.0))}|2026-10-13T10|2026-10-13T11'
-            : 'v1|fake:test|${repo.approxGridKey(const LatLng(40.0, 116.0))}|2026-10-13T10|2026-10-13T11',
+        'v2|fake:test|40.0000,116.0000|2026-10-13T10|2026-10-13T11',
         '{"providerId":"fake:test","fetchedAt":"2026-10-13T09:00:00Z","points":[]}',
         Duration.zero);
     final r = await repo.getRouteWeather(

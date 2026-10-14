@@ -1,0 +1,185 @@
+import 'package:flutter/material.dart';
+
+import '../../data/geocode.dart';
+import '../../data/routes/external_trail_search.dart';
+import '../../data/routes/route_models.dart';
+import '../strings.dart';
+import '../widgets/common.dart';
+
+class HybridRouteSearchResults extends StatelessWidget {
+  const HybridRouteSearchResults({
+    super.key,
+    required this.query,
+    required this.routes,
+    required this.places,
+    required this.searching,
+    required this.onRouteTap,
+    required this.onPlaceTap,
+    required this.onExternalTap,
+    required this.onImportTap,
+    required this.onClose,
+  });
+
+  final String query;
+  final List<HikingRoute> routes;
+  final List<PlaceSuggestion> places;
+  final bool searching;
+  final ValueChanged<HikingRoute> onRouteTap;
+  final ValueChanged<PlaceSuggestion> onPlaceTap;
+  final ValueChanged<ExternalTrailSearchTarget> onExternalTap;
+  final VoidCallback onImportTap;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final external = ExternalTrailSearch.targets(query);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        elevation: 6,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 430),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(bottom: 8),
+            children: [
+              ListTile(
+                dense: true,
+                title: Text(
+                  '${S.hybridSearchTitle} · $query',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                trailing: IconButton(
+                  tooltip: S.close,
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+              if (searching) const LinearProgressIndicator(minHeight: 2),
+              if (routes.isNotEmpty) ...[
+                const _SectionTitle(
+                  icon: Icons.route_outlined,
+                  title: S.directRoutes,
+                  subtitle: '有完整几何，可直接进入沿途天气分析',
+                ),
+                for (final route in routes.take(6))
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.hiking, size: 20),
+                    title: Text(route.name, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(
+                      '${(route.totalDistanceM / 1000).toStringAsFixed(1)} km · '
+                      '${routeOriginLabel(route.origin)}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: route.isDemo ? const DemoBadge() : null,
+                    onTap: () => onRouteTap(route),
+                  ),
+              ],
+              if (places.isNotEmpty) ...[
+                const _SectionTitle(
+                  icon: Icons.place_outlined,
+                  title: S.placeCandidates,
+                  subtitle: '先定位到区域，再查附近 OSM 线路',
+                ),
+                for (final place in places.take(5))
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.map_outlined, size: 20),
+                    title: Text(place.name, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(
+                      '${place.admin ?? ''} ${place.country ?? ''}'.trim(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () => onPlaceTap(place),
+                  ),
+              ],
+              if (!searching && routes.isEmpty && places.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text(
+                    '暂未找到可直接分析的线路。可从外部攻略获取线索，或导入你有权使用的轨迹文件。',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              if (external.isNotEmpty) ...[
+                const _SectionTitle(
+                  icon: Icons.open_in_browser,
+                  title: S.externalGuides,
+                  subtitle: '在系统浏览器搜索；App 不抓取或复制平台内容',
+                ),
+                for (final target in external)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.open_in_new, size: 19),
+                    title: Text(target.label),
+                    subtitle: Text('通过百度限定搜索 ${target.siteHost}'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => onExternalTap(target),
+                  ),
+              ],
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.file_upload_outlined, size: 20),
+                title: const Text(S.importOwnedTrack),
+                subtitle: const Text('导入 GPX/GeoJSON 后即可分析沿途天气'),
+                onTap: onImportTap,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 17, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

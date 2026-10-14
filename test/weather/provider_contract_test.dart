@@ -115,10 +115,11 @@ void main() {
         },
       );
       final pts = [const LatLng(40.0, 116.18), const LatLng(40.06, 116.31)];
+      final now = DateTime.now().toUtc();
       final out = await p.fetchPoints(
           points: pts,
-          startUtc: DateTime.utc(2026, 10, 13),
-          endUtc: DateTime.utc(2026, 10, 14));
+          startUtc: now,
+          endUtc: now.add(const Duration(days: 1)));
       expect(out, hasLength(2));
 
       final first = out.first;
@@ -175,11 +176,12 @@ void main() {
         model: 'best_match',
         fetcher: (uri, {headers, cancelToken}) async => openMeteoMultiPointFixture,
       );
+      final now = DateTime.now().toUtc();
       expect(
         () => p.fetchPoints(
             points: [const LatLng(40, 116)],
-            startUtc: DateTime.utc(2026, 10, 13),
-            endUtc: DateTime.utc(2026, 10, 14)),
+            startUtc: now,
+            endUtc: now.add(const Duration(days: 1))),
         throwsA(isA<SourceHttpException>()),
       );
     });

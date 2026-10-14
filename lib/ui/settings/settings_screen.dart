@@ -235,8 +235,8 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('数据授权与署名'),
         content: const SingleChildScrollView(
           child: Text(
-            '地图瓦片：© OpenStreetMap 贡献者（ODbL）。仅在线显示，不预下载。\n\n'
-            '徒步线路（OSM）：© OpenStreetMap 贡献者，ODbL 1.0。线路几何来自 Overpass API 按视野查询；App 展示不构成对路线可通行性或许可进入的担保。\n\n'
+            '地图瓦片：默认 © 高德地图；可切换 © OpenStreetMap 贡献者。仅在线显示，不预下载。\n\n'
+            '徒步线路与具名路径段（OSM）：© OpenStreetMap 贡献者，ODbL 1.0。线路几何来自 Overpass API 按视野查询；路径段不冒充完整路线，App 展示不构成对路线可通行性或许可进入的担保。\n\n'
             '天气：Open-Meteo（CC BY 4.0，非商业免费额度；模型来自 NOAA 等机构）；MET Norway Locationforecast 2.0（NLOD 2.0 / CC BY 4.0）。\n\n'
             '地点搜索：Open-Meteo Geocoding（GeoNames/知识共享数据）。\n\n'
             '内置示例线路为本项目演示数据（已标注“演示”），非实测。\n\n'
@@ -256,9 +256,11 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('隐私说明'),
         content: const SingleChildScrollView(
           child: Text(
-            '· 不默认上传你的轨迹、精确位置或收藏；全部保存在本机。\n'
-            '· 仅在你点击“定位到我”时读取位置（一次性），拒绝后功能仍完整。\n'
-            '· 天气与线路请求会把对应坐标发送到所选数据服务（Open-Meteo / MET Norway / Overpass / OSM 瓦片）以获取数据；这是获取服务所必需的最小信息。\n'
+            '· 不默认上传你的轨迹、精确位置或收藏；收藏和缓存保存在本机。\n'
+            '· 首页会请求一次前台定位，用于显示当前位置天气并查询当地线路；之后仅在你再次点击定位按钮时读取，不持续监听、不后台定位。\n'
+            '· 定位成功、点击地图或查看线路天气时，会把对应坐标/视野发送到已启用天气来源和 Overpass；地图瓦片请求发送标准瓦片坐标。\n'
+            '· 混合搜索会把关键词发送给地点搜索；只有你主动点击外部攻略入口时，才在系统浏览器用百度搜索小红书/两步路/六只脚。App 不读取 Cookie，也不抓取或缓存外部网页内容。\n'
+            '· 拒绝定位后仍可手动点选地图、搜索地点和查看线路天气。\n'
             '· 日志不记录你的完整轨迹与精确位置；来源异常仅记录端点与状态码。\n'
             '· 缓存仅在本机；可在“缓存管理”随时清除。\n'
             '· 分享/导出线路时请注意其中可能包含住宅、常去出发点等敏感位置。\n'

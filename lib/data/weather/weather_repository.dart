@@ -11,7 +11,8 @@ import 'weather_provider.dart';
 /// 天气仓库：编排采样节点 → 去重 → 缓存 → 请求。
 ///
 /// 职责：
-/// - 缓存键包含来源、时间窗、网格化坐标与参数版本；
+/// - 缓存键包含来源、时间窗、请求坐标（4 位小数）与参数版本；
+/// - 近似网格仅用于同一次线路查询的节点去重，不用于跨请求缓存身份，避免相邻山谷误复用；
 /// - TTL 按来源配置；支持 stale-while-revalidate（过期数据标记“旧数据”后
 ///   立即返回，同时后台刷新，绝不把旧数据当刚更新的数据）；
 /// - 网格去重：来源无稳定网格标识时使用“坐标近似网格”策略并明确说明
@@ -163,14 +164,17 @@ class WeatherRepository {
     return result;
   }
 
-  /// 缓存键包含：来源、坐标集合（网格化）、时间窗、参数版本。
-  /// 影响 weather 输出的任何参数变化都必须进入键。
+  /// 缓存键包含：来源、实际请求坐标集合、时间窗、参数版本。
+  /// 坐标保留 4 位小数（约 11 m）；近似网格只负责同次请求去重，不能跨请求复用。
   String _cacheKey(String providerId, List<LatLng> pts, DateTime startUtc,
       DateTime endUtc) {
-    final coords = pts.map(approxGridKey).join('|');
+    final coords = pts
+        .map((p) =>
+            '${p.latitude.toStringAsFixed(4)},${p.longitude.toStringAsFixed(4)}')
+        .join('|');
     final s = startUtc.toIso8601String().substring(0, 13); // 小时粒度
     final e = endUtc.toIso8601String().substring(0, 13);
-    return 'v1|$providerId|$coords|$s|$e';
+    return 'v2|$providerId|$coords|$s|$e';
   }
 
   String _encode(WxSourceResult r) {

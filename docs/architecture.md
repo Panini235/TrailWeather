@@ -12,7 +12,8 @@
 | 持久化 | shared_preferences ^2.5 | 三端一致；设置/收藏直接存储，业务缓存用 CacheStore（TTL/LRU/命名空间） | path_provider 不支持 Web |
 | XML/GPX | xml ^7.1 | 纯 Dart，不解析外部实体（防 XXE） | — |
 | 文件选择 | file_selector ^1.1 | 官方维护，三端 | — |
-| 定位 | geolocator ^14 | 仅按需一次性定位 | — |
+| 定位 | geolocator ^14 | 首页一次性前台定位；之后仅用户主动请求 | — |
+| 外部网页 | url_launcher 6.3.3（精确锁定） | 官方维护，用户手势打开 HTTPS，Android/iOS/Web 一致 | WebView 会扩大 Cookie/登录与内容安全边界 |
 | 图表 | 自写 CustomPainter | 与真实采样点严格对应、零额外依赖 | fl_chart 增加依赖面 |
 
 ## 分层
@@ -21,9 +22,9 @@
 ui/            屏幕（地图首页/详情/对比/设置/导入）+ 公共组件
 data/weather   WeatherProvider 抽象 + 适配器（Open-Meteo / MET Norway）
                WeatherRepository：采样节点→近似网格去重→缓存→请求→溯源
-data/routes    HikingRoute（多段几何）+ GPX/GeoJSON 导入 + Overpass 发现 + 示例
+data/routes    HikingRoute（多段几何）+ GPX/GeoJSON 导入 + Overpass 发现 + 外部攻略检索目标 + 示例
 data/settings  AppSettings / Favorites（Notifier + shared_preferences）
-core/          Geo（haversine/DP 简化）、Units、WxHttp、CacheStore
+core/          Geo（haversine/DP 简化）、Units、WxHttp、CacheStore、ExternalUrlLauncher
 ```
 
 - **地图渲染与业务解耦**：业务层只产出 `HikingRoute` / `RouteNode` / `WxSourceResult`，
@@ -46,8 +47,9 @@ core/          Geo（haversine/DP 简化）、Units、WxHttp、CacheStore
 
 - 内部时间一律 UTC；ETA 纯 UTC 运算（跨午夜/DST 安全）；展示按设备本地或来源偏移并标注。
 - 缓存命名空间：routes / map / weather / user。天气缓存键 =
-  `v1|providerId|近似网格坐标串|起始小时|结束小时`；TTL 按来源（Open-Meteo 30min、
-  MET 20min）；过期 6h 内可读但 UI 标“旧数据”并后台刷新（stale-while-revalidate）。
+  `v2|providerId|请求坐标串（4 位小数）|起始小时|结束小时`；近似网格只在单次线路查询内
+  合并节点，不用于跨请求缓存身份；TTL 按来源（Open-Meteo 30min、MET 20min）；
+  过期 6h 内可读但 UI 标“旧数据”并后台刷新（stale-while-revalidate）。
 
 ## 请求纪律
 

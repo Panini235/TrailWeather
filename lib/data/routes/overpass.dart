@@ -35,8 +35,11 @@ class OverpassRouteSource {
   /// bbox 跨度上限（约一个城市尺度）。
   static const maxBboxSpan = 0.6;
 
-  /// 单次最多解析的 relation 数。
+  /// 单次最多解析的正式路线关系数。
   static const maxRelations = 30;
+
+  /// 正式路线与具名路径段合计上限，避免在密集城区返回过多结果。
+  static const maxElements = 60;
 
   bool bboxAllowed(double minLat, double minLon, double maxLat, double maxLon) {
     final spanLat = maxLat - minLat;
@@ -55,8 +58,14 @@ class OverpassRouteSource {
     }
     final bbox =
         '$minLat,$minLon,$maxLat,$maxLon';
-    final query =
-        '[out:json][timeout:25];relation[route=hiking]($bbox);out tags geom $maxRelations;';
+    final query = '''
+[out:json][timeout:25];
+(
+  relation[route=hiking]($bbox);
+  way[highway~"^(path|footway|track)\$"][name]($bbox);
+);
+out tags geom $maxElements;
+''';
 
     Object? lastErr;
     for (final ep in endpoints) {
@@ -84,12 +93,52 @@ class OverpassRouteSource {
     final routes = <HikingRoute>[];
     for (final el in elements) {
       if (el is! Map<String, dynamic>) continue;
-      if (el['type'] != 'relation') continue;
-      final route = _relationToRoute(el);
+      final route = switch (el['type']) {
+        'relation' => _relationToRoute(el),
+        'way' => _wayToRoute(el),
+        _ => null,
+      };
       if (route != null) routes.add(route);
-      if (routes.length >= maxRelations) break;
+      if (routes.length >= maxElements) break;
     }
     return routes;
+  }
+
+  HikingRoute? _wayToRoute(Map<String, dynamic> el) {
+    final points = _readGeometry(el['geometry']);
+    if (points.length < 2) return null;
+    final tags = (el['tags'] as Map<String, dynamic>?) ?? {};
+    final name = tags['name'] as String?;
+    if (name == null || name.trim().isEmpty) return null;
+    final id = (el['id'] as num?)?.toInt();
+    if (id == null) return null;
+    final highway = tags['highway'] as String? ?? 'path';
+
+    return HikingRoute(
+      id: 'osm-w$id',
+      name: name,
+      origin: RouteOrigin.osmPath,
+      segments: [points],
+      elevationsM: List<double?>.filled(points.length, null),
+      sourceName: 'OpenStreetMap 具名路径段（highway=$highway；不是完整规划路线）',
+      sourceLicense: 'ODbL 1.0',
+      sourceUrl: 'https://www.openstreetmap.org/way/$id',
+      osmId: id,
+    );
+  }
+
+  List<LatLng> _readGeometry(Object? geometry) {
+    if (geometry is! List) return const [];
+    final points = <LatLng>[];
+    for (final item in geometry) {
+      if (item is! Map<String, dynamic>) continue;
+      final lat = (item['lat'] as num?)?.toDouble();
+      final lon = (item['lon'] as num?)?.toDouble();
+      if (lat == null || lon == null) continue;
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+      points.add(LatLng(lat, lon));
+    }
+    return points;
   }
 
   HikingRoute? _relationToRoute(Map<String, dynamic> el) {
@@ -98,18 +147,8 @@ class OverpassRouteSource {
     for (final m in members) {
       if (m is! Map<String, dynamic>) continue;
       if (m['type'] != 'way') continue;
-      final geometry = m['geometry'];
-      if (geometry is! List) continue;
-      final pts = <LatLng>[];
-      for (final g in geometry) {
-        if (g is! Map<String, dynamic>) continue;
-        final lat = (g['lat'] as num?)?.toDouble();
-        final lon = (g['lon'] as num?)?.toDouble();
-        if (lat == null || lon == null) continue;
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
-        pts.add(LatLng(lat, lon));
-      }
-      if (pts.length >= 2) wayGeoms.add(pts);
+      final points = _readGeometry(m['geometry']);
+      if (points.length >= 2) wayGeoms.add(points);
     }
     if (wayGeoms.isEmpty) return null;
     final segments = assembleSegments(wayGeoms);

@@ -5,18 +5,20 @@ import 'package:latlong2/latlong.dart';
 import '../../core/geo.dart';
 
 /// 线路数据来源。区分已有徒步路线、路径数据、用户导入线路。
-enum RouteOrigin { demo, import, osm }
+enum RouteOrigin { demo, import, osm, osmPath }
 
 String routeOriginLabel(RouteOrigin o) => switch (o) {
       RouteOrigin.demo => '内置示例（演示数据）',
       RouteOrigin.import => '用户导入',
       RouteOrigin.osm => 'OpenStreetMap 徒步路线关系',
+      RouteOrigin.osmPath => 'OpenStreetMap 具名徒步路径段',
     };
 
 /// 一条徒步线路。
 ///
 /// 几何按“连续段”组织：OSM 路线关系可能包含多段、缺失或不连通几何，
-/// 段与段之间绝不自动连直线；GPX 也可能包含多个 trkseg。
+/// OSM 路径数据则只代表具名路径段、不是完整规划路线；段与段之间绝不自动连直线；
+/// GPX 也可能包含多个 trkseg。
 class HikingRoute {
   HikingRoute({
     required this.id,

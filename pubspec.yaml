@@ -26,8 +26,10 @@ dependencies:
   intl: ^0.20.3
   # 文件导入（GPX/GeoJSON）
   file_selector: ^1.1.0
-  # 定位（仅用户主动请求时）
+  # 定位（首页一次性前台定位；之后仅用户主动请求）
   geolocator: ^14.1.1
+  # 用户主动打开外部攻略网页（Android/iOS/Web）
+  url_launcher: 6.3.3
 
 dev_dependencies:
   flutter_test:

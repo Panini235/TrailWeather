@@ -23,12 +23,22 @@ abstract final class S {
   static const emptyRoutes = '当前区域没有线路';
 
   // 地图首页
-  static const searchHint = '搜索地点（如：香山、西湖）';
+  static const searchHint = '搜索地点、山峰或徒步线路';
+  static const hybridSearchTitle = '混合线路搜索';
+  static const directRoutes = '可直接分析的线路';
+  static const placeCandidates = '地点候选';
+  static const externalGuides = '外部攻略与轨迹线索';
+  static const importOwnedTrack = '导入你有权使用的轨迹';
   static const searchThisArea = '搜索此区域线路';
   static const areaTooLarge = '视野范围过大，请放大后重试';
   static const locateMe = '定位到我';
+  static const locating = '正在定位…';
+  static const currentLocation = '当前位置天气';
+  static const selectedPointWeather = '地图选点天气';
   static const locationDenied =
-      '未获得定位权限。你仍然可以完整浏览地图、搜索与查看线路天气。';
+      '未获得定位权限。你仍可手动点选地图查询天气。';
+  static const locationSettings = '打开设置';
+  static const tapMapWeatherHint = '点击地图任意位置可查看该点附近天气';
   static const routeListTitle = '本区域线路';
   static const osmFetchFail = 'OpenStreetMap 线路服务暂不可用，可稍后重试或查看本地线路。';
   static const listButton = '线路列表';

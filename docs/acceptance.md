@@ -54,9 +54,12 @@
 | --- | --- | --- |
 | 地图/线路/底图解耦 | ✅ | 架构分层（docs/architecture.md） |
 | 三端一致的地图方案 | ✅ flutter_map 纯 Dart | CI web+apk 构建 |
-| viewport+缩放获取、防抖、限制 | ✅ | 本地线路 bbox 过滤；Overpass 按需+跨度限制（单测） |
+| viewport+缩放获取、防抖、限制 | ✅ | 本地线路 bbox 过滤；定位/地点选择后自动一次查询，其余按需；Overpass 跨度限制（单测） |
 | OSM 关系多段/不连通正确处理 | ✅ | assembleSegments 单测（不连直线） |
-| 不把普通道路标为徒步路线 | ✅ | 仅 relation[route=hiking] 查询 |
+| 正式路线与普通路径不混称 | ✅ | relation[route=hiking] 标为正式路线；具名 path/footway/track 标为“路径段、非完整规划路线”（单测） |
+| 混合线路搜索 | ✅ | 本地/已加载线路关键词匹配 + 地点候选 + 附近 OSM + 用户主动外部攻略入口 + GPX 导入；组件测试 |
+| 外部平台内容不抓取 | ✅ | 仅构造百度站点限定 HTTPS 链接并交系统浏览器；URI 单测；不读取 Cookie/页面内容 |
+| 地图点位天气 | ✅ | 点击地图/地点结果显示 WGS-84 标记和多来源天气面板；网格预报非实测声明 |
 | 不声称路线可通行 | ✅ | 授权说明文案 |
 | GPX/GeoJSON 导入+限制+校验 | ✅ | gpx/geojson_import + 单测（大小/点数/范围/损坏） |
 | 瓦片不预下载 | ✅ | 无离线瓦片代码 |
@@ -68,7 +71,7 @@
 | --- | --- | --- |
 | Riverpod/go_router/可取消 HTTP | ✅ | dio CancelToken（详情页 autoDispose invalidate） |
 | 缓存四命名空间+TTL+SWR+旧数据标记 | ✅ | CacheStore + StaleDataBanner |
-| 缓存键含来源/网格/时间窗/参数版本 | ✅ | weather_repository._cacheKey + 单测 |
+| 缓存键含来源/请求坐标/时间窗/参数版本 | ✅ | weather_repository._cacheKey v2（4 位小数）+ 相邻点不共享缓存单测 |
 | Web 真实请求能力 | 🟡 | CORS 核验（data-sources.md）；端到端待人工开浏览器验证 |
 | 无重型后端 | ✅ | 直连公开 API |
 
@@ -76,7 +79,7 @@
 
 | 要求 | 状态 | 证据 |
 | --- | --- | --- |
-| 默认无后台定位 | ✅ | 仅按钮触发 geolocator 一次 |
+| 默认无后台定位 | ✅ | 首页一次性定位；无位置流订阅，后续仅按钮触发 |
 | 拖动期间不请求天气 | ✅ | 架构：选中才拉取 |
 | 去重/取消/退避/有限并发 | ✅ | WxHttp 退避 + 近似网格合并 + 串行限速 |
 | 429 不规避配额 | ✅ | 退避重试，无换端点绕过（Overpass 镜像轮换针对 5xx/504 过载，非配额规避） |
@@ -91,7 +94,7 @@
 | --- | --- | --- |
 | 单元（geo/units/eta/sampling/risk/cache/gpx/geojson/overpass） | ✅ | test/unit/ |
 | 来源契约（正常/空/字段变化/点数不符/超范围/损坏） | ✅ | test/weather/ |
-| 组件（缺失值/演示/颗粒度/过期/错误） | ✅ | test/widget/ |
+| 组件（缺失值/演示/颗粒度/过期/错误/自动定位复用/混合搜索） | ✅ | test/widget/（含 map_home_location_test.dart、hybrid_route_search_test.dart） |
 | 集成（选线→详情→时间→收藏→恢复） | ✅ | test/integration/ |
 | flutter analyze / test / web release / apk release | ✅ | CI run 38402622454 全绿（2026-10-13） |
 | iOS 构建 | ✅ | 手动工作流 run 38403822714 通过（--no-codesign） |
@@ -99,6 +102,7 @@
 
 ## 状态结论（当前批次）
 
-**核心功能已验证（三端构建级：Android APK / Web / iOS no-codesign + 83 项自动化测试
-全部通过，2026-10-13）。** 真机运行表现、真机性能/耗电、Web 浏览器人工冒烟、
+**上一版核心功能已通过三端构建（Android APK / Web / iOS no-codesign，CI 2026-10-13）；
+本轮地图点位天气、自动定位复用、线路发现与混合线路搜索在本地 99 项自动化测试全部通过（2026-10-14），
+GitHub Actions 构建待推送后验证。** 真机运行表现、真机性能/耗电、Web 浏览器人工冒烟、
 生产环境核验未完成——构建通过不等于真机表现已验证，不宣称“可商用”。

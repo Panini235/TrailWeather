@@ -91,15 +91,48 @@
 - 免费无密钥，CORS 开放（实测）。数据来自 GeoNames 等（知识共享署名）。
 - 返回 IANA 时区字段（地理数据库属性，非天气分辨率）。
 
-### Overpass API（OSM 徒步路线发现）
+### Overpass API（OSM 徒步路线与路径发现）
 
 - 端点轮换：overpass-api.de / kumi.systems / private.coffee。
 - 实测状态（2026-10-13）：主站对大查询返回 504（过载，外部状态）；退避与镜像轮换已实现，
   真实可用性以 Live Smoke 结果为准。
-- 使用纪律：仅 zoom≥11 且用户点击“搜索此区域”时查询；bbox 跨度 ≤0.6°；单次 ≤30 条；
-  结果缓存 10 min。不把公共查询服务当无限量生产数据库。
+- 使用纪律：仅 zoom≥11；首页定位成功或选择地点后自动查询一次，用户也可点击“搜索此区域”；
+  bbox 跨度 ≤0.6°；正式路线与路径段合计单次 ≤60 条；结果缓存 10 min。不把公共查询服务
+  当无限量生产数据库。
+- 查询与标注：`relation[route=hiking]` 标为“徒步路线关系”；具名
+  `highway=path|footway|track` 仅标为“具名路径段（不是完整规划路线）”，不把普通路径伪装成
+  可直接导航的完整线路。
 - 几何处理：relation 成员 way 乱序/缺失/不连通时按端点贪心串联，不共享端点的段独立，
   **绝不自动连直线**；行程模式基于最长连续段并标注。
+
+### 用户建议的第三方线路平台（接入边界）
+
+- [两步路](https://www.2bulu.com/)：本轮未找到面向第三方 App 的公开线路目录 API 与明确商用授权；
+  不抓取网页或调用未公开接口。
+- [六只脚](https://www.foooooot.com/)：官网公开展示行程目录，但本轮未找到官方开发者 API/商用再分发条款；
+  未获书面许可前不把网页内容当 API。
+- 小红书公开 Ark API 为商家电商接口，不提供笔记/徒步线路目录搜索；不读取登录 Cookie 或移动端私有接口。
+- [奥维互动地图第三方接口](https://www.ovital.com/openapi/)：官方接口用于 Windows 版奥维与第三方程序通过
+  Windows 消息/WebSocket 协作，可读写用户收藏夹中的轨迹/路线；它不是公开线路目录，也不能直接作为
+  Flutter Android/iOS/Web 的云端线路来源。
+- **当前实现**：混合搜索本机匹配已有线路并调用 Open-Meteo Geocoding；外部攻略入口仅在用户点击后，
+  用系统浏览器打开百度 `site:` 限定搜索。App 不抓取、解析、缓存或复制搜索结果和平台内容。
+- 可合规推进的路径：继续支持用户自行导出的 GPX/GeoJSON；若产品方提供正式 SDK/API 与商用授权，
+  再做账号授权或深链导入。生产版不以逆向、爬虫或复用私人接口替代合作协议。
+
+### 可直接评测的徒步线路 API（候选，尚未接入）
+
+| 类型 | 候选 | 能力与边界 |
+| --- | --- | --- |
+| OSM 线路目录 | [Waymarked Trails API](https://github.com/waymarkedtrails/waymarkedtrails-api) | 基于 OSM，支持线路名称模糊搜索；服务端 GPLv3，需自建数据库/后端并履行 ODbL，不依赖公共实例 SLA |
+| 商业线路目录 | [Outdooractive API 示例](https://github.com/Outdooractive/outdooractive-examples) | 有专业户外线路内容，但需商务申请项目密钥、数据范围与商用再分发许可，不是匿名即用 API |
+| 徒步路线生成 | [openrouteservice](https://openrouteservice.org/services/) | `foot-hiking`，返回几何；是起终点规划器，不是热门线路目录，可申请 key 或自建 |
+| 徒步路线生成 | [GraphHopper Routing API](https://docs.graphhopper.com/openapi/routing-api) | `hike` profile，返回 polyline/GeoJSON，有商业套餐；需对中国景区覆盖做样本验证 |
+| 徒步/步行生成 | [Mapbox Directions](https://docs.mapbox.com/api/navigation/directions/) | `mapbox/walking` 包含部分步道/徒步场景；商业计费，不提供社区热门线路目录 |
+| 大陆步行生成 | [高德路线规划](https://lbs.amap.com/api/webservice/guide/api/direction) / [腾讯路线规划](https://lbs.qq.com/service/webService/webServiceGuide/webServiceRoute) | 大陆道路覆盖较好，但只有步行模式，不保证山地步道完整性；需密钥、GCJ-02 边界和商用授权 |
+
+Wikiloc 官方说明暂无开发者 API；Komoot 官方说明无公开 API；AllTrails 未核验到公开自助线路目录 API；
+Strava API 主要读取获授权用户自己的路线。第三方“scraper API”不进入候选。
 
 ### 高德地图栅格瓦片（默认底图）
 

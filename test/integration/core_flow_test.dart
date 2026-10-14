@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trailweather/data/app_providers.dart';
+import 'package:trailweather/data/location/location_service.dart';
 import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
@@ -118,6 +119,17 @@ HikingRoute _demoRoute() => HikingRoute(
       isDemo: true,
     );
 
+class _DeniedLocationService implements LocationService {
+  @override
+  Future<LatLng> currentPosition() async => throw const LocationFailure(
+        LocationFailureKind.denied,
+        '集成测试不启用设备定位',
+      );
+
+  @override
+  Future<bool> openSettings(LocationFailureKind kind) async => false;
+}
+
 Future<SharedPreferences> _mockPrefs() async {
   SharedPreferences.setMockInitialValues({});
   return SharedPreferences.getInstance();
@@ -128,6 +140,7 @@ Future<void> _pumpApp(WidgetTester tester, SharedPreferences prefs) async {
     ProviderScope(
       overrides: [
         prefsProvider.overrideWithValue(prefs),
+        locationServiceProvider.overrideWithValue(_DeniedLocationService()),
         weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
       ],
       child: const _AppShell(),
@@ -173,6 +186,7 @@ void main() {
       ProviderScope(
         overrides: [
           prefsProvider.overrideWithValue(prefs),
+          locationServiceProvider.overrideWithValue(_DeniedLocationService()),
           weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
         ],
         child: MaterialApp(home: RouteDetailScreen(args: RouteDetailArgs(route: route))),
