@@ -202,3 +202,8 @@ GitHub Actions Web/APK 构建待推送。
 - `flutter analyze --no-pub` 0 问题（0 错误、0 警告、0 info）；
 - `flutter test --no-pub` 121/121 全量测试通过；
 - `dart format` 全量格式化。
+
+**CI 结果**：分支 `feat/robust-track-import`，GitHub Actions Run ID `38552136025`，全绿成功（7m22s）：
+- analyze ✓, test 121/121 ✓, Web Release ✓, Android APK Release ✓。
+- 生成产物：`web-release`、`apk-release`。
+

@@ -357,7 +357,7 @@
       "status": "done",
       "acceptance": "痛点问诊/空间反差引导、主推年度套餐并享7天免费试用、终身买断与月度方案、安全退出与恢复购买、高程垂直递减率微气候计算与离线包下载",
       "verify": "flutter analyze 0 issues + flutter test 121/121 全绿 + CI 构建",
-      "result": "完成；本地 analyze 0 issues，121 tests 100% 通过"
+      "result": "完成；本地 analyze 0 issues，121 tests 100% 通过 + CI 38552136025 全绿（Web+APK）"
     }
   ]
 }
