@@ -11,6 +11,7 @@ import '../../core/geo.dart';
 import '../../data/app_providers.dart';
 import '../../data/geocode.dart';
 import '../../data/location/location_service.dart';
+import '../../data/monetization/subscription_repository.dart';
 import '../../data/routes/external_trail_search.dart';
 import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
@@ -357,6 +358,20 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final settings = ref.read(settingsProvider);
+      if (!settings.hasCompletedOnboarding) {
+        try {
+          context.push('/onboarding');
+        } catch (_) {}
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -380,6 +395,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
 
     final selectedId = _selected?.id;
     final basemap = Basemap(ref.watch(settingsProvider).basemap);
+    final sub = ref.watch(subscriptionProvider);
+    final isPro = sub.isPro;
 
     return Scaffold(
       body: Stack(
@@ -549,6 +566,19 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.travel_explore),
+                    ),
+                    const SizedBox(height: 10),
+                    FloatingActionButton.small(
+                      heroTag: 'proBadge',
+                      backgroundColor: isPro ? Colors.amber.shade700 : null,
+                      onPressed: () => context.push('/paywall'),
+                      tooltip: isPro
+                          ? 'TrailWeather Pro 已激活'
+                          : '升级 Pro 会员（享 7 天免费试用）',
+                      child: Icon(
+                        Icons.workspace_premium,
+                        color: isPro ? Colors.white : Colors.amber.shade800,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     FloatingActionButton.small(

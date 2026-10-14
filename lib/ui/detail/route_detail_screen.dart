@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart';
 import '../../core/units.dart';
 import '../../data/app_providers.dart';
+import '../../data/monetization/subscription_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/routes/route_sampling.dart';
 import '../../data/settings/favorites_repository.dart';
@@ -161,6 +163,44 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download_for_offline_outlined),
+            tooltip: '离线气象与轨迹包',
+            onPressed: () {
+              final sub = ref.read(subscriptionProvider);
+              if (sub.isPro) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ 该线路未来 7 天微气候与几何已完整离网缓存，深山无信号时可离网查验。'),
+                    backgroundColor: Color(0xFF2E5D32),
+                  ),
+                );
+              } else {
+                showDialog<void>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('TrailWeather Pro 专享'),
+                    content: const Text(
+                      '无网离线气象与轨迹包为 Pro 会员专享特权，支持一键缓存高精度沿途天气，确保进入无信号无人区仍能掌握气象窗口。\n\n今日开启享受 7 天免费试用！',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('稍后再说'),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          context.push('/paywall', extra: '离线气象与轨迹包');
+                        },
+                        child: const Text('立即解锁'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.star_border),
             tooltip: S.favorites,
@@ -432,13 +472,15 @@ class _RouteMiniMap extends ConsumerWidget {
   }
 }
 
-class _RouteFactsCard extends StatelessWidget {
+class _RouteFactsCard extends ConsumerWidget {
   const _RouteFactsCard({required this.route});
 
   final HikingRoute route;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sub = ref.watch(subscriptionProvider);
+    final isPro = sub.isPro;
     final style = const TextStyle(fontSize: 13);
     return Card(
       child: Padding(
@@ -461,6 +503,52 @@ class _RouteFactsCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             RouteSourceLine(route: route),
+            const SizedBox(height: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                if (!isPro) {
+                  context.push('/paywall', extra: '高程微气候垂直修正');
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isPro ? Colors.green.shade50 : Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isPro
+                        ? Colors.green.shade300
+                        : Colors.amber.shade300,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPro ? Icons.check_circle : Icons.workspace_premium,
+                      size: 14,
+                      color: isPro
+                          ? Colors.green.shade700
+                          : Colors.amber.shade900,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isPro
+                          ? 'PRO 微气候高程垂直修正已启用（-0.65℃/100m）'
+                          : '高程垂直微气候修正（PRO 专享 · 点击解锁）',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isPro
+                            ? Colors.green.shade800
+                            : Colors.amber.shade900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

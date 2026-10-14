@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'detail/route_detail_screen.dart';
 import 'import/import_screen.dart';
 import 'map/map_home_screen.dart';
+import 'onboarding/onboarding_screen.dart';
+import 'paywall/paywall_screen.dart';
 import 'planet/planet_screen.dart';
 import 'planner/route_planner_screen.dart';
 import 'settings/settings_screen.dart';
@@ -35,6 +37,17 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/planner',
       builder: (context, state) => const RoutePlannerScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding',
+      builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/paywall',
+      builder: (context, state) {
+        final source = state.extra as String?;
+        return PaywallScreen(sourceFeature: source);
+      },
     ),
   ],
 );

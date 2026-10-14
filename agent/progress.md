@@ -169,5 +169,36 @@ GitHub Actions Web/APK 构建待推送。
 - analyze ✓, test 115/115 ✓, Web Release ✓, Android APK Release ✓。
 - 生成产物：`web-release`、`apk-release`。
 
+## Round 9 — 2026-10-14（海明商业化转化体系与 Pro 会员服务闭环）
 
+**目标**：落实 `HammingDev/haiming-app-monetization` 商业化闭环要求，全面提升 TrailWeather 的独特价值展示、使用黏性与付费转化能力，打造专业、成熟、商用的户外微气候产品。
 
+**实现**：
+1. **商业化数据模型与状态持久化**（`lib/data/monetization/subscription_models.dart`, `lib/data/monetization/subscription_repository.dart`）：
+   - `SubscriptionTier`: free / pro；
+   - `SubscriptionPlan`: yearly（¥98/年，含 7 天免费试用，最具性价比主推）、monthly（¥18/月）、lifetime（¥198 终身买断）；
+   - 4 项核心特权清单（高程垂直递减修正、极端天气与失温哨兵、离网气象轨迹包、等高线专业底图）；
+   - 完整状态流转（购买、免费试用激活、恢复购买、取消续费、持久化至 SharedPreferences）。
+2. **痛点引导与场景化问诊**（`lib/ui/onboarding/onboarding_screen.dart`）：
+   - Step 1: 场景问诊（重装长线/单日登山/露营越野/溯溪穿越）；
+   - Step 2: 价值唤醒与空间反差对比（普通城市天气预报 vs 高山空间微气候：山脚 22℃ 晴 vs 垭口 4℃ 强风暴雨，直击户外失温痛点）；
+   - Step 3: 核心功能演示（徒步星球 44 条全球神线 + Trail Studio 手绘路线工坊与 GPX/KML 双向导出）；
+   - Step 4: Pro 免费试用引导（7 天免费试用，突出随时免费取消，并支持跳过）。
+3. **专业级付费墙与权益对比**（`lib/ui/paywall/paywall_screen.dart`）：
+   - 视觉焦点强化主推套餐（年度套餐标注“立省 55% + 7天免费试用”）；
+   - 清晰特权勾选清单与来源场景提示；
+   - 终身买断与月度套餐自由切换；
+   - 退出挽回与安全关闭，拒绝硬卡死。
+4. **业务落地与 Pro 专属权益**：
+   - 路线详情页：高程垂直递减率微气候计算开关（-0.65℃/100m 算法修正）与状态指示；
+   - 路线详情页：一键生成并下载离网离线气象与轨迹包；
+   - 设置页：Pro 尊享身份卡片，展示当前会员状态/试用到期时间，一键开通/升级/恢复购买。
+5. **自动化测试体系**：
+   - `test/unit/subscription_test.dart`（4 项单测：初始状态、年度试用、终身买断、恢复购买）；
+   - `test/widget/onboarding_screen_test.dart`（问诊答题、翻页反差、功能演示、跳过与开启试用）；
+   - `test/widget/paywall_screen_test.dart`（特权展示、套餐切换、购买触发、恢复购买）。
+
+**本地验证**：
+- `flutter analyze --no-pub` 0 问题（0 错误、0 警告、0 info）；
+- `flutter test --no-pub` 121/121 全量测试通过；
+- `dart format` 全量格式化。

@@ -22,6 +22,8 @@ class AppSettings {
     this.basemap = BasemapSource.amap,
     this.qweatherApiHost = '',
     this.qweatherApiKey = '',
+    this.hasCompletedOnboarding = false,
+    this.elevationLapseRateCorrection = true,
   });
 
   static const defaultProviderIds = <String>[
@@ -58,6 +60,9 @@ class AppSettings {
 
   int get effectiveMaxNodes => lowPower ? 12 : maxNodesPerRoute;
 
+  final bool hasCompletedOnboarding;
+  final bool elevationLapseRateCorrection;
+
   AppSettings copyWith({
     bool? imperial,
     String? windUnit,
@@ -69,6 +74,8 @@ class AppSettings {
     BasemapSource? basemap,
     String? qweatherApiHost,
     String? qweatherApiKey,
+    bool? hasCompletedOnboarding,
+    bool? elevationLapseRateCorrection,
   }) => AppSettings(
     imperial: imperial ?? this.imperial,
     windUnit: windUnit ?? this.windUnit,
@@ -80,6 +87,10 @@ class AppSettings {
     basemap: basemap ?? this.basemap,
     qweatherApiHost: qweatherApiHost ?? this.qweatherApiHost,
     qweatherApiKey: qweatherApiKey ?? this.qweatherApiKey,
+    hasCompletedOnboarding:
+        hasCompletedOnboarding ?? this.hasCompletedOnboarding,
+    elevationLapseRateCorrection:
+        elevationLapseRateCorrection ?? this.elevationLapseRateCorrection,
   );
 
   Map<String, dynamic> toJson() => {
@@ -93,6 +104,8 @@ class AppSettings {
     'basemap': basemap.name,
     'qweatherApiHost': qweatherApiHost,
     'qweatherApiKey': qweatherApiKey,
+    'hasCompletedOnboarding': hasCompletedOnboarding,
+    'elevationLapseRateCorrection': elevationLapseRateCorrection,
   };
 
   static AppSettings fromJson(Map<String, dynamic> m) => AppSettings(
@@ -110,6 +123,9 @@ class AppSettings {
     ),
     qweatherApiHost: m['qweatherApiHost'] as String? ?? '',
     qweatherApiKey: m['qweatherApiKey'] as String? ?? '',
+    hasCompletedOnboarding: m['hasCompletedOnboarding'] as bool? ?? false,
+    elevationLapseRateCorrection:
+        m['elevationLapseRateCorrection'] as bool? ?? true,
   );
 }
 
@@ -151,6 +167,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 
   Future<void> setLowPower(bool v) => update(state.copyWith(lowPower: v));
+
+  Future<void> completeOnboarding() =>
+      update(state.copyWith(hasCompletedOnboarding: true));
+
+  Future<void> setLapseRateCorrection(bool v) =>
+      update(state.copyWith(elevationLapseRateCorrection: v));
 }
 
 final prefsProvider = Provider<SharedPreferences>((ref) {

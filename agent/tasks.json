@@ -345,6 +345,19 @@
       "acceptance": "地图打点画线、航点标注（营地/水源/险段/垭口）、Tobler算法耗时预估、GPX/KML双向导出、联动气象推演",
       "verify": "flutter test test/unit/route_exporter_test.dart test/widget/route_planner_screen_test.dart",
       "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
+    },
+    {
+      "id": "T-090",
+      "p": "P0",
+      "title": "海明商业化转化体系与 Pro 会员闭环（Onboarding 问诊 + 动态对比 + Paywall 7天试用 + 离网微气候权益）",
+      "deps": [
+        "T-081",
+        "T-082"
+      ],
+      "status": "done",
+      "acceptance": "痛点问诊/空间反差引导、主推年度套餐并享7天免费试用、终身买断与月度方案、安全退出与恢复购买、高程垂直递减率微气候计算与离线包下载",
+      "verify": "flutter analyze 0 issues + flutter test 121/121 全绿 + CI 构建",
+      "result": "完成；本地 analyze 0 issues，121 tests 100% 通过"
     }
   ]
 }
