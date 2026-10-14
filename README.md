@@ -94,10 +94,10 @@ test/              单元 / 来源契约(fixture) / 组件 / 集成
 
 ## 当前状态
 
-**上一版 CI 全绿**：analyze / 93 项测试 / Web release / Android APK；iOS 手动构建通过。
-**本轮本地验证**：analyze 0 问题 / 99 项测试通过；新增地图点位天气、首页自动定位天气、
-可重复定位、混合线路搜索（本地/地点/附近 OSM/外部攻略/导入）和更广的 OSM 线路发现，
-待推送后由 GitHub Actions 构建验证。边界与未验证项
+**本轮 CI 全绿**：功能分支 `feat/hybrid-route-search`，run 38510507584；analyze / 99 项测试 /
+Web release / Android APK / 两项产物上传全部通过。新增地图点位天气、首页自动定位天气、
+可重复定位、混合线路搜索（本地/地点/附近 OSM/外部攻略/导入）和更广的 OSM 线路发现。
+边界与未验证项
 （真机性能/耗电、浏览器冒烟、商业授权）如实列于 `docs/acceptance.md` 与
 `agent/blockers.md`，不混称“已商品化”。
 

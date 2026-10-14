@@ -67,10 +67,10 @@
       "deps": [
         "T-010"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "首页一次定位成功后显示当前位置多来源天气并查询当地线路；地图点选可查天气；定位按钮请求结束后可再次使用；拒绝/永久拒绝/服务关闭/超时可恢复",
-      "verify": "flutter analyze + flutter test（96 项）；GitHub Actions web/apk 待推送",
-      "result": "本地 analyze 0 问题、96 项测试通过；覆盖自动定位与第二次定位、OSM 路径段解析、相邻点位缓存隔离"
+      "verify": "flutter analyze + flutter test（99 项）+ GitHub Actions web/apk",
+      "result": "本地 analyze 0 问题、99 项测试通过；CI run 38510507584 全绿（Web/APK 产物已上传）"
     },
     {
       "id": "T-081",
@@ -79,10 +79,10 @@
       "deps": [
         "T-080"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "搜索框明确支持地点、山峰与线路；本地和已加载线路可按名称匹配；地点选择后查询附近 OSM；小红书/两步路/六只脚仅用户主动外链检索；可进入 GPX/GeoJSON 导入；不抓取外部内容",
-      "verify": "flutter analyze + flutter test（99 项）；GitHub Actions web/apk 待推送",
-      "result": "本地 analyze 0 问题、99 项测试通过；新增外链 URI 单测 2 项与混合搜索组件测试 1 项"
+      "verify": "flutter analyze + flutter test（99 项）+ GitHub Actions web/apk",
+      "result": "CI run 38510507584 全绿；外链 URI 单测 2 项与混合搜索组件测试 1 项通过"
     },
     {
       "id": "T-011",

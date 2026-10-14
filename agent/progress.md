@@ -115,3 +115,8 @@ OSM 瓦片超时；高德瓦片 70ms；和风域名可达。→ 天气 API 本�
 **本地验证**：`flutter analyze --no-pub` 0 问题；`flutter test --no-pub` 99/99 通过；
 新文件 Dart format 检查 0 变更；外链 URI 2 项单测 + 混合搜索完整组件流 1 项通过。
 GitHub Actions Web/APK 构建待推送。
+
+
+**CI 结果**：功能分支 `feat/hybrid-route-search`，commit `4e34604`，run 38510507584 全绿：
+依赖 ✓ / analyze ✓ / test 99 ✓ / Web release ✓ / Android APK release ✓ / 产物上传 ✓。
+产物：`web-release` 14,456,349 bytes；`apk-release` 28,190,862 bytes；均未过期。

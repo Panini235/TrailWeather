@@ -96,13 +96,13 @@
 | 来源契约（正常/空/字段变化/点数不符/超范围/损坏） | ✅ | test/weather/ |
 | 组件（缺失值/演示/颗粒度/过期/错误/自动定位复用/混合搜索） | ✅ | test/widget/（含 map_home_location_test.dart、hybrid_route_search_test.dart） |
 | 集成（选线→详情→时间→收藏→恢复） | ✅ | test/integration/ |
-| flutter analyze / test / web release / apk release | ✅ | CI run 38402622454 全绿（2026-10-13） |
+| flutter analyze / test / web release / apk release | ✅ | CI run 38510507584 全绿（2026-10-14，99 项测试，Web/APK 产物上传） |
 | iOS 构建 | ✅ | 手动工作流 run 38403822714 通过（--no-codesign） |
 | 真实联网验证 | 🟡 | 本机已实测（data-sources.md）；CI smoke 手动 |
 
 ## 状态结论（当前批次）
 
-**上一版核心功能已通过三端构建（Android APK / Web / iOS no-codesign，CI 2026-10-13）；
-本轮地图点位天气、自动定位复用、线路发现与混合线路搜索在本地 99 项自动化测试全部通过（2026-10-14），
-GitHub Actions 构建待推送后验证。** 真机运行表现、真机性能/耗电、Web 浏览器人工冒烟、
-生产环境核验未完成——构建通过不等于真机表现已验证，不宣称“可商用”。
+**本轮地图点位天气、自动定位复用、线路发现与混合线路搜索已通过 CI run 38510507584：
+Android APK / Web release 构建成功，99 项自动化测试全部通过（2026-10-14）。**
+真机运行表现、真机性能/耗电、Web 浏览器人工冒烟、生产环境核验未完成——构建通过不等于
+真机表现已验证，不宣称“可商用”。
