@@ -69,51 +69,48 @@ class AppSettings {
     BasemapSource? basemap,
     String? qweatherApiHost,
     String? qweatherApiKey,
-  }) =>
-      AppSettings(
-        imperial: imperial ?? this.imperial,
-        windUnit: windUnit ?? this.windUnit,
-        themeMode: themeMode ?? this.themeMode,
-        lowPower: lowPower ?? this.lowPower,
-        enabledProviderIds:
-            enabledProviderIds ?? List.of(this.enabledProviderIds),
-        samplingSpacingKm: samplingSpacingKm ?? this.samplingSpacingKm,
-        maxNodesPerRoute: maxNodesPerRoute ?? this.maxNodesPerRoute,
-        basemap: basemap ?? this.basemap,
-        qweatherApiHost: qweatherApiHost ?? this.qweatherApiHost,
-        qweatherApiKey: qweatherApiKey ?? this.qweatherApiKey,
-      );
+  }) => AppSettings(
+    imperial: imperial ?? this.imperial,
+    windUnit: windUnit ?? this.windUnit,
+    themeMode: themeMode ?? this.themeMode,
+    lowPower: lowPower ?? this.lowPower,
+    enabledProviderIds: enabledProviderIds ?? List.of(this.enabledProviderIds),
+    samplingSpacingKm: samplingSpacingKm ?? this.samplingSpacingKm,
+    maxNodesPerRoute: maxNodesPerRoute ?? this.maxNodesPerRoute,
+    basemap: basemap ?? this.basemap,
+    qweatherApiHost: qweatherApiHost ?? this.qweatherApiHost,
+    qweatherApiKey: qweatherApiKey ?? this.qweatherApiKey,
+  );
 
   Map<String, dynamic> toJson() => {
-        'imperial': imperial,
-        'windUnit': windUnit,
-        'themeMode': themeMode.name,
-        'lowPower': lowPower,
-        'enabledProviderIds': enabledProviderIds,
-        'samplingSpacingKm': samplingSpacingKm,
-        'maxNodesPerRoute': maxNodesPerRoute,
-        'basemap': basemap.name,
-        'qweatherApiHost': qweatherApiHost,
-        'qweatherApiKey': qweatherApiKey,
-      };
+    'imperial': imperial,
+    'windUnit': windUnit,
+    'themeMode': themeMode.name,
+    'lowPower': lowPower,
+    'enabledProviderIds': enabledProviderIds,
+    'samplingSpacingKm': samplingSpacingKm,
+    'maxNodesPerRoute': maxNodesPerRoute,
+    'basemap': basemap.name,
+    'qweatherApiHost': qweatherApiHost,
+    'qweatherApiKey': qweatherApiKey,
+  };
 
   static AppSettings fromJson(Map<String, dynamic> m) => AppSettings(
-        imperial: m['imperial'] as bool? ?? false,
-        windUnit: m['windUnit'] as String? ?? 'km/h',
-        themeMode: ThemeMode.values
-                .byName(m['themeMode'] as String? ?? 'system'),
-        lowPower: m['lowPower'] as bool? ?? false,
-        enabledProviderIds: (m['enabledProviderIds'] as List?)
-                ?.map((e) => e as String)
-                .toList() ??
-            List.of(defaultProviderIds),
-        samplingSpacingKm: (m['samplingSpacingKm'] as num?)?.toDouble() ?? 1.5,
-        maxNodesPerRoute: (m['maxNodesPerRoute'] as num?)?.toInt() ?? 24,
-        basemap: BasemapSource.values
-            .byName(m['basemap'] as String? ?? BasemapSource.amap.name),
-        qweatherApiHost: m['qweatherApiHost'] as String? ?? '',
-        qweatherApiKey: m['qweatherApiKey'] as String? ?? '',
-      );
+    imperial: m['imperial'] as bool? ?? false,
+    windUnit: m['windUnit'] as String? ?? 'km/h',
+    themeMode: ThemeMode.values.byName(m['themeMode'] as String? ?? 'system'),
+    lowPower: m['lowPower'] as bool? ?? false,
+    enabledProviderIds:
+        (m['enabledProviderIds'] as List?)?.map((e) => e as String).toList() ??
+        List.of(defaultProviderIds),
+    samplingSpacingKm: (m['samplingSpacingKm'] as num?)?.toDouble() ?? 1.5,
+    maxNodesPerRoute: (m['maxNodesPerRoute'] as num?)?.toInt() ?? 24,
+    basemap: BasemapSource.values.byName(
+      m['basemap'] as String? ?? BasemapSource.amap.name,
+    ),
+    qweatherApiHost: m['qweatherApiHost'] as String? ?? '',
+    qweatherApiKey: m['qweatherApiKey'] as String? ?? '',
+  );
 }
 
 /// 设置状态：持久化到 shared_preferences（user 命名空间，不属于缓存）。
@@ -160,5 +157,6 @@ final prefsProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('prefsProvider 必须在 main() 中 override');
 });
 
-final settingsProvider =
-    NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
+  SettingsNotifier.new,
+);

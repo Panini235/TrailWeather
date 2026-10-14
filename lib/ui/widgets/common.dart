@@ -20,7 +20,10 @@ class DemoBadge extends StatelessWidget {
       child: const Text(
         S.demoLabel,
         style: TextStyle(
-            fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w700),
+          fontSize: 10,
+          color: Colors.orange,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -42,7 +45,9 @@ class SourceBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        compact ? caps.displayName : '${caps.displayName} · ${caps.modelOrNetwork}',
+        compact
+            ? caps.displayName
+            : '${caps.displayName} · ${caps.modelOrNetwork}',
         style: TextStyle(
           fontSize: 11,
           color: Theme.of(context).colorScheme.onSecondaryContainer,
@@ -92,12 +97,17 @@ class GranularityNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon ?? Icons.info_outline,
-              size: 16, color: Theme.of(context).colorScheme.primary),
+          Icon(
+            icon ?? Icons.info_outline,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text,
-                style: const TextStyle(fontSize: 12, height: 1.4)),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12, height: 1.4),
+            ),
           ),
         ],
       ),
@@ -148,7 +158,9 @@ class RouteSourceLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
-        fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant);
+      fontSize: 11,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     return Wrap(
       spacing: 6,
       runSpacing: 2,
@@ -187,13 +199,22 @@ class ErrorCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Icon(Icons.error_outline,
-                  size: 18, color: Theme.of(context).colorScheme.error),
-              const SizedBox(width: 6),
-              Expanded(child: Text(title,
-                  style: const TextStyle(fontWeight: FontWeight.w600))),
-            ]),
+            Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(detail, style: const TextStyle(fontSize: 12, height: 1.4)),
             if (onRetry != null) ...[
@@ -225,10 +246,7 @@ class DataKindChip extends StatelessWidget {
         border: Border.all(color: Theme.of(context).colorScheme.outline),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        wxDataKindLabel(kind),
-        style: const TextStyle(fontSize: 10),
-      ),
+      child: Text(wxDataKindLabel(kind), style: const TextStyle(fontSize: 10)),
     );
   }
 }

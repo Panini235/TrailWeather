@@ -24,7 +24,9 @@ class RouteNode {
   final String? label;
 
   String describe() {
-    final ele = elevationM == null ? '海拔未知' : '海拔 ${elevationM!.toStringAsFixed(0)} m';
+    final ele = elevationM == null
+        ? '海拔未知'
+        : '海拔 ${elevationM!.toStringAsFixed(0)} m';
     final d = (distFromStartM / 1000).toStringAsFixed(1);
     return '${label == null ? '' : '$label · '}距起点 $d km · $ele';
   }
@@ -53,7 +55,15 @@ List<RouteNode> sampleRoute({
   final cum = Geo.cumulativeDistancesM(points);
   final total = cum.last;
   if (total == 0) {
-    return [RouteNode(pointIndex: 0, pos: points.first, elevationM: elevations.first, distFromStartM: 0, label: '起点')];
+    return [
+      RouteNode(
+        pointIndex: 0,
+        pos: points.first,
+        elevationM: elevations.first,
+        distFromStartM: 0,
+        label: '起点',
+      ),
+    ];
   }
 
   // 关键索引：起终点 + 最高点（海拔有效时）

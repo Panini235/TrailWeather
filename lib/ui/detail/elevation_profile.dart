@@ -45,7 +45,8 @@ class ElevationProfile extends StatelessWidget {
               elevationsM: elevationsM,
               selectedIndex: selectedIndex,
               lineColor: Theme.of(context).colorScheme.primary,
-              fillColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+              fillColor: Theme.of(context).colorScheme.primary
+                  .withValues(alpha: 0.15),
             ),
           ),
         ),
@@ -95,7 +96,8 @@ class _ElevationPainter extends CustomPainter {
         continue;
       }
       final x = distancesM[i] / maxDist * size.width;
-      final y = size.height -
+      final y =
+          size.height -
           (e - minEle) / (maxEle - minEle) * (size.height - 12) -
           6;
       final off = Offset(x, y);
@@ -126,7 +128,8 @@ class _ElevationPainter extends CustomPainter {
       final e = elevationsM[selectedIndex];
       if (e != null) {
         final x = distancesM[selectedIndex] / maxDist * size.width;
-        final y = size.height -
+        final y =
+            size.height -
             (e - minEle) / (maxEle - minEle) * (size.height - 12) -
             6;
         final dot = Paint()..color = lineColor;

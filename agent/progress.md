@@ -139,3 +139,30 @@ GitHub Actions Web/APK 构建待推送。
 - `flutter test --no-pub` 108/108 项测试全绿（新增 9 项单测覆盖 KmlImport 与 Geo.simplifyTrack）；
 - `dart format` 全部格式化完毕。
 
+**CI 结果**：分支 `feat/robust-track-import`，GitHub Actions Run ID `38534512846`，全绿成功：
+- analyze ✓, test 108/108 ✓, Web Release ✓, Android APK Release ✓。
+
+## Round 8 — 2026-10-14（徒步星球全球经典路线库 + Trail Studio 手绘路线规划工坊）
+
+**用户需求**：
+1. 结合 `https://github.com/SpaceZephyr/trail-planet`，把全球顶级 3D/经典路线融入 TrailWeather；
+2. 支撑用户手绘规划线路图（参考两步路、奥维地图与 `https://spacezephyr.github.io/map-motion-studio/`），支持打点画线、航点标记、预计徒步耗时、GPX/KML 导出；
+3. 二、三优先级一并完成，持续自主迭代升级至成熟商用应用，无需反复询问。
+
+**实现**：
+1. **徒步星球路线库（Trail Planet）**：
+   - 提取并落盘 `assets/routes/planet_trails.json`（455KB，包含 44 条全球经典徒步路线：环勃朗峰 TMB、冈仁波齐、EBC、虎跳峡、熊野古道、库克山、乞力马扎罗等）。
+   - 实现 `lib/data/routes/planet_trails_repository.dart`：涵盖 8 大地貌类型（雪山、森林、冰川、峡谷、海岸、高山草甸、火山、巅峰），支持海拔剖面线性插值，提供地貌分类与里程区间筛选，以及一键随机灵感神线漫游。
+   - 实现专区界面 `lib/ui/planet/planet_screen.dart`，并在地图首页浮动按钮及混合搜索中无缝打通。
+2. **手绘规划工坊（Trail Studio）**：
+   - 数据模型升级（`lib/data/routes/route_models.dart`）：新增 `RouteOrigin.planet` 与 `RouteOrigin.planned`；新增 `RouteWaypoint` 航点模型（营地 ⛺️、水源 💧、险段 ⚠️、垭口 ⛰️、下撤点 🚪、打卡点 📍）。
+   - 双向导出引擎（`lib/data/routes/route_exporter.dart`）：支持将规划路线导出为标准 GPX 1.1 与 KML 2.2 文本，完美适配奥维互动地图、两步路及户外 GPS 设备；单测验证往返解析 100% 一致。
+   - 交互式规划器（`lib/ui/planner/route_planner_screen.dart`）：支持在底图上触控打点画线、航点添加、撤销（Undo Stack）、反向走法（反穿路线规划）、即时里程统计与基于徒步动力学的预计耗时推演；一键“完成并查天气”保存至收藏并联动 7 天沿途气象推演。
+   - 路由与入口整合：注册 `/planet` 与 `/planner` 路由，在地图首页操作栏添加独立快捷入口，在混合搜索推荐区增加显式导航卡片。
+
+**本地验证**：
+- `flutter analyze --no-pub` 0 问题（0 错误、0 警告、0 info）；
+- `flutter test --no-pub` 115/115 项全量通过（覆盖 planet_trails_test、route_exporter_test、planet_screen_test、route_planner_screen_test）；
+- `dart format` 代码风格检查全部合规。
+
+

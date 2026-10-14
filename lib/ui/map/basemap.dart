@@ -22,8 +22,7 @@ class Basemap {
   bool get isGcj => source == BasemapSource.amap;
 
   /// 业务（WGS-84）→ 显示坐标。
-  LatLng toDisplay(LatLng wgs) =>
-      isGcj ? Gcj02.wgs84ToGcj02(wgs) : wgs;
+  LatLng toDisplay(LatLng wgs) => isGcj ? Gcj02.wgs84ToGcj02(wgs) : wgs;
 
   /// 显示坐标 → 业务（WGS-84）。
   LatLng toBusiness(LatLng display) =>
@@ -32,32 +31,30 @@ class Basemap {
   /// 可视包围盒（显示坐标系）→ 业务包围盒（用于 Overpass 查询与本地过滤）。
   LatLngBounds toBusinessBounds(LatLngBounds b) => isGcj
       ? LatLngBounds(
-          Gcj02.gcj02ToWgs84(b.southWest), Gcj02.gcj02ToWgs84(b.northEast))
+          Gcj02.gcj02ToWgs84(b.southWest),
+          Gcj02.gcj02ToWgs84(b.northEast),
+        )
       : b;
 
   TileLayer tileLayer() => switch (source) {
-        BasemapSource.amap => TileLayer(
-            urlTemplate:
-                'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-            subdomains: const ['1', '2', '3', '4'],
-            userAgentPackageName: 'dev.trailweather.trailweather',
-            maxNativeZoom: 18,
-          ),
-        BasemapSource.osm => TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'dev.trailweather.trailweather',
-          ),
-      };
+    BasemapSource.amap => TileLayer(
+      urlTemplate: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+      subdomains: const ['1', '2', '3', '4'],
+      userAgentPackageName: 'dev.trailweather.trailweather',
+      maxNativeZoom: 18,
+    ),
+    BasemapSource.osm => TileLayer(
+      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      userAgentPackageName: 'dev.trailweather.trailweather',
+    ),
+  };
 
   Widget attributionWidget() => RichAttributionWidget(
-        attributions: [
-          TextSourceAttribution(
-            switch (source) {
-              BasemapSource.amap => '© 高德地图',
-              BasemapSource.osm => '© OpenStreetMap 贡献者',
-            },
-            onTap: () {},
-          ),
-        ],
-      );
+    attributions: [
+      TextSourceAttribution(switch (source) {
+        BasemapSource.amap => '© 高德地图',
+        BasemapSource.osm => '© OpenStreetMap 贡献者',
+      }, onTap: () {}),
+    ],
+  );
 }

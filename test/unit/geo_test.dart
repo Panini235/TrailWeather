@@ -60,7 +60,10 @@ void main() {
 
   group('Geo.totalAscentM', () {
     test('只累计上升', () {
-      expect(Geo.totalAscentM([100, 200, 150, 300]), 250.0); // 100->200 + 150->300
+      expect(
+        Geo.totalAscentM([100, 200, 150, 300]),
+        250.0,
+      ); // 100->200 + 150->300
     });
 
     test('任一海拔缺失返回 null（不编造）', () {

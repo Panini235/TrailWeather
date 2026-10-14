@@ -39,34 +39,34 @@ class OpenMeteoProvider extends WeatherProvider {
 
   @override
   ProviderCapabilities get caps => ProviderCapabilities(
-        providerId: 'open-meteo:$model',
-        vendor: 'Open-Meteo',
-        displayName: 'Open-Meteo（$model）',
-        modelOrNetwork: model == 'best_match'
-            ? 'best_match：按区域自动选择模型，具体模型来源未随响应返回'
-            : model,
-        coverage: '全球（陆地为主）',
-        forecastHorizonDays: 16,
-        intervalHours: 1,
-        batchCoordinates: true,
-        maxPointsPerRequest: 10, // 单 URL 长度控制（工程上限，非 API 硬限制）
-        granularity: WxGranularity.grid,
-        dataKind: WxDataKind.forecast,
-        requiresApiKey: false,
-        browserCorsOk: true,
-        browserNotes: '浏览器直连可用（CORS 开放）；非商业用途免费额度',
-        license: 'CC BY 4.0（Open-Meteo 聚合再分发，非商业免费）',
-        attribution: '数据：Open-Meteo（模型来自 NOAA/GFS 等机构，随 best_match 而定）',
-        supportedVars: _hourlyVars.values.toList(),
-        minRequestIntervalMs: 600,
-        recommendedCacheTtl: const Duration(minutes: 30),
-        spatialResolutionNote: model == 'best_match'
-            ? 'best_match 按区域动态选择模型，来源未随响应提供本请求的空间分辨率（分辨率未确认）'
-            : '按模型名标注：$model（0.25° 级全球模型；以官方文档为准，本请求未返回网格信息）',
-        modelOverlapNote:
-            '注意：Open-Meteo 的不同 models 参数属于同一服务商接口，不一定代表相互独立的证据；'
-            '且不同 API 服务商也可能使用相同底层气象模型。未识别处按未知处理。',
-      );
+    providerId: 'open-meteo:$model',
+    vendor: 'Open-Meteo',
+    displayName: 'Open-Meteo（$model）',
+    modelOrNetwork: model == 'best_match'
+        ? 'best_match：按区域自动选择模型，具体模型来源未随响应返回'
+        : model,
+    coverage: '全球（陆地为主）',
+    forecastHorizonDays: 16,
+    intervalHours: 1,
+    batchCoordinates: true,
+    maxPointsPerRequest: 10, // 单 URL 长度控制（工程上限，非 API 硬限制）
+    granularity: WxGranularity.grid,
+    dataKind: WxDataKind.forecast,
+    requiresApiKey: false,
+    browserCorsOk: true,
+    browserNotes: '浏览器直连可用（CORS 开放）；非商业用途免费额度',
+    license: 'CC BY 4.0（Open-Meteo 聚合再分发，非商业免费）',
+    attribution: '数据：Open-Meteo（模型来自 NOAA/GFS 等机构，随 best_match 而定）',
+    supportedVars: _hourlyVars.values.toList(),
+    minRequestIntervalMs: 600,
+    recommendedCacheTtl: const Duration(minutes: 30),
+    spatialResolutionNote: model == 'best_match'
+        ? 'best_match 按区域动态选择模型，来源未随响应提供本请求的空间分辨率（分辨率未确认）'
+        : '按模型名标注：$model（0.25° 级全球模型；以官方文档为准，本请求未返回网格信息）',
+    modelOverlapNote:
+        '注意：Open-Meteo 的不同 models 参数属于同一服务商接口，不一定代表相互独立的证据；'
+        '且不同 API 服务商也可能使用相同底层气象模型。未识别处按未知处理。',
+  );
 
   @override
   Future<List<WxPointForecast>> fetchPoints({
@@ -89,7 +89,8 @@ class OpenMeteoProvider extends WeatherProvider {
       out.addAll(_parse(body, batch, uri));
       if (i + caps.maxPointsPerRequest < points.length) {
         await Future<void>.delayed(
-            Duration(milliseconds: caps.minRequestIntervalMs));
+          Duration(milliseconds: caps.minRequestIntervalMs),
+        );
       }
     }
     return out;
@@ -115,22 +116,28 @@ class OpenMeteoProvider extends WeatherProvider {
   }
 
   int _forecastDays(DateTime nowUtc, DateTime startUtc, DateTime endUtc) {
-    final horizonEnd =
-        nowUtc.add(Duration(days: caps.forecastHorizonDays));
+    final horizonEnd = nowUtc.add(Duration(days: caps.forecastHorizonDays));
     // 请求起点已超出来源真实预报窗口：如实抛出，由 UI 显示“此来源暂无该日期数据”。
     if (startUtc.isAfter(horizonEnd)) return 0;
     final effEnd = endUtc.isAfter(horizonEnd) ? horizonEnd : endUtc;
     if (effEnd.isBefore(nowUtc)) return 0;
-    var days = effEnd.difference(DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day)).inDays + 1;
+    var days =
+        effEnd
+            .difference(DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day))
+            .inDays +
+        1;
     return days.clamp(1, caps.forecastHorizonDays);
   }
 
   List<WxPointForecast> _parse(String body, List<LatLng> requested, Uri uri) {
     final decoded = jsonDecode(body);
-    final List<dynamic> arr =
-        decoded is List ? decoded : <dynamic>[decoded];
+    final List<dynamic> arr = decoded is List ? decoded : <dynamic>[decoded];
     if (arr.length != requested.length) {
-      throw SourceHttpException(200, '响应点数(${arr.length})与请求(${requested.length})不符', '${uri.host}${uri.path}');
+      throw SourceHttpException(
+        200,
+        '响应点数(${arr.length})与请求(${requested.length})不符',
+        '${uri.host}${uri.path}',
+      );
     }
     final fetchedAt = DateTime.now().toUtc();
     final results = <WxPointForecast>[];
@@ -142,7 +149,10 @@ class OpenMeteoProvider extends WeatherProvider {
   }
 
   WxPointForecast _parsePoint(
-      Map<String, dynamic> m, LatLng req, DateTime fetchedAt) {
+    Map<String, dynamic> m,
+    LatLng req,
+    DateTime fetchedAt,
+  ) {
     final returnedLat = (m['latitude'] as num?)?.toDouble();
     final returnedLon = (m['longitude'] as num?)?.toDouble();
     final elevation = (m['elevation'] as num?)?.toDouble();

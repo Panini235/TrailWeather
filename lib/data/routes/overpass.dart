@@ -18,8 +18,7 @@ import 'route_models.dart';
 /// 本类按端点哈希贪心串联共享端点的 way；不共享端点的 way 成为独立段，
 /// 绝不自动连直线。
 class OverpassRouteSource {
-  OverpassRouteSource({WxHttp? http})
-      : _http = http ?? WxHttp(maxRetries: 1);
+  OverpassRouteSource({WxHttp? http}) : _http = http ?? WxHttp(maxRetries: 1);
 
   final WxHttp _http;
 
@@ -44,7 +43,10 @@ class OverpassRouteSource {
   bool bboxAllowed(double minLat, double minLon, double maxLat, double maxLon) {
     final spanLat = maxLat - minLat;
     final spanLon = maxLon - minLon;
-    return spanLat > 0 && spanLon > 0 && spanLat <= maxBboxSpan && spanLon <= maxBboxSpan;
+    return spanLat > 0 &&
+        spanLon > 0 &&
+        spanLat <= maxBboxSpan &&
+        spanLon <= maxBboxSpan;
   }
 
   Future<List<HikingRoute>> fetchRoutesInBBox(
@@ -56,9 +58,9 @@ class OverpassRouteSource {
     if (!bboxAllowed(minLat, minLon, maxLat, maxLon)) {
       throw const OverpassException('当前视野范围过大，请放大地图后再搜索此区域');
     }
-    final bbox =
-        '$minLat,$minLon,$maxLat,$maxLon';
-    final query = '''
+    final bbox = '$minLat,$minLon,$maxLat,$maxLon';
+    final query =
+        '''
 [out:json][timeout:25];
 (
   relation[route=hiking]($bbox);
@@ -169,7 +171,8 @@ out tags geom $maxElements;
       origin: RouteOrigin.osm,
       segments: segments,
       elevationsM: elevations,
-      sourceName: 'OpenStreetMap 徒步路线关系'
+      sourceName:
+          'OpenStreetMap 徒步路线关系'
           '${distanceTag == null ? '' : '（标注里程 $distanceTag）'}',
       sourceLicense: 'ODbL 1.0',
       sourceUrl: 'https://www.openstreetmap.org/relation/${el['id']}',

@@ -28,11 +28,11 @@ class PaceConfig {
   static const defaults = PaceConfig();
 
   List<String> assumptionNotes() => [
-        '平地速度 $speedKmh km/h',
-        '每上升 100 m 加时 $ascentMinPer100m 分钟、每下降 100 m 加时 $descentMinPer100m 分钟',
-        '休息共 $restMinutesTotal 分钟，按距离比例分摊',
-        '预计到达时间为估算，不构成导航保证',
-      ];
+    '平地速度 $speedKmh km/h',
+    '每上升 100 m 加时 $ascentMinPer100m 分钟、每下降 100 m 加时 $descentMinPer100m 分钟',
+    '休息共 $restMinutesTotal 分钟，按距离比例分摊',
+    '预计到达时间为估算，不构成导航保证',
+  ];
 }
 
 /// 计算各节点的预计到达时间（UTC）。
@@ -63,11 +63,18 @@ List<DateTime> computeEtas({
       }
     }
     // 休息按距离比例分摊。
-    segMin += pace.restMinutesTotal * (segDistKm * 1000 /
-            ((nodes.last.distFromStartM == 0 ? 1 : nodes.last.distFromStartM)))
-        .clamp(0.0, 1.0);
+    segMin +=
+        pace.restMinutesTotal *
+        (segDistKm *
+                1000 /
+                ((nodes.last.distFromStartM == 0
+                    ? 1
+                    : nodes.last.distFromStartM)))
+            .clamp(0.0, 1.0);
     elapsedMin += segMin;
-    out.add(startUtc.add(Duration(milliseconds: (elapsedMin * 60 * 1000).round())));
+    out.add(
+      startUtc.add(Duration(milliseconds: (elapsedMin * 60 * 1000).round())),
+    );
   }
   return out;
 }

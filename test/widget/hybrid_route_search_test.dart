@@ -146,6 +146,11 @@ void main() {
       scrollable: resultsList,
     );
     expect(find.text('六只脚线路'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text(S.importOwnedTrack),
+      180,
+      scrollable: resultsList,
+    );
     expect(find.text(S.importOwnedTrack), findsOneWidget);
 
     await tester.scrollUntilVisible(

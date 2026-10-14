@@ -44,17 +44,17 @@ class RouteWeatherQuery {
 
   @override
   int get hashCode => Object.hash(
-        routeId,
-        providerId,
-        mode,
-        startUtc,
-        endUtc,
-        fixedUtc,
-        pace.speedKmh,
-        pace.ascentMinPer100m,
-        pace.descentMinPer100m,
-        pace.restMinutesTotal,
-      );
+    routeId,
+    providerId,
+    mode,
+    startUtc,
+    endUtc,
+    fixedUtc,
+    pace.speedKmh,
+    pace.ascentMinPer100m,
+    pace.descentMinPer100m,
+    pace.restMinutesTotal,
+  );
 }
 
 /// 节点 + 该节点对应时刻的天气。
@@ -96,9 +96,10 @@ List<NodeWxRow> buildNodeRows({
         point: bundle == null
             ? null
             : (bundle.nodeQueryIndex[i] < bundle.result.points.length
-                ? bundle.result.points[bundle.nodeQueryIndex[i]]
-                : null),
-        sharedWithPrev: i > 0 &&
+                  ? bundle.result.points[bundle.nodeQueryIndex[i]]
+                  : null),
+        sharedWithPrev:
+            i > 0 &&
             bundle != null &&
             bundle.nodeQueryIndex[i] == bundle.nodeQueryIndex[i - 1],
       ),
@@ -163,8 +164,11 @@ RouteWxSummary summarizeRows(List<NodeWxRow> rows) {
 }
 
 /// 采样 + ETA（行程模式）使用的节点序列：基于最长连续段。
-List<RouteNode> nodesForRoute(HikingRoute route,
-    {required double spacingKm, required int maxNodes}) {
+List<RouteNode> nodesForRoute(
+  HikingRoute route, {
+  required double spacingKm,
+  required int maxNodes,
+}) {
   return sampleRoute(
     points: route.mainSegment,
     elevations: route.mainSegmentElevations,
@@ -175,5 +179,5 @@ List<RouteNode> nodesForRoute(HikingRoute route,
 
 /// 详情页风险提示输入。
 List<NodeWeatherEntry> rowsToEntries(List<NodeWxRow> rows) => [
-      for (final r in rows) NodeWeatherEntry(weather: r.wx, validUtc: r.validUtc),
-    ];
+  for (final r in rows) NodeWeatherEntry(weather: r.wx, validUtc: r.validUtc),
+];

@@ -16,7 +16,7 @@ void main() {
     test('乱序 way 贪心连接（含反转）', () {
       final segs = OverpassRouteSource.assembleSegments([
         [const LatLng(0, 0.001), const LatLng(0, 0.002)], // 在前
-        [const LatLng(0, 0.001), const LatLng(0, 0.0)],   // 需反转接前段
+        [const LatLng(0, 0.001), const LatLng(0, 0.0)], // 需反转接前段
       ]);
       expect(segs, hasLength(1));
       expect(segs.first, hasLength(3)); // 连成一整段
@@ -128,8 +128,10 @@ void main() {
     });
 
     test('损坏响应抛 OverpassException', () {
-      expect(() => OverpassRouteSource().parseResponse('<html>504</html>'),
-          throwsA(isA<OverpassException>()));
+      expect(
+        () => OverpassRouteSource().parseResponse('<html>504</html>'),
+        throwsA(isA<OverpassException>()),
+      );
     });
   });
 }

@@ -35,8 +35,7 @@ abstract final class S {
   static const locating = '正在定位…';
   static const currentLocation = '当前位置天气';
   static const selectedPointWeather = '地图选点天气';
-  static const locationDenied =
-      '未获得定位权限。你仍可手动点选地图查询天气。';
+  static const locationDenied = '未获得定位权限。你仍可手动点选地图查询天气。';
   static const locationSettings = '打开设置';
   static const tapMapWeatherHint = '点击地图任意位置可查看该点附近天气';
   static const routeListTitle = '本区域线路';
@@ -67,13 +66,15 @@ abstract final class S {
   static const sourceTransparency = '来源与颗粒度';
   static const compareSources = '对比来源';
   static const outOfRange = '此来源暂无该日期数据';
-  static const outOfRangeDetail = '该日期超出来源的真实预报范围。已保存你的计划日期；进入来源可用预报窗口后刷新即可更新。不会用外推或历史均值冒充预报。';
+  static const outOfRangeDetail =
+      '该日期超出来源的真实预报范围。已保存你的计划日期；进入来源可用预报窗口后刷新即可更新。不会用外推或历史均值冒充预报。';
   static const staleData = '旧数据';
   static const staleDataDetail = '缓存已超过来源建议的有效期，正在后台刷新。以下数据可能过期，不当作刚更新的数据。';
   static const cachedAt = '缓存于';
   static const fetchedAt = '数据获取于';
   static const noElevation = '此线路无海拔数据，未显示海拔剖面，配速未计入爬升影响';
-  static const multiSegmentNote = '此线路包含多段不连续几何（OSM 路线关系可能多段/缺失）。行程模式基于最长连续段计算。';
+  static const multiSegmentNote =
+      '此线路包含多段不连续几何（OSM 路线关系可能多段/缺失）。行程模式基于最长连续段计算。';
   static const sharedGridNotePrefix = '网格说明';
 
   // 节点

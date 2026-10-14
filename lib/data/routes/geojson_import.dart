@@ -44,7 +44,9 @@ class GeoJsonImport {
         if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
           throw const GeoJsonImportException('存在超出范围的坐标');
         }
-        final ele = (c.length >= 3 && c[2] is num) ? (c[2] as num).toDouble() : null;
+        final ele = (c.length >= 3 && c[2] is num)
+            ? (c[2] as num).toDouble()
+            : null;
         seg.add(LatLng(lat, lon));
         segEle.add(ele);
       }

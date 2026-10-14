@@ -12,6 +12,7 @@ import '../../data/app_providers.dart';
 import '../../data/geocode.dart';
 import '../../data/location/location_service.dart';
 import '../../data/routes/external_trail_search.dart';
+import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
@@ -68,16 +69,14 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   /// 供 Overpass 查询与本地线路过滤使用。
   (double, double, double, double) get _bbox {
     try {
-      final b = _basemap.toBusinessBounds(
-          _mapController.camera.visibleBounds);
+      final b = _basemap.toBusinessBounds(_mapController.camera.visibleBounds);
       return (b.south, b.west, b.north, b.east);
     } catch (_) {
       return (39.9, 116.0, 40.1, 116.3);
     }
   }
 
-  Basemap get _basemap =>
-      Basemap(ref.read(settingsProvider).basemap);
+  Basemap get _basemap => Basemap(ref.read(settingsProvider).basemap);
 
   void _onTapMap(TapPosition pos, LatLng displayPoint) {
     // 点击线路时由 PolylineLayer 的命中通知器处理，不同时弹出点位天气。
@@ -120,7 +119,12 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
 
   List<HikingRoute> _allKnownRoutes() {
     final byId = <String, HikingRoute>{};
-    for (final route in [...ref.read(localRoutesProvider), ..._osmRoutes]) {
+    final planetTrails = ref.read(planetTrailsProvider).value ?? const [];
+    for (final route in [
+      ...ref.read(localRoutesProvider),
+      ..._osmRoutes,
+      ...planetTrails,
+    ]) {
       byId[route.id] = route;
     }
     return byId.values.toList();
@@ -129,12 +133,14 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   List<HikingRoute> _visibleRoutes() {
     final (minLat, minLon, maxLat, maxLon) = _bbox;
     return _allKnownRoutes()
-        .where((route) => route.intersectsBBox(
-              minLat - 0.05,
-              minLon - 0.05,
-              maxLat + 0.05,
-              maxLon + 0.05,
-            ))
+        .where(
+          (route) => route.intersectsBBox(
+            minLat - 0.05,
+            minLon - 0.05,
+            maxLat + 0.05,
+            maxLon + 0.05,
+          ),
+        )
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
   }
@@ -152,7 +158,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       return 99;
     }
 
-    final matches = _allKnownRoutes().where((route) => score(route) < 99).toList();
+    final matches = _allKnownRoutes()
+        .where((route) => score(route) < 99)
+        .toList();
     matches.sort((a, b) {
       final byScore = score(a).compareTo(score(b));
       return byScore != 0 ? byScore : a.name.compareTo(b.name);
@@ -191,13 +199,18 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
         });
         return routes;
       }
-      final routes =
-          await src.fetchRoutesInBBox(minLat, minLon, maxLat, maxLon);
+      final routes = await src.fetchRoutesInBBox(
+        minLat,
+        minLon,
+        maxLat,
+        maxLon,
+      );
       await cache.write(
-          CacheNs.map,
-          'overpass|$key',
-          routes.map((r) => r.encode()).join('\u241F'),
-          const Duration(minutes: 10));
+        CacheNs.map,
+        'overpass|$key',
+        routes.map((r) => r.encode()).join('\u241F'),
+        const Duration(minutes: 10),
+      );
       if (!mounted) return routes;
       setState(() {
         _osmRoutes = routes;
@@ -238,9 +251,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     } catch (_) {
       if (!mounted || _searchQuery != query) return;
       setState(() => _searching = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('地点候选加载失败；仍可使用本地线路和外部攻略入口。'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('地点候选加载失败；仍可使用本地线路和外部攻略入口。')),
+      );
     }
   }
 
@@ -257,11 +270,15 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       _routeMatches = routes;
       _searching = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(routes.isEmpty
-          ? '该区域暂未找到可直接分析的 OSM 线路，可查看外部攻略或导入 GPX。'
-          : '已在 ${place.name} 附近找到 ${routes.length} 条可直接分析的线路。'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          routes.isEmpty
+              ? '该区域暂未找到可直接分析的 OSM 线路，可查看外部攻略或导入 GPX。'
+              : '已在 ${place.name} 附近找到 ${routes.length} 条可直接分析的线路。',
+        ),
+      ),
+    );
   }
 
   void _selectSearchRoute(HikingRoute route) {
@@ -309,7 +326,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       if (!mounted) return;
       final canOpenSettings =
           failure.kind == LocationFailureKind.serviceDisabled ||
-              failure.kind == LocationFailureKind.deniedForever;
+          failure.kind == LocationFailureKind.deniedForever;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(failure.message),
@@ -325,9 +342,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('定位失败。你仍可手动点选地图查询天气。'),
-        ));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('定位失败。你仍可手动点选地图查询天气。')));
       }
     } finally {
       if (mounted) setState(() => _locating = false);
@@ -352,8 +368,14 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     final (minLat, minLon, maxLat, maxLon) = _bbox;
     final visible = <HikingRoute>[
       ..._osmRoutes,
-      ...locals.where((r) =>
-          r.intersectsBBox(minLat - 0.05, minLon - 0.05, maxLat + 0.05, maxLon + 0.05)),
+      ...locals.where(
+        (r) => r.intersectsBBox(
+          minLat - 0.05,
+          minLon - 0.05,
+          maxLat + 0.05,
+          maxLon + 0.05,
+        ),
+      ),
     ]..sort((a, b) => a.name.compareTo(b.name));
 
     final selectedId = _selected?.id;
@@ -406,15 +428,17 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                           // 简化在 WGS-84 业务几何上做，渲染坐标按底图转换
                           points: [
                             for (final pt in Geo.simplify(
-                                seg, _zoom >= 14 ? 15 : 40))
+                              seg,
+                              _zoom >= 14 ? 15 : 40,
+                            ))
                               basemap.toDisplay(pt),
                           ],
                           strokeWidth: r.id == selectedId ? 7 : 4,
                           color: r.id == selectedId
                               ? const Color(0xFF1565C0)
                               : (r.isDemo
-                                  ? const Color(0xCC2E7D32)
-                                  : const Color(0xCC7B1FA2)),
+                                    ? const Color(0xCC2E7D32)
+                                    : const Color(0xCC7B1FA2)),
                           borderStrokeWidth: r.id == selectedId ? 2 : 0,
                           borderColor: Colors.white,
                           hitValue: r.id,
@@ -459,14 +483,14 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Material(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surface
+                          color: Theme.of(context).colorScheme.surface
                               .withValues(alpha: 0.86),
                           borderRadius: BorderRadius.circular(8),
                           child: const Padding(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 5),
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
                             child: Text(
                               S.tapMapWeatherHint,
                               style: TextStyle(fontSize: 11),
@@ -522,9 +546,23 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Icon(Icons.travel_explore),
+                    ),
+                    const SizedBox(height: 10),
+                    FloatingActionButton.small(
+                      heroTag: 'planet',
+                      onPressed: () => context.push('/planet'),
+                      tooltip: '徒步星球 · 全球经典路线',
+                      child: const Icon(Icons.public),
+                    ),
+                    const SizedBox(height: 10),
+                    FloatingActionButton.small(
+                      heroTag: 'planner',
+                      onPressed: () => context.push('/planner'),
+                      tooltip: '线路规划工坊 (Trail Studio)',
+                      child: const Icon(Icons.edit_road),
                     ),
                     const SizedBox(height: 10),
                     FloatingActionButton.small(
@@ -577,9 +615,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
             ? const Padding(
                 padding: EdgeInsets.all(10),
                 child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2)),
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               )
             : IconButton(
                 icon: const Icon(Icons.arrow_forward),
@@ -604,8 +643,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       builder: (context) => ListView(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
         children: [
-          Text(S.routeListTitle,
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            S.routeListTitle,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           if (_osmError != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -623,10 +664,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               title: Wrap(
                 spacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(r.name),
-                  if (r.isDemo) const DemoBadge(),
-                ],
+                children: [Text(r.name), if (r.isDemo) const DemoBadge()],
               ),
               subtitle: Text(
                 '${(r.totalDistanceM / 1000).toStringAsFixed(1)} km · '
@@ -675,8 +713,10 @@ class _SelectedRouteCard extends ConsumerWidget {
                       spacing: 6,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text(route.name,
-                            style: Theme.of(context).textTheme.titleMedium),
+                        Text(
+                          route.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                         if (route.isDemo) const DemoBadge(),
                       ],
                     ),
@@ -687,10 +727,7 @@ class _SelectedRouteCard extends ConsumerWidget {
                     onPressed: () =>
                         ref.read(favoritesProvider.notifier).toggle(route),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: onClose,
-                  ),
+                  IconButton(icon: const Icon(Icons.close), onPressed: onClose),
                 ],
               ),
               const SizedBox(height: 2),
@@ -705,8 +742,10 @@ class _SelectedRouteCard extends ConsumerWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
-                  onPressed: () => context.push('/route/${route.id}',
-                      extra: RouteDetailArgs(route: route)),
+                  onPressed: () => context.push(
+                    '/route/${route.id}',
+                    extra: RouteDetailArgs(route: route),
+                  ),
                   icon: const Icon(Icons.insights_outlined, size: 18),
                   label: Text(S.viewDetail),
                 ),

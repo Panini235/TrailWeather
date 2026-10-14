@@ -309,6 +309,42 @@
       "acceptance": "配置 Secrets 后 smoke 通过",
       "verify": "live-smoke.yml",
       "result": "需用户注册和风并配置 Secrets"
+    },
+    {
+      "id": "T-080",
+      "p": "P0",
+      "title": "商业级轨迹导入重构（大文件自适应抽稀+KML/KMZ支持+异常清洗）",
+      "deps": [
+        "T-010"
+      ],
+      "status": "done",
+      "acceptance": "解除硬限制、自适应 RDP 抽稀保证高程1:1、KML/KMZ解析、外部文件调用意图注册",
+      "verify": "CI run 38534512846 全绿",
+      "result": "完成；CI 验证通过"
+    },
+    {
+      "id": "T-081",
+      "p": "P1",
+      "title": "融合徒步星球（trail-planet）全球经典路线库",
+      "deps": [
+        "T-080"
+      ],
+      "status": "done",
+      "acceptance": "落盘并解析 44 条全球经典神线、高程线性插值、8 大地貌分类与里程区间筛选、随机漫游",
+      "verify": "flutter test test/unit/planet_trails_test.dart test/widget/planet_screen_test.dart",
+      "result": "完成；测试通过"
+    },
+    {
+      "id": "T-082",
+      "p": "P1",
+      "title": "手绘路线规划工坊（Trail Studio）",
+      "deps": [
+        "T-080"
+      ],
+      "status": "done",
+      "acceptance": "地图打点画线、航点标注（营地/水源/险段/垭口）、Tobler算法耗时预估、GPX/KML双向导出、联动气象推演",
+      "verify": "flutter test test/unit/route_exporter_test.dart test/widget/route_planner_screen_test.dart",
+      "result": "完成；测试通过"
     }
   ]
 }

@@ -87,64 +87,92 @@ List<WxHint> computeHints({required List<NodeWeatherEntry> entries}) {
   }
 
   if (maxGust != null && maxGust >= 17.2) {
-    hints.add(WxHint(
-      id: 'gust',
-      title: '大风提示',
-      detail: '沿途最大预报阵风约 ${maxGust.toStringAsFixed(1)} m/s（蒲福 ${_bft(maxGust)} 级），山脊与垭口可能更强。',
-      basis: '阈值：阵风 ≥ 17.2 m/s（8 级下限）。自行计算，非官方预警。',
-      level: HintLevel.warning,
-    ));
+    hints.add(
+      WxHint(
+        id: 'gust',
+        title: '大风提示',
+        detail:
+            '沿途最大预报阵风约 ${maxGust.toStringAsFixed(1)} m/s（蒲福 ${_bft(maxGust)} 级），山脊与垭口可能更强。',
+        basis: '阈值：阵风 ≥ 17.2 m/s（8 级下限）。自行计算，非官方预警。',
+        level: HintLevel.warning,
+      ),
+    );
   }
   if (totalPrecip >= 8 && precipSeen) {
-    hints.add(WxHint(
-      id: 'precip',
-      title: '较强降水提示',
-      detail: '选定时段沿途累计预报降水量约 ${totalPrecip.toStringAsFixed(1)} mm，注意防雨、防滑与溪水上涨。',
-      basis: '阈值：时段累计降水 ≥ 8 mm。自行计算，非官方预警。',
-      level: HintLevel.caution,
-    ));
+    hints.add(
+      WxHint(
+        id: 'precip',
+        title: '较强降水提示',
+        detail:
+            '选定时段沿途累计预报降水量约 ${totalPrecip.toStringAsFixed(1)} mm，注意防雨、防滑与溪水上涨。',
+        basis: '阈值：时段累计降水 ≥ 8 mm。自行计算，非官方预警。',
+        level: HintLevel.caution,
+      ),
+    );
   }
   if (maxPrecipProb != null && maxPrecipProb >= 70 && !(totalPrecip >= 8)) {
-    hints.add(WxHint(
-      id: 'precip_prob',
-      title: '降水概率较高',
-      detail: '沿途最大降水概率 ${maxPrecipProb.toStringAsFixed(0)}%。降水概率不等于降水量，请同时关注降水量。',
-      basis: '阈值：降水概率 ≥ 70%。概率与量为不同指标，分别展示。',
-      level: HintLevel.caution,
-    ));
+    hints.add(
+      WxHint(
+        id: 'precip_prob',
+        title: '降水概率较高',
+        detail:
+            '沿途最大降水概率 ${maxPrecipProb.toStringAsFixed(0)}%。降水概率不等于降水量，请同时关注降水量。',
+        basis: '阈值：降水概率 ≥ 70%。概率与量为不同指标，分别展示。',
+        level: HintLevel.caution,
+      ),
+    );
   }
   if (minTemp != null && minTemp <= -10) {
-    hints.add(WxHint(
-      id: 'cold',
-      title: '低温提示',
-      detail: '沿途最低预报气温约 ${minTemp.toStringAsFixed(0)}°C，注意保暖与装备。',
-      basis: '阈值：气温 ≤ -10°C。自行计算，非官方预警。',
-      level: HintLevel.caution,
-    ));
+    hints.add(
+      WxHint(
+        id: 'cold',
+        title: '低温提示',
+        detail: '沿途最低预报气温约 ${minTemp.toStringAsFixed(0)}°C，注意保暖与装备。',
+        basis: '阈值：气温 ≤ -10°C。自行计算，非官方预警。',
+        level: HintLevel.caution,
+      ),
+    );
   }
   if (maxTemp != null && maxTemp >= 35) {
-    hints.add(WxHint(
-      id: 'heat',
-      title: '高温提示',
-      detail: '沿途最高预报气温约 ${maxTemp.toStringAsFixed(0)}°C，注意补水与避开正午。',
-      basis: '阈值：气温 ≥ 35°C。自行计算，非官方预警。',
-      level: HintLevel.caution,
-    ));
+    hints.add(
+      WxHint(
+        id: 'heat',
+        title: '高温提示',
+        detail: '沿途最高预报气温约 ${maxTemp.toStringAsFixed(0)}°C，注意补水与避开正午。',
+        basis: '阈值：气温 ≥ 35°C。自行计算，非官方预警。',
+        level: HintLevel.caution,
+      ),
+    );
   }
   if (missingNodes > 0) {
-    hints.add(WxHint(
-      id: 'partial',
-      title: '部分节点无数据',
-      detail: '$missingNodes 个节点在选定时间无该来源数据，以上结论不完整。',
-      basis: '数据缺失时明确标注，不默认安全。',
-      level: HintLevel.info,
-    ));
+    hints.add(
+      WxHint(
+        id: 'partial',
+        title: '部分节点无数据',
+        detail: '$missingNodes 个节点在选定时间无该来源数据，以上结论不完整。',
+        basis: '数据缺失时明确标注，不默认安全。',
+        level: HintLevel.info,
+      ),
+    );
   }
   return hints;
 }
 
 int _bft(double ms) {
-  final bounds = [0.3, 1.6, 3.4, 5.5, 8.0, 10.8, 13.9, 17.2, 20.8, 24.5, 28.5, 32.7];
+  final bounds = [
+    0.3,
+    1.6,
+    3.4,
+    5.5,
+    8.0,
+    10.8,
+    13.9,
+    17.2,
+    20.8,
+    24.5,
+    28.5,
+    32.7,
+  ];
   for (var i = 0; i < bounds.length; i++) {
     if (ms < bounds[i]) return i;
   }
@@ -152,12 +180,16 @@ int _bft(double ms) {
 }
 
 /// 日落相关提示：完成时间晚于日落时提醒。
-WxHint? sunsetHint({required DateTime finishEtaUtc, required DateTime sunsetUtc}) {
+WxHint? sunsetHint({
+  required DateTime finishEtaUtc,
+  required DateTime sunsetUtc,
+}) {
   if (finishEtaUtc.isAfter(sunsetUtc)) {
     return WxHint(
       id: 'sunset',
       title: '日落后仍在途中',
-      detail: '按当前配速估算，到达终点时间晚于来源提供的日落时间（${sunsetUtc.toIso8601String()} UTC），请携带照明。',
+      detail:
+          '按当前配速估算，到达终点时间晚于来源提供的日落时间（${sunsetUtc.toIso8601String()} UTC），请携带照明。',
       basis: '比较：预计到达时间 vs 来源提供的日落时间（如提供）。',
       level: HintLevel.caution,
     );

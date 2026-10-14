@@ -5,11 +5,12 @@ import 'package:trailweather/data/weather/eta.dart';
 
 RouteNode _node(double distKm, double? ele, {String? label, int idx = 0}) =>
     RouteNode(
-        pointIndex: idx,
-        pos: LatLng(0, distKm / 111),
-        elevationM: ele,
-        distFromStartM: distKm * 1000,
-        label: label);
+      pointIndex: idx,
+      pos: LatLng(0, distKm / 111),
+      elevationM: ele,
+      distFromStartM: distKm * 1000,
+      label: label,
+    );
 
 void main() {
   group('computeEtas', () {
@@ -20,7 +21,10 @@ void main() {
         nodes: nodes,
         startUtc: start,
         pace: const PaceConfig(
-            speedKmh: 4, ascentMinPer100m: 0, descentMinPer100m: 0),
+          speedKmh: 4,
+          ascentMinPer100m: 0,
+          descentMinPer100m: 0,
+        ),
       );
       expect(etas.length, 3);
       expect(etas[0], start);
@@ -37,7 +41,10 @@ void main() {
         nodes: nodes,
         startUtc: start,
         pace: const PaceConfig(
-            speedKmh: 4, ascentMinPer100m: 0, descentMinPer100m: 0),
+          speedKmh: 4,
+          ascentMinPer100m: 0,
+          descentMinPer100m: 0,
+        ),
       );
       expect(etas[1], DateTime.utc(2026, 10, 14, 0, 30));
       expect(etas[1].day, 14);
@@ -49,7 +56,10 @@ void main() {
         nodes: nodes,
         startUtc: DateTime.utc(2026, 1, 1),
         pace: const PaceConfig(
-            speedKmh: 6, ascentMinPer100m: 12, descentMinPer100m: 6),
+          speedKmh: 6,
+          ascentMinPer100m: 12,
+          descentMinPer100m: 6,
+        ),
       );
       // 1km/6km/h = 10min + 2*12min = 34min
       expect(etas[1].difference(etas[0]).inMinutes, 34);
@@ -61,7 +71,10 @@ void main() {
         nodes: nodes,
         startUtc: DateTime.utc(2026, 1, 1),
         pace: const PaceConfig(
-            speedKmh: 6, ascentMinPer100m: 60, descentMinPer100m: 30),
+          speedKmh: 6,
+          ascentMinPer100m: 60,
+          descentMinPer100m: 30,
+        ),
       );
       expect(etas[1].difference(etas[0]).inMinutes, 10);
     });
@@ -72,8 +85,11 @@ void main() {
         nodes: nodes,
         startUtc: DateTime.utc(2026, 1, 1),
         pace: const PaceConfig(
-            speedKmh: 10, ascentMinPer100m: 0, descentMinPer100m: 0,
-            restMinutesTotal: 60),
+          speedKmh: 10,
+          ascentMinPer100m: 0,
+          descentMinPer100m: 0,
+          restMinutesTotal: 60,
+        ),
       );
       // 每段 30min 步行 + 30min 分摊休息
       expect(etas[1].difference(etas[0]).inMinutes, 60);
@@ -83,13 +99,18 @@ void main() {
 
   group('sampleRoute', () {
     List<LatLng> line(int n, {double stepDeg = 0.01}) => [
-          for (var i = 0; i < n; i++) LatLng(0, i * stepDeg),
-        ];
+      for (var i = 0; i < n; i++) LatLng(0, i * stepDeg),
+    ];
 
     test('起终点必含', () {
       final pts = line(50);
       final eles = List<double?>.filled(50, 100);
-      final nodes = sampleRoute(points: pts, elevations: eles, spacingM: 1500, maxNodes: 24);
+      final nodes = sampleRoute(
+        points: pts,
+        elevations: eles,
+        spacingM: 1500,
+        maxNodes: 24,
+      );
       expect(nodes.first.pointIndex, 0);
       expect(nodes.last.pointIndex, 49);
       expect(nodes.first.label, '起点');
@@ -100,7 +121,12 @@ void main() {
       final pts = line(50);
       final eles = List<double?>.filled(50, 100.0);
       eles[25] = 900;
-      final nodes = sampleRoute(points: pts, elevations: eles, spacingM: 1500, maxNodes: 24);
+      final nodes = sampleRoute(
+        points: pts,
+        elevations: eles,
+        spacingM: 1500,
+        maxNodes: 24,
+      );
       final high = nodes.where((n) => n.label == '高点').toList();
       expect(high, isNotEmpty);
       expect(high.first.pointIndex, 25);
@@ -110,7 +136,12 @@ void main() {
       final pts = line(500);
       final eles = List<double?>.filled(500, 10.0);
       eles[300] = 999;
-      final nodes = sampleRoute(points: pts, elevations: eles, spacingM: 200, maxNodes: 10);
+      final nodes = sampleRoute(
+        points: pts,
+        elevations: eles,
+        spacingM: 200,
+        maxNodes: 10,
+      );
       expect(nodes.length, lessThanOrEqualTo(10));
       expect(nodes.first.pointIndex, 0);
       expect(nodes.last.pointIndex, 499);
@@ -118,7 +149,15 @@ void main() {
     });
 
     test('空保护', () {
-      expect(sampleRoute(points: const [], elevations: const [], spacingM: 1500, maxNodes: 5), isEmpty);
+      expect(
+        sampleRoute(
+          points: const [],
+          elevations: const [],
+          spacingM: 1500,
+          maxNodes: 5,
+        ),
+        isEmpty,
+      );
     });
   });
 }

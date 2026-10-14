@@ -19,34 +19,34 @@ import 'package:trailweather/ui/strings.dart';
 class IntegrationFakeProvider extends WeatherProvider {
   @override
   ProviderCapabilities get caps => ProviderCapabilities(
-        providerId: 'fake:integration',
-        vendor: 'FakeVendor',
-        displayName: 'Fake（集成测试）',
-        modelOrNetwork: 'fake-model',
-        coverage: '测试',
-        forecastHorizonDays: 7,
-        intervalHours: 1,
-        batchCoordinates: true,
-        maxPointsPerRequest: 10,
-        granularity: WxGranularity.grid,
-        dataKind: WxDataKind.forecast,
-        requiresApiKey: false,
-        browserCorsOk: true,
-        browserNotes: '',
-        license: 'test',
-        attribution: 'test',
-        supportedVars: const [
-          WxVar.temperature,
-          WxVar.apparentTemp,
-          WxVar.precip,
-          WxVar.precipProb,
-          WxVar.windSpeed,
-          WxVar.windGust,
-        ],
-        minRequestIntervalMs: 0,
-        recommendedCacheTtl: const Duration(minutes: 30),
-        spatialResolutionNote: '测试：约 10 km 网格',
-      );
+    providerId: 'fake:integration',
+    vendor: 'FakeVendor',
+    displayName: 'Fake（集成测试）',
+    modelOrNetwork: 'fake-model',
+    coverage: '测试',
+    forecastHorizonDays: 7,
+    intervalHours: 1,
+    batchCoordinates: true,
+    maxPointsPerRequest: 10,
+    granularity: WxGranularity.grid,
+    dataKind: WxDataKind.forecast,
+    requiresApiKey: false,
+    browserCorsOk: true,
+    browserNotes: '',
+    license: 'test',
+    attribution: 'test',
+    supportedVars: const [
+      WxVar.temperature,
+      WxVar.apparentTemp,
+      WxVar.precip,
+      WxVar.precipProb,
+      WxVar.windSpeed,
+      WxVar.windGust,
+    ],
+    minRequestIntervalMs: 0,
+    recommendedCacheTtl: const Duration(minutes: 30),
+    spatialResolutionNote: '测试：约 10 km 网格',
+  );
 
   @override
   Future<List<WxPointForecast>> fetchPoints({
@@ -56,7 +56,11 @@ class IntegrationFakeProvider extends WeatherProvider {
     CancelToken? cancelToken,
   }) async {
     final now = DateTime.now().toUtc();
-    final start = DateTime.utc(now.year, now.month, now.day).subtract(const Duration(hours: 2));
+    final start = DateTime.utc(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(hours: 2));
     return [
       for (final p in points)
         WxPointForecast(
@@ -106,25 +110,24 @@ class IntegrationFakeProvider extends WeatherProvider {
 }
 
 HikingRoute _demoRoute() => HikingRoute(
-      id: 'demo-int',
-      name: '集成测试线路',
-      origin: RouteOrigin.demo,
-      segments: [
-        [
-          for (var i = 0; i < 40; i++) LatLng(39.99 + i * 0.001, 116.18 + i * 0.001),
-        ],
-      ],
-      elevationsM: [for (var i = 0; i < 40; i++) i * 20.0],
-      sourceName: '集成测试',
-      isDemo: true,
-    );
+  id: 'demo-int',
+  name: '集成测试线路',
+  origin: RouteOrigin.demo,
+  segments: [
+    [
+      for (var i = 0; i < 40; i++)
+        LatLng(39.99 + i * 0.001, 116.18 + i * 0.001),
+    ],
+  ],
+  elevationsM: [for (var i = 0; i < 40; i++) i * 20.0],
+  sourceName: '集成测试',
+  isDemo: true,
+);
 
 class _DeniedLocationService implements LocationService {
   @override
-  Future<LatLng> currentPosition() async => throw const LocationFailure(
-        LocationFailureKind.denied,
-        '集成测试不启用设备定位',
-      );
+  Future<LatLng> currentPosition() async =>
+      throw const LocationFailure(LocationFailureKind.denied, '集成测试不启用设备定位');
 
   @override
   Future<bool> openSettings(LocationFailureKind kind) async => false;
@@ -158,15 +161,15 @@ class _AppShell extends StatelessWidget {
       home: MapHomeScreen(),
       routes: {
         '/import': (c) => const Scaffold(body: Center(child: Text('import'))),
-        '/settings': (c) => const Scaffold(body: Center(child: Text('settings'))),
+        '/settings': (c) =>
+            const Scaffold(body: Center(child: Text('settings'))),
       },
     );
   }
 }
 
 void main() {
-  testWidgets('核心闭环：地图 → 线路列表 → 详情 → 天气节点 → 行程模式 → 收藏 → 重启恢复',
-      (tester) async {
+  testWidgets('核心闭环：地图 → 线路列表 → 详情 → 天气节点 → 行程模式 → 收藏 → 重启恢复', (tester) async {
     final prefs = await _mockPrefs();
     await _pumpApp(tester, prefs);
 
@@ -187,9 +190,13 @@ void main() {
         overrides: [
           prefsProvider.overrideWithValue(prefs),
           locationServiceProvider.overrideWithValue(_DeniedLocationService()),
-          weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
+          weatherProvidersProvider.overrideWithValue([
+            IntegrationFakeProvider(),
+          ]),
         ],
-        child: MaterialApp(home: RouteDetailScreen(args: RouteDetailArgs(route: route))),
+        child: MaterialApp(
+          home: RouteDetailScreen(args: RouteDetailArgs(route: route)),
+        ),
       ),
     );
     // 数据 future 与 pumpAndSettle 存在时序边界：显式泵帧直到天气区渲染。
@@ -227,8 +234,10 @@ void main() {
     for (var i = 0; i < 12 && !alertsVisible; i++) {
       await tester.drag(find.byType(ListView), const Offset(0, -700));
       await tester.pumpAndSettle();
-      alertsVisible =
-          find.textContaining(officialAlertsText0).evaluate().isNotEmpty;
+      alertsVisible = find
+          .textContaining(officialAlertsText0)
+          .evaluate()
+          .isNotEmpty;
     }
     expect(alertsVisible, isTrue, reason: '滚动后应显示官方预警未接入说明');
 

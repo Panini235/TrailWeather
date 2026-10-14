@@ -28,42 +28,40 @@ class MetNorwayProvider extends WeatherProvider {
 
   @override
   ProviderCapabilities get caps => ProviderCapabilities(
-        providerId: 'met.no:locationforecast2.0',
-        vendor: 'MET Norway',
-        displayName: 'MET Norway（Locationforecast 2.0）',
-        modelOrNetwork:
-            'HARMONIE（北欧）/ ECMWF（全球）混合，响应未标注具体模型',
-        coverage: '全球（北欧区域分辨率更高）',
-        forecastHorizonDays: 3, // compact 实测约 2–3 天逐时
-        intervalHours: 1,
-        batchCoordinates: false,
-        maxPointsPerRequest: 1,
-        granularity: WxGranularity.grid,
-        dataKind: WxDataKind.forecast,
-        requiresApiKey: false,
-        browserCorsOk: true,
-        browserNotes: kIsWeb
-            ? '浏览器端无法自定义 User-Agent（浏览器安全限制），不符合 MET 服务条款的标识要求，请求可能被拒绝；移动端正常'
-            : '需 User-Agent 标识（已内置）',
-        license: 'NLOD 2.0 / CC BY 4.0（MET Norway）',
-        attribution: '天气数据：MET Norway, CC BY 4.0 / NLOD',
-        supportedVars: const [
-          WxVar.temperature,
-          WxVar.precip,
-          WxVar.windSpeed,
-          WxVar.windGust, // 仅部分时次提供
-          WxVar.windDir,
-          WxVar.humidity,
-          WxVar.cloudCover,
-          WxVar.pressure,
-        ],
-        minRequestIntervalMs: 250,
-        recommendedCacheTtl: const Duration(minutes: 20),
-        spatialResolutionNote:
-            '来源文档：北欧 HARMONIE 约 2.5 km，其他区域 ECMWF 约 9–22 km，随区域与时效变化；本请求未返回具体网格信息',
-        modelOverlapNote:
-            '注意：MET Norway 全球部分使用 ECMWF 模型，与其他使用 ECMWF 系模型的来源可能存在底层模型重叠；未逐点识别，按未知处理',
-      );
+    providerId: 'met.no:locationforecast2.0',
+    vendor: 'MET Norway',
+    displayName: 'MET Norway（Locationforecast 2.0）',
+    modelOrNetwork: 'HARMONIE（北欧）/ ECMWF（全球）混合，响应未标注具体模型',
+    coverage: '全球（北欧区域分辨率更高）',
+    forecastHorizonDays: 3, // compact 实测约 2–3 天逐时
+    intervalHours: 1,
+    batchCoordinates: false,
+    maxPointsPerRequest: 1,
+    granularity: WxGranularity.grid,
+    dataKind: WxDataKind.forecast,
+    requiresApiKey: false,
+    browserCorsOk: true,
+    browserNotes: kIsWeb
+        ? '浏览器端无法自定义 User-Agent（浏览器安全限制），不符合 MET 服务条款的标识要求，请求可能被拒绝；移动端正常'
+        : '需 User-Agent 标识（已内置）',
+    license: 'NLOD 2.0 / CC BY 4.0（MET Norway）',
+    attribution: '天气数据：MET Norway, CC BY 4.0 / NLOD',
+    supportedVars: const [
+      WxVar.temperature,
+      WxVar.precip,
+      WxVar.windSpeed,
+      WxVar.windGust, // 仅部分时次提供
+      WxVar.windDir,
+      WxVar.humidity,
+      WxVar.cloudCover,
+      WxVar.pressure,
+    ],
+    minRequestIntervalMs: 250,
+    recommendedCacheTtl: const Duration(minutes: 20),
+    spatialResolutionNote:
+        '来源文档：北欧 HARMONIE 约 2.5 km，其他区域 ECMWF 约 9–22 km，随区域与时效变化；本请求未返回具体网格信息',
+    modelOverlapNote: '注意：MET Norway 全球部分使用 ECMWF 模型，与其他使用 ECMWF 系模型的来源可能存在底层模型重叠；未逐点识别，按未知处理',
+  );
 
   @override
   Future<List<WxPointForecast>> fetchPoints({
@@ -89,11 +87,16 @@ class MetNorwayProvider extends WeatherProvider {
         // 浏览器禁止设置 User-Agent；Web 端不设置并如实标注限制。
         headers['User-Agent'] = _userAgent;
       }
-      final body = await fetcher(uri, headers: headers, cancelToken: cancelToken);
+      final body = await fetcher(
+        uri,
+        headers: headers,
+        cancelToken: cancelToken,
+      );
       results.add(_parse(body, p, uri));
       if (i < points.length - 1) {
         await Future<void>.delayed(
-            Duration(milliseconds: caps.minRequestIntervalMs));
+          Duration(milliseconds: caps.minRequestIntervalMs),
+        );
       }
     }
     return results;
@@ -103,7 +106,8 @@ class MetNorwayProvider extends WeatherProvider {
     final m = jsonDecode(body) as Map<String, dynamic>;
     final props = m['properties'] as Map<String, dynamic>;
     final meta = props['meta'] as Map<String, dynamic>;
-    final updatedAt = DateTime.tryParse(meta['updated_at'] as String? ?? '')?.toUtc();
+    final updatedAt = DateTime.tryParse(meta['updated_at'] as String? ?? '')
+        ?.toUtc();
     final fetchedAt = DateTime.now().toUtc();
 
     final timeseries = (props['timeseries'] as List? ?? const [])
@@ -129,8 +133,8 @@ class MetNorwayProvider extends WeatherProvider {
 
       final next1 = data['next_1_hours'] as Map<String, dynamic>?;
       final n1Details = next1?['details'] as Map<String, dynamic>?;
-      values[WxVar.precip] =
-          (n1Details?['precipitation_amount'] as num?)?.toDouble();
+      values[WxVar.precip] = (n1Details?['precipitation_amount'] as num?)
+          ?.toDouble();
       values[WxVar.precipProb] =
           (n1Details?['probability_of_precipitation'] as num?)?.toDouble();
       final symbol =

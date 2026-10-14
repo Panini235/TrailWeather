@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/geocode.dart';
 import '../../data/routes/external_trail_search.dart';
@@ -124,9 +125,25 @@ class HybridRouteSearchResults extends StatelessWidget {
               ],
               ListTile(
                 dense: true,
+                leading: const Icon(Icons.public, size: 20),
+                title: const Text('徒步星球 · 全球经典路线'),
+                subtitle: const Text('44+ 条雪山/冰川/森林/峡谷世界顶级徒步线路'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/planet'),
+              ),
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.edit_road, size: 20),
+                title: const Text('线路规划工坊 (Trail Studio)'),
+                subtitle: const Text('在地图上手绘规划、标记营地水源、即时推演天气与耗时'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/planner'),
+              ),
+              ListTile(
+                dense: true,
                 leading: const Icon(Icons.file_upload_outlined, size: 20),
                 title: const Text(S.importOwnedTrack),
-                subtitle: const Text('导入 GPX/GeoJSON 后即可分析沿途天气'),
+                subtitle: const Text('导入 GPX / KML / GeoJSON 后即可分析沿途天气'),
                 onTap: onImportTap,
               ),
             ],

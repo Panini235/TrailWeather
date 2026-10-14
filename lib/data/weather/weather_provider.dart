@@ -11,8 +11,9 @@ typedef StringFetcher = Future<String> Function(
   CancelToken? cancelToken,
 });
 
-StringFetcher defaultFetcher() => (uri, {headers, cancelToken}) =>
-    WxHttp().getText(uri, headers: headers, cancelToken: cancelToken);
+StringFetcher defaultFetcher() =>
+    (uri, {headers, cancelToken}) =>
+        WxHttp().getText(uri, headers: headers, cancelToken: cancelToken);
 
 /// 天气来源抽象。每个实现必须：
 /// 1. 如实声明能力（ProviderCapabilities）；
@@ -20,7 +21,8 @@ StringFetcher defaultFetcher() => (uri, {headers, cancelToken}) =>
 /// 3. 不虚构缺失字段（保持 null）；
 /// 4. 不在日志/异常中携带坐标。
 abstract class WeatherProvider {
-  WeatherProvider({StringFetcher? fetcher}) : fetcher = fetcher ?? defaultFetcher();
+  WeatherProvider({StringFetcher? fetcher})
+    : fetcher = fetcher ?? defaultFetcher();
 
   final StringFetcher fetcher;
 

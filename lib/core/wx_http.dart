@@ -11,8 +11,7 @@ class SourceHttpException implements Exception {
   SourceHttpException(this.statusCode, this.message, this.endpoint);
 
   @override
-  String toString() =>
-      'SourceHttpException($statusCode, $message, $endpoint)';
+  String toString() => 'SourceHttpException($statusCode, $message, $endpoint)';
 }
 
 /// 统一 HTTP 客户端：
@@ -22,16 +21,17 @@ class SourceHttpException implements Exception {
 /// - 异常中不携带坐标查询串，避免把用户浏览位置写进日志。
 class WxHttp {
   WxHttp({Dio? dio, this.maxRetries = 2})
-      : _dio = dio ??
-            Dio(
-              BaseOptions(
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 25),
-                sendTimeout: const Duration(seconds: 15),
-                validateStatus: (_) => true, // 统一自行判断状态码
-                responseType: ResponseType.plain,
-              ),
-            );
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 25),
+              sendTimeout: const Duration(seconds: 15),
+              validateStatus: (_) => true, // 统一自行判断状态码
+              responseType: ResponseType.plain,
+            ),
+          );
 
   final Dio _dio;
   final int maxRetries;
@@ -53,7 +53,8 @@ class WxHttp {
       if (code >= 200 && code < 300) {
         return resp.data ?? '';
       }
-      final retriable = code == 429 || code == 502 || code == 503 || code == 504;
+      final retriable =
+          code == 429 || code == 502 || code == 503 || code == 504;
       if (retriable && attempt <= maxRetries) {
         var delayMs = 500 * math.pow(2, attempt - 1).toDouble();
         final retryAfter = resp.headers.value('retry-after');
@@ -62,11 +63,7 @@ class WxHttp {
         await Future<void>.delayed(Duration(milliseconds: delayMs.toInt()));
         continue;
       }
-      throw SourceHttpException(
-        code,
-        'HTTP $code',
-        '${uri.host}${uri.path}',
-      );
+      throw SourceHttpException(code, 'HTTP $code', '${uri.host}${uri.path}');
     }
   }
 }
