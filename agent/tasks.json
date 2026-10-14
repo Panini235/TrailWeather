@@ -332,7 +332,7 @@
       "status": "done",
       "acceptance": "落盘并解析 44 条全球经典神线、高程线性插值、8 大地貌分类与里程区间筛选、随机漫游",
       "verify": "flutter test test/unit/planet_trails_test.dart test/widget/planet_screen_test.dart",
-      "result": "完成；测试通过"
+      "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
     },
     {
       "id": "T-082",
@@ -344,7 +344,7 @@
       "status": "done",
       "acceptance": "地图打点画线、航点标注（营地/水源/险段/垭口）、Tobler算法耗时预估、GPX/KML双向导出、联动气象推演",
       "verify": "flutter test test/unit/route_exporter_test.dart test/widget/route_planner_screen_test.dart",
-      "result": "完成；测试通过"
+      "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
     }
   ]
 }

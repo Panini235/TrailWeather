@@ -165,4 +165,9 @@ GitHub Actions Web/APK 构建待推送。
 - `flutter test --no-pub` 115/115 项全量通过（覆盖 planet_trails_test、route_exporter_test、planet_screen_test、route_planner_screen_test）；
 - `dart format` 代码风格检查全部合规。
 
+**CI 结果**：分支 `feat/robust-track-import`，GitHub Actions Run ID `38537198873`，全绿成功：
+- analyze ✓, test 115/115 ✓, Web Release ✓, Android APK Release ✓。
+- 生成产物：`web-release`、`apk-release`。
+
+
 
