@@ -1,17 +1,12 @@
-import 'dart:async' show unawaited;
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../data/routes/route_file_import.dart';
-import '../../data/routes/route_models.dart';
-import '../../data/settings/favorites_repository.dart';
-import '../detail/route_detail_screen.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
+import 'import_flow.dart';
 
 /// 导入 GPX / KML / KMZ / GeoJSON。
 ///
@@ -109,48 +104,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   Future<void> _finish(RouteImportResult result) async {
     if (!mounted) return;
     setState(() => _warnings = result.warnings);
-    final route = result.route;
-    final ok = await _confirm(route);
-    if (!ok || !mounted) return;
-    await ref.read(favoritesProvider.notifier).add(route);
-    if (mounted) {
-      unawaited(
-        context.push(
-          '/route/${route.id}',
-          extra: RouteDetailArgs(route: route),
-        ),
-      );
-    }
-  }
-
-  Future<bool> _confirm(HikingRoute route) async {
-    // 展示解析摘要，用户确认后保存。
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dCtx) => AlertDialog(
-        title: Text('导入：${route.name}'),
-        content: Text(
-          '段数：${route.segments.length}\n'
-          '总点数：${route.flatPoints.length}\n'
-          '长度：约 ${(route.totalDistanceM / 1000).toStringAsFixed(1)} km\n'
-          '累计爬升：${route.totalAscentM == null ? S.unknown : '${route.totalAscentM!.toStringAsFixed(0)} m'}\n\n'
-          '线路将保存到本机收藏（不上传）。注意：线路数据可能包含住宅、常去出发点等敏感位置，分享前请自行判断。',
-          style: const TextStyle(fontSize: 13, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dCtx, false),
-            child: const Text(S.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dCtx, true),
-            child: const Text('保存到收藏'),
-          ),
-        ],
-      ),
-    );
-    return confirmed ?? false;
+    await confirmAndSaveImportedRoute(context, ref, result.route);
   }
 
   @override

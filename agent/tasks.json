@@ -406,6 +406,54 @@
       "acceptance": "Android 定位强制 LocationManager + medium 精度 + 上次已知位置先居中/超时回退并标注；定位成功只移动地图并显示当前位置天气小标签，点击才开面板，不自动请求 Overpass；详情小地图按全部 segments 包围盒（GCJ-02 先 toDisplay）自适配并可进入可交互全屏大图，首页选线路适配整条线路；“搜索此区域”降为线路列表次要入口、外部攻略折叠为次要入口并写明原因（底层代码与测试保留）",
       "verify": "test/unit/location_service_test.dart、test/unit/route_camera_test.dart、test/widget/map_home_location_test.dart、test/widget/hybrid_route_search_test.dart、test/integration/core_flow_test.dart",
       "result": "本地 analyze 0 + test 151/151 全绿；CI 38677552384 全绿（analyze/test/Web/APK）；真机定位/手势待用户确认"
+    },
+    {
+      "id": "T-120",
+      "p": "P0",
+      "title": "v2 首页改版：我的行程 + 底部导航（行程/地图/设置）",
+      "deps": [
+        "T-100"
+      ],
+      "status": "done",
+      "acceptance": "首页为我的行程（空状态引导导入/手绘、删除、示例线路与徒步星球置底）；StatefulShellRoute 三分支；地图移除已迁出的入口；路由器只创建一次；移除百度外部搜索",
+      "verify": "flutter test test/widget/trips_shell_test.dart",
+      "result": "本地 analyze 0 + test 153 全绿"
+    },
+    {
+      "id": "T-121",
+      "p": "P0",
+      "title": "Android“用徒步天气打开”/分享接收",
+      "deps": [
+        "T-120"
+      ],
+      "status": "done",
+      "acceptance": "VIEW/SEND intent（gpx/kml/kmz/geojson/xml/octet-stream）→ MethodChannel → 内容嗅探解析 → 统一确认保存；singleTask；已消费标记防重复导入；30MB 上限后台读取",
+      "verify": "trips_shell_test 外部传入用例 + CI APK 编译 MainActivity.kt；flutter create 不覆盖已验证（本地 scratch）",
+      "result": "真机待用户验证（两步路/奥维/微信 打开方式）"
+    },
+    {
+      "id": "T-122",
+      "p": "P1",
+      "title": "iOS“用徒步天气打开”",
+      "deps": [
+        "T-121"
+      ],
+      "status": "todo",
+      "acceptance": "AppDelegate application(_:open:options:) 读取 Inbox/安全作用域文件 → 同一 MethodChannel；Info.plist 补 KMZ/GeoJSON 文档类型",
+      "verify": "手动 iOS Build 工作流",
+      "result": ""
+    },
+    {
+      "id": "T-130",
+      "p": "P0",
+      "title": "出发窗口（日期 × 出发时刻 格子图）",
+      "deps": [
+        "T-120"
+      ],
+      "status": "todo",
+      "acceptance": "按 docs/redesign-v2.md 阈值；缺失=信息不足；每格可追溯来源与原因",
+      "verify": "",
+      "result": ""
     }
   ]
 }

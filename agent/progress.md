@@ -260,3 +260,20 @@ route_camera_test 4 项；改写首页定位与混合搜索组件测试；集成
 小地图包围盒适配与全屏手势；首页选线路后的适配范围是否被搜索栏/线路卡遮挡；iOS 定位行为。
 **CI 结果**：run 38677552384（workflow_dispatch，分支 feat/robust-track-import）conclusion=success，
 analyze ✓ / test ✓ / Web release ✓ / APK release ✓。
+
+## Round 12 — 2026-10-15（v2 改版第 2 步：我的行程首页 + 底部导航 + Android 打开方式）
+
+**依据**：docs/redesign-v2.md（用户确认：首页改“我的行程”、移除百度外部搜索、OSM 搜索降级）。
+
+**完成**：
+- T-120：`lib/ui/trips/trips_screen.dart` 首页；`router.dart` 改 StatefulShellRoute（行程/地图/设置）；
+  地图页移除 Pro/星球/规划/导入/设置悬浮按钮（已迁到首页与底部导航）；详情缺 extra 时 redirect 到首页。
+- 修复：`app.dart` 在 build 中创建 GoRouter，任何设置变化（如深色模式）都会重置导航栈 → 改为 appRouterProvider。
+- 移除跳转百度 site: 搜索的外部攻略（代码与测试一并删除）。
+- T-121：Android `MainActivity.kt`（首次提交原生代码，.gitignore 放行 kotlin/）接收 VIEW/SEND；
+  导入确认抽为 `import_flow.dart` 供导入页与外部传入共用。
+- 验证 `flutter create` 不覆盖已提交的 MainActivity.kt / AndroidManifest.xml（本地 scratch 副本）。
+
+**本地验证**：flutter analyze 0；flutter test 153/153。
+**未验证**：真机“打开方式”列表与读取（无设备）；iOS 未接入（T-122）。
+

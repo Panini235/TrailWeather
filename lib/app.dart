@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'data/settings/settings_repository.dart';
 import 'ui/router.dart';
 import 'ui/strings.dart';
 import 'ui/theme.dart';
+
+/// 路由器必须在 App 生命周期内只创建一次：放在 build 里会在任何设置变化
+/// （如切换深色模式）时重建，导致导航栈被重置回首页。
+final appRouterProvider = Provider<GoRouter>((ref) => buildRouter());
 
 class TrailWeatherApp extends ConsumerWidget {
   const TrailWeatherApp({super.key});
@@ -26,7 +31,7 @@ class TrailWeatherApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      routerConfig: buildRouter(),
+      routerConfig: ref.watch(appRouterProvider),
     );
   }
 }

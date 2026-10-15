@@ -26,6 +26,8 @@ android/app/src/*
 !android/app/src/main/
 android/app/src/main/*
 !android/app/src/main/AndroidManifest.xml
+# 接收外部传入文件的 MainActivity（flutter create 不覆盖已存在文件）
+!android/app/src/main/kotlin/
 ios/*
 !ios/Runner/
 ios/Runner/*

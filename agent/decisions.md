@@ -112,3 +112,10 @@
 - 首页定位成功不再自动弹出天气面板、不自动请求 Overpass，改为地图上的小标签。
 - Overpass 区域搜索与外部攻略（百度 site: 搜索）国内可用性差：从主界面降级为次要入口（线路列表底部、
   搜索结果折叠项），保留代码与测试，待产品方向确认后再决定去留。
+
+## D-019 v2 改版：轨迹天气窗口
+- 详见 docs/redesign-v2.md。首页“我的行程”，地图降为次要；移除百度外部搜索（不能产出可导入轨迹、质量不可控）。
+- 接收外部文件选择自写 MethodChannel（Android MainActivity.kt）而非新增插件：零新依赖、逻辑仅 ~100 行、
+  可被 CI APK 构建编译验证；Kotlin 文件提交入库，`flutter create` 不覆盖已存在文件（已验证）。
+- intent-filter 去掉 BROWSABLE 与 `*/*`，改为明确 MIME 列表（含 octet-stream，因微信常以此传 GPX）。
+

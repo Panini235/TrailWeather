@@ -41,10 +41,10 @@ flutter run -d chrome                             # run Web locally
 lib/core/        geo (haversine, RDP simplify), units, gcj02, WxHttp (dio + 429/5xx backoff), CacheStore (TTL/LRU/namespaces over shared_preferences)
 lib/data/        business layer; app_providers.dart is the Riverpod wiring hub
   weather/       WeatherProvider adapters → WeatherRepository → ETA / risk rules
-  routes/        HikingRoute model, GPX/GeoJSON/KML import, Overpass discovery, planet trails, exporter
+  routes/        HikingRoute model, RouteFileImport (GPX/KML/KMZ/GeoJSON), incoming files, Overpass discovery, planet trails, exporter
   settings/      AppSettings + favorites (Notifier + shared_preferences)
   monetization/  subscription models/repository (paywall, pro benefits)
-lib/ui/          screens (map home, route detail, settings, import, planet, planner, onboarding, paywall); router.dart; strings.dart
+lib/ui/          screens (trips home, map, route detail, settings, import, planet, planner, onboarding, paywall); router.dart (shell); strings.dart
 ```
 
 - **Riverpod wiring:** `lib/data/app_providers.dart` defines the service/provider graph. `prefsProvider` must be overridden with a real `SharedPreferences` instance (`main.dart` does this; tests override it the same way). Override these providers in tests instead of hitting the network.
@@ -52,7 +52,9 @@ lib/ui/          screens (map home, route detail, settings, import, planet, plan
 - **Provenance model:** every `WxSourceResult` carries a `WxProvenance` (`weather_models.dart`). It keeps request coordinates, returned coordinates, granularity, resolution, data kind, model run and license as separate fields. All variable values are `double?`. `WxVar.windGust`/`windSpeed` and `precipProb`/`precip` are distinct keys. Internal units are °C, m/s, mm and m; each adapter converts from its source units. All times are UTC internally.
 - **Out-of-range requests** throw `WxOutOfRange`, and the UI shows "no data for this date" instead of extrapolating.
 - **Map:** flutter_map 8 (pure Dart, same on all three platforms). The business layer only emits `HikingRoute`/`RouteNode`/`WxSourceResult`; `ui/map` only renders and handles hit-testing. The default basemap is AMap (GCJ-02, hence `core/gcj02.dart`), with OSM available in Settings.
-- **Routing:** go_router in `ui/router.dart`. `/route/:routeId` receives the route through `state.extra` (`RouteDetailArgs`). Without it, the route falls back to the home screen.
+- **Routing:** go_router in `ui/router.dart`. A `StatefulShellRoute` gives three bottom-nav branches: Trips (`/`, home), Map (`/map`), Settings (`/settings`). Detail, import, planner and similar pages are top-level routes pushed above the shell. `/route/:routeId` receives the route through `state.extra` (`RouteDetailArgs`) and redirects to `/` without it. The router is created once in `appRouterProvider` (`app.dart`); never build it inside `build`.
+- **Product direction:** `docs/redesign-v2.md` (track-first "weather window" app; map discovery is secondary).
+- **Incoming files ("Open with"):** Android `MainActivity.kt` (committed, `flutter create` leaves it alone) passes VIEW/SEND URIs over the `trailweather/incoming_file` MethodChannel; `IncomingFileListener` parses them with `RouteFileImport` and reuses `confirmAndSaveImportedRoute`. iOS is not wired yet.
 - **Request discipline:** no weather requests while the map is being dragged. The time slider only previews loaded data and fetches on `onChangeEnd`. Overpass rotates mirrors because the main instance often returns 504.
 - **Strings:** all user-visible text goes through `S` constants in `lib/ui/strings.dart`. Do not inline UI text in business code.
 - **Tests:** source contract tests use fixtures copied from real API responses (`test/weather/`). The other suites are `test/unit`, `test/widget` and `test/integration/core_flow_test.dart`.

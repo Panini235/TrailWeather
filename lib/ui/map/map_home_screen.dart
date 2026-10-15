@@ -12,8 +12,6 @@ import '../../core/units.dart';
 import '../../data/app_providers.dart';
 import '../../data/geocode.dart';
 import '../../data/location/location_service.dart';
-import '../../data/monetization/subscription_repository.dart';
-import '../../data/routes/external_trail_search.dart';
 import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/favorites_repository.dart';
@@ -322,15 +320,6 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     _clearSearch(clearSelected: false);
   }
 
-  Future<void> _openExternalSearch(ExternalTrailSearchTarget target) async {
-    final opened = await ref.read(externalUrlLauncherProvider).open(target.uri);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('无法打开 ${target.label} 网页搜索，请检查浏览器设置。')),
-      );
-    }
-  }
-
   void _clearSearch({bool clearSelected = true}) {
     _searchCtrl.clear();
     if (!mounted) return;
@@ -552,15 +541,6 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final settings = ref.read(settingsProvider);
-      if (!settings.hasCompletedOnboarding) {
-        try {
-          context.push('/onboarding');
-        } catch (_) {}
-      }
-    });
   }
 
   @override
@@ -587,8 +567,6 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
 
     final selectedId = _selected?.id;
     final basemap = Basemap(ref.watch(settingsProvider).basemap);
-    final sub = ref.watch(subscriptionProvider);
-    final isPro = sub.isPro;
 
     return Scaffold(
       body: Stack(
@@ -718,7 +696,6 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                       searching: _searching,
                       onRouteTap: _selectSearchRoute,
                       onPlaceTap: _selectSearchPlace,
-                      onExternalTap: _openExternalSearch,
                       onImportTap: () => context.push('/import'),
                       onClose: () => _clearSearch(clearSelected: false),
                     ),
@@ -750,49 +727,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     FloatingActionButton.small(
-                      heroTag: 'proBadge',
-                      backgroundColor: isPro ? Colors.amber.shade700 : null,
-                      onPressed: () => context.push('/paywall'),
-                      tooltip: isPro ? 'TrailWeather Pro 已激活' : 'Pro 方案预览（开发中）',
-                      child: Icon(
-                        Icons.workspace_premium,
-                        color: isPro ? Colors.white : Colors.amber.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    FloatingActionButton.small(
-                      heroTag: 'planet',
-                      onPressed: () => context.push('/planet'),
-                      tooltip: '徒步星球 · 全球经典路线',
-                      child: const Icon(Icons.public),
-                    ),
-                    const SizedBox(height: 10),
-                    FloatingActionButton.small(
-                      heroTag: 'planner',
-                      onPressed: () => context.push('/planner'),
-                      tooltip: '线路规划工坊 (Trail Studio)',
-                      child: const Icon(Icons.edit_road),
-                    ),
-                    const SizedBox(height: 10),
-                    FloatingActionButton.small(
                       heroTag: 'list',
                       onPressed: () => _showRouteList(visible),
                       tooltip: S.listButton,
                       child: const Icon(Icons.list),
-                    ),
-                    const SizedBox(height: 10),
-                    FloatingActionButton.small(
-                      heroTag: 'import',
-                      onPressed: () => context.push('/import'),
-                      tooltip: S.importRoute,
-                      child: const Icon(Icons.file_upload_outlined),
-                    ),
-                    const SizedBox(height: 10),
-                    FloatingActionButton.small(
-                      heroTag: 'settings',
-                      onPressed: () => context.push('/settings'),
-                      tooltip: S.settings,
-                      child: const Icon(Icons.settings_outlined),
                     ),
                   ],
                 ),

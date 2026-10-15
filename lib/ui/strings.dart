@@ -27,15 +27,30 @@ abstract final class S {
   static const hybridSearchTitle = '混合线路搜索';
   static const directRoutes = '可直接分析的线路';
   static const placeCandidates = '地点候选';
-  static const externalGuides = '外部攻略与轨迹线索';
-  // 外部攻略降级为折叠的次要入口：目前只是跳转百度 site: 限定搜索，
-  // 不能直接得到可导入的轨迹，且结果质量与可用性不受 App 控制。
-  static const externalGuidesCollapsed = '更多：外部网页搜索（次要）';
-  static const externalGuidesReason =
-      '仅在浏览器中用百度限定站点搜索，结果常常找不到可用轨迹，App 不抓取平台内容；'
-      '优先导入你有权使用的 GPX / KML。';
   static const noDirectRoutes = '暂未找到可直接分析的线路。可导入你有权使用的轨迹文件。';
   static const importOwnedTrack = '导入你有权使用的轨迹';
+  // 首页“我的行程”与底部导航（docs/redesign-v2.md）
+  static const myTrips = '我的行程';
+  static const tabTrips = '行程';
+  static const tabMap = '地图';
+  static const tabSettings = '设置';
+  static const addTrip = '添加线路';
+  static const drawRoute = '在地图上手绘线路';
+  static const drawRouteHint = '打点画线、标记营地与水源';
+  static const delete = '删除';
+  static const more = '更多';
+  static const deleteTripDetail = '只删除本机保存的这条线路，无法恢复。';
+  static const emptyTripsTitle = '导入你的第一条轨迹';
+  static const emptyTripsBody =
+      '从两步路、六只脚、奥维等导出 GPX / KML / KMZ，导入后按出发时间查看沿途天气。';
+  static const openWithHint = '也可以在两步路、奥维、微信或文件管理器里打开轨迹文件时，选择“徒步天气”直接导入。';
+  static const exampleRoutes = '示例线路';
+  static const planetEntry = '徒步星球 · 全球经典线路';
+  static const planetEntryHint = '44 条经典线路，可直接体验沿途天气';
+  static const saveToTrips = '保存到我的行程';
+  static const importPrivacyNote =
+      '线路将保存在本机（不上传）。注意：线路数据可能包含住宅、常去出发点等敏感位置，分享前请自行判断。';
+  static const importTrackHint = '导入 GPX / KML / KMZ / GeoJSON 后即可分析沿途天气';
   static const searchThisArea = '搜索此区域线路';
   // “搜索此区域”降级到线路列表内的次要入口：Overpass 公共实例部署在海外，
   // 国内网络实测大多超时/504，作为主按钮会让用户反复等待后失败。

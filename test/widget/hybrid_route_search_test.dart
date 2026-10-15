@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:trailweather/core/external_url_launcher.dart';
 import 'package:trailweather/data/app_providers.dart';
 import 'package:trailweather/data/geocode.dart';
 import 'package:trailweather/data/location/location_service.dart';
@@ -41,16 +40,6 @@ class _FakeGeocodeService extends GeocodeService {
       timezone: 'Asia/Shanghai',
     ),
   ];
-}
-
-class _FakeExternalLauncher implements ExternalUrlLauncher {
-  Uri? opened;
-
-  @override
-  Future<bool> open(Uri uri) async {
-    opened = uri;
-    return true;
-  }
 }
 
 class _FakeRouteSource extends OverpassRouteSource {
@@ -92,10 +81,9 @@ HikingRoute _localRoute() => HikingRoute(
 );
 
 void main() {
-  testWidgets('混合搜索分组展示线路与地点，外部攻略折叠为次要入口，选地点不自动请求 OSM', (tester) async {
+  testWidgets('混合搜索分组展示线路与地点，不再有外部百度搜索，选地点不自动请求 OSM', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
-    final external = _FakeExternalLauncher();
     final routes = _FakeRouteSource();
 
     await tester.pumpWidget(
@@ -104,7 +92,6 @@ void main() {
           prefsProvider.overrideWithValue(preferences),
           locationServiceProvider.overrideWithValue(_DeniedLocationService()),
           geocodeServiceProvider.overrideWithValue(_FakeGeocodeService()),
-          externalUrlLauncherProvider.overrideWithValue(external),
           overpassRouteSourceProvider.overrideWithValue(routes),
           localRoutesProvider.overrideWithValue([_localRoute()]),
         ],
@@ -128,42 +115,14 @@ void main() {
     expect(find.text('香山环线'), findsOneWidget);
     expect(find.text(S.placeCandidates), findsOneWidget);
     expect(find.text('香山公园'), findsOneWidget);
-    // 外部攻略默认折叠，不在主列表直接出现。
-    expect(find.text(S.externalGuides), findsNothing);
+    // 跳转百度的外部攻略已移除（docs/redesign-v2.md）。
+    expect(find.textContaining('百度'), findsNothing);
     expect(find.text('小红书攻略'), findsNothing);
 
     final resultsList = find.descendant(
       of: find.byType(HybridRouteSearchResults),
       matching: find.byType(Scrollable),
     );
-    await tester.scrollUntilVisible(
-      find.text(S.externalGuidesCollapsed),
-      180,
-      scrollable: resultsList,
-    );
-    await tester.ensureVisible(find.text(S.externalGuidesCollapsed));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(S.externalGuidesCollapsed));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('小红书攻略'),
-      120,
-      scrollable: resultsList,
-    );
-    await tester.ensureVisible(find.text('小红书攻略'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('小红书攻略'));
-    await tester.pumpAndSettle();
-    expect(external.opened, isNotNull);
-    expect(external.opened!.host, 'www.baidu.com');
-    expect(external.opened!.queryParameters['wd'], contains('xiaohongshu.com'));
-    await tester.scrollUntilVisible(
-      find.text('六只脚线路'),
-      120,
-      scrollable: resultsList,
-    );
-    expect(find.text('六只脚线路'), findsOneWidget);
-
     await tester.scrollUntilVisible(
       find.text('香山公园'),
       -180,

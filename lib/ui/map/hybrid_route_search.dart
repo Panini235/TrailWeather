@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/geocode.dart';
-import '../../data/routes/external_trail_search.dart';
 import '../../data/routes/route_models.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
@@ -16,7 +15,6 @@ class HybridRouteSearchResults extends StatelessWidget {
     required this.searching,
     required this.onRouteTap,
     required this.onPlaceTap,
-    required this.onExternalTap,
     required this.onImportTap,
     required this.onClose,
   });
@@ -27,13 +25,11 @@ class HybridRouteSearchResults extends StatelessWidget {
   final bool searching;
   final ValueChanged<HikingRoute> onRouteTap;
   final ValueChanged<PlaceSuggestion> onPlaceTap;
-  final ValueChanged<ExternalTrailSearchTarget> onExternalTap;
   final VoidCallback onImportTap;
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    final external = ExternalTrailSearch.targets(query);
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Material(
@@ -124,34 +120,9 @@ class HybridRouteSearchResults extends StatelessWidget {
                 dense: true,
                 leading: const Icon(Icons.file_upload_outlined, size: 20),
                 title: const Text(S.importOwnedTrack),
-                subtitle: const Text('导入 GPX / KML / GeoJSON 后即可分析沿途天气'),
+                subtitle: const Text(S.importTrackHint),
                 onTap: onImportTap,
               ),
-              // 外部网页搜索降级为折叠的次要入口，原因见 S.externalGuidesReason。
-              if (external.isNotEmpty)
-                ExpansionTile(
-                  dense: true,
-                  leading: const Icon(Icons.open_in_browser, size: 20),
-                  title: const Text(
-                    S.externalGuidesCollapsed,
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  subtitle: const Text(
-                    S.externalGuidesReason,
-                    style: TextStyle(fontSize: 10),
-                  ),
-                  children: [
-                    for (final target in external)
-                      ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.open_in_new, size: 19),
-                        title: Text(target.label),
-                        subtitle: Text('通过百度限定搜索 ${target.siteHost}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => onExternalTap(target),
-                      ),
-                  ],
-                ),
             ],
           ),
         ),
