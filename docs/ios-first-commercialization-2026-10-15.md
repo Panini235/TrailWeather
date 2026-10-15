@@ -47,10 +47,9 @@
 
 | 产品 | 可比价值 | 本次查到的购买形态 | 价格证据限制 |
 | --- | --- | --- | --- |
-| Windy.com Premium | 户外天气，多时段/模型查看 | 官方社区说明存在自动续费年度方案与一次性购买一年方案 | 说明页面为历史页面，不当作当前中国区成交价；未据此计算参考价 [S2] |
-| 轻徒步 | 徒步路线与行程规划，使用周期相近 | 中国区 App Store 列出年会员¥68、月会员¥28、周会员¥9 | 它不是同等天气权益；列表价格不等于已验证的运行时可购方案。2026-10-15查询，不据此推断最优价 [S4] |
+| 轻徒步 | 徒步路线与行程规划，使用周期相近 | 当前中国区商店描述为无订阅、无付费功能解锁；内购列出“一束小花”¥18、“财神驾到”¥68、“喵喵罐头”¥6 | 这些是支持类商品名称，不能当作月/年订阅价格；没有验证实际购买。2026-10-15查询 [S4] |
 
-因此上表只支持“户外天气存在多种付费周期”的观察，不能证明 TrailWeather 应收多少。下一步应记录每个真实行程的采样/模型请求量和地图流量，确认接口的计费单位，再算净收入能否覆盖成本。小样本先做可用性与支付意愿访谈，不能承诺转化提升；后续按真实购买用户数/看到购买机会的独立用户数观察转化，结合退款、复购与留存。
+这个可比样本说明免费核心功能加支持类内购是一种公开可观察的路径，但不能证明其收入或成本可持续，也不能据此确定TrailWeather的价格。Windy候选官方页面本次未能取得正文，未作为定价证据。下一步应记录每个真实行程的采样/模型请求量和地图流量，确认接口的计费单位，再算净收入能否覆盖成本。小样本先做可用性与支付意愿访谈，不能承诺转化提升；后续按真实购买用户数/看到购买机会的独立用户数观察转化，结合退款、复购与留存。
 
 ## 4. 服务与数据许可核查
 
@@ -63,7 +62,7 @@
 | 高德直连栅格瓦片 | 当前代码使用无 Key 的 `webrd*.is.autonavi.com/appmaptile`。可访问不能证明它是本项目获准使用的公开产品接口。官方协议要求按相应用途与授权场景取得所需书面许可，不能仅用“是否收费”判断。[S7] | 向开放平台工单说明个人开发者、iOS/Android、免费阶段与将来收费、地图展示及离线需求，确认可用 SDK/API、个人主体是否可获相应授权和费用。按确认的官方接入改造；未经确认不以现状宣布可商用。 |
 | OSM 数据与公共标准瓦片 | OSM 数据许可允许符合条件的商业使用；托管瓦片是另一套政策，禁止离线预下载/批量抓取，服务可被限制。[S8] | 在线显示遵守标识、归因和缓存要求；正式离线地图采用明确支持离线的服务或合规自托管。具体数据整理是否触发 ODbL 义务应按交付方式判断，不把所有地图展示一概认定要公开整个 App。 |
 | Overpass 公共镜像 | 返回 OSM 数据不等于提供生产服务保障；不同镜像有独立运营规则。 | 导入线路作为核心入口，按镜像规则限流/缓存；不要把公共镜像当生产 SLA。规模增长时评估专用服务。 |
-| 和风天气（可选，当前需用户配置） | 当前官方开发者许可2.1允许其许可范围内的商业/非商业使用，并要求按账户计费和约定授权；2.2允许缓存一定时期的天气等数据，但GeoAPI不得预取或长期存储（限定例外除外）。[S9] | 使用自己已开通且覆盖目标时段的服务，明确离线天气保存与展示条件；保留归因。协议2.3用途限制涉及风险或可能伤亡的活动，本项目若提供风险判断/告警/撤退建议，应向和风工单明确咨询并留存答复。不得继续泛称“和风免费全部不许商用”。 |
+| 和风天气（可选，当前需用户配置） | 当前官方开发者许可2.1.4允许许可范围内的商业用途，2.1.2允许存储/缓存，2.2将GeoAPI排除在相应存储与改编许可之外；仍需遵守用途、归因与计费等条件。[S9] | 使用自己已开通且覆盖目标时段的服务，明确离线天气保存与展示条件；保留归因。协议2.4.5限制涉及风险或可能伤亡的产品/用途，本项目若提供风险判断/告警/撤退建议，应向和风工单明确咨询并留存答复。不得继续泛称“和风免费全部不许商用”。 |
 | 内置徒步星球路线 | 本次 GitHub API 返回仓库 public、license=null，license 接口404；根目录无 LICENSE，README也没有授权声明。路线含从 OSM/OSRM/高德等生成的近似轨迹。 | 已纠正代码中的 MIT 声明。正式分发前取得作者对复制、商用、修改、离线分发的明确授权及上游数据说明，或移除/换成自主、授权数据；授权未落实前不能算解除发布阻塞。 |
 | Flutter/Dart 依赖 | 仓库登记的主依赖多数使用常见开源许可证；这与在线服务的商业使用合同是不同问题。 | 发布前按锁定版本补齐第三方许可证，保留版权/许可声明；不能用 SDK 开源替代地图或天气数据授权。 |
 
@@ -120,13 +119,12 @@ Apple 处理 App Store 交易。StoreKit 2 的已验证交易和平台恢复能�
 官方资料于2026-10-15核查；平台和商户资格以实际地区及账户为准。
 
 - [S1] Apple In-app purchase types：`https://developer.apple.com/help/app-store-connect/reference/in-app-purchases-and-subscriptions/in-app-purchase-types/`
-- [S2] Windy.com 官方社区历史说明：`https://community.windy.com/topic/21220/subscription-vs-one-time-purchase`
-- [S4] 轻徒步中国区 App Store：`https://apps.apple.com/cn/app/轻徒步/id6756804999`；商店列出内购项目，不代表运行时在售资格已核验。
+- [S4] 轻徒步中国区 App Store：`https://apps.apple.com/cn/app/轻徒步/id6756804999`；商店列出支持类内购项目，不是已验证的订阅价。
 - [S5] Open-Meteo Terms / Pricing：`https://open-meteo.com/en/terms`；`https://open-meteo.com/en/pricing`
 - [S6] MET Norway Terms / License：`https://api.met.no/doc/TermsOfService`；`https://api.met.no/doc/License`
 - [S7] 高德开放平台服务协议：`https://lbs.amap.com/pages/terms/`
 - [S8] OSM copyright / Tile policy：`https://www.openstreetmap.org/copyright`；`https://operations.osmfoundation.org/policies/tiles/`
-- [S9] 和风开发者最终用户许可：`https://www.qweather.com/terms/developers-eula`；当前条款文件最后修订为2025-02-08，2026-10-15读取：`https://ofcl-cdn.qweather.com/terms/txt/dev-EULA.txt`。
+- [S9] 和风开发者最终用户许可：`https://www.qweather.com/terms/developers-eula`；当前条款文件最后修订为2025-02-08，2026-10-15读取：`https://staticpages.qweather.com/legal/developers-eula.html?head=0`。
 - [S10] Apple Enrollment：`https://developer.apple.com/support/enrollment/`
 - [S11] Apple App information（China mainland）：`https://developer.apple.com/help/app-store-connect/reference/app-information/app-information/`
 - [S12] Apple appAccountToken：`https://developer.apple.com/documentation/storekit/product/purchaseoption/appaccounttoken(_:)`
