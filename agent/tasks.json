@@ -369,7 +369,7 @@
       "status": "done",
       "acceptance": "Android/iOS 选择器不按扩展名过滤（iOS 原抛 ArgumentError、Android gpx 无 MIME 被置灰）；按内容嗅探 GPX/KML/KMZ/GeoJSON；KMZ 解压；后台 isolate 解析；告警去重；GeoJSON 超长轨迹抽稀不拒绝",
       "verify": "flutter test test/unit/route_file_import_test.dart；本地对 example/ 4 个真实文件（gpx/kml/kml 2/kmz）全部导入 74.5 km",
-      "result": "本地 analyze 0 + test 138 全绿；真机选择器行为待 CI 产物人工验证"
+      "result": "本地 analyze 0 + test 138 全绿；真机选择器行为待 CI 产物人工验证；CI 38674705802 全绿（analyze/test/Web/APK）"
     },
     {
       "id": "T-101",
@@ -381,7 +381,7 @@
       "status": "done",
       "acceptance": "支付未接入时 purchase 抛错不授予 Pro、遗留本机 Pro 失效；未实现权益标“开发中”；移除“已启用/已完整离网缓存”等虚假提示、虚构原价与试用文案",
       "verify": "test/unit/subscription_test.dart、test/widget/paywall_screen_test.dart、onboarding_screen_test.dart",
-      "result": "完成；真实支付接入登记 B-008"
+      "result": "完成；真实支付接入登记 B-008；CI 38674705802 全绿（analyze/test/Web/APK）"
     },
     {
       "id": "T-102",
@@ -393,7 +393,7 @@
       "status": "done",
       "acceptance": "Open-Meteo 当天已过去小时可查、早于今天给出正确原因；详情默认时刻不落在过去；沿途降水按小时取最大再累加；日落取出发后第一次；节点面板本地时间与重复请求；多日行程/插值海拔标注；规划工坊配速统一；星球随机不打乱缓存；收藏星标状态；爬升显示 m",
       "verify": "test/weather/provider_contract_test.dart、test/unit/risk_rules_test.dart",
-      "result": "完成；本地全绿"
+      "result": "完成；本地全绿；CI 38674705802 全绿（analyze/test/Web/APK）"
     }
   ]
 }

@@ -227,3 +227,7 @@ octet-stream → 置灰不可选。另：KMZ 被当文本解码（从未支持�
 
 **本地验证**：flutter analyze 0 问题；flutter test 138/138 通过。
 **未验证**：真机文件选择器（无设备）——需在 CI 产物 APK/iOS 上人工确认。
+**CI 结果**：run 38674705802（workflow_dispatch，分支 feat/robust-track-import）conclusion=success，
+analyze ✓ / test ✓ / Web release ✓ / APK release ✓，产物 web-release、apk-release。
+**附带修复**：live-smoke.yml 在 step 级 if 引用 secrets（不被允许）→ 工作流文件校验失败，
+导致每次 push 都出现 0 秒失败记录（Round 8 起即存在）；改为 job env 中转。

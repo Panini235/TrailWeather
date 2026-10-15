@@ -9,6 +9,10 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # step 级 if 不能直接引用 secrets 上下文（会导致整个工作流文件校验失败），经 env 中转
+    env:
+      QWEATHER_API_HOST: ${{ secrets.QWEATHER_API_HOST }}
+      QWEATHER_API_KEY: ${{ secrets.QWEATHER_API_KEY }}
     steps:
       - name: Open-Meteo Forecast
         run: |
@@ -47,11 +51,11 @@ jobs:
           fi
 
       - name: 和风天气（可选：需配置 Secrets QWEATHER_API_HOST / QWEATHER_API_KEY）
-        if: ${{ secrets.QWEATHER_API_HOST != '' && secrets.QWEATHER_API_KEY != '' }}
+        if: ${{ env.QWEATHER_API_HOST != '' && env.QWEATHER_API_KEY != '' }}
         run: |
           code=$(curl -s -o /tmp/qw.json -w "%{http_code}" \
-            -H "X-QW-Api-Key: ${{ secrets.QWEATHER_API_KEY }}" \
-            "https://${{ secrets.QWEATHER_API_HOST }}/v7/grid-weather/24h?location=116.18,39.99&lang=zh&unit=m")
+            -H "X-QW-Api-Key: $QWEATHER_API_KEY" \
+            "https://$QWEATHER_API_HOST/v7/grid-weather/24h?location=116.18,39.99&lang=zh&unit=m")
           echo "HTTP $code"
           head -c 200 /tmp/qw.json; echo
           grep -q '"code":"200"' /tmp/qw.json
