@@ -120,7 +120,7 @@ class PlanetTrailsRepository {
           elevationsM: elevations,
           sourceName: '徒步星球（SpaceZephyr/trail-planet）',
           sourceUrl: 'https://github.com/SpaceZephyr/trail-planet',
-          sourceLicense: 'MIT',
+          sourceLicense: '许可未核验（上游公开仓库未提供许可证）',
           region: region,
           category: cat,
           seasonDesc: season,
