@@ -122,7 +122,14 @@ class _SourceNodeCard extends ConsumerStatefulWidget {
 /// 请求 Future 保存在 State 中：仅当来源/节点/时刻变化才重新请求，
 /// 避免每次重建（如切换节点、设置变化）都重复发起网络请求。
 class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
-  late Future<RouteWeatherBundle> _future = _fetch();
+  /// 按次计费来源（caps.onDemandOnly）不自动请求：null 表示等待用户点击查询。
+  late Future<RouteWeatherBundle>? _future = _onDemand ? null : _fetch();
+
+  bool get _onDemand => ref
+      .read(weatherProvidersProvider)
+      .firstWhere((p) => p.caps.providerId == providerId)
+      .caps
+      .onDemandOnly;
 
   @override
   void didUpdateWidget(covariant _SourceNodeCard old) {
@@ -130,7 +137,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
     if (old.providerId != widget.providerId ||
         old.node.pos != widget.node.pos ||
         old.wantUtc != widget.wantUtc) {
-      _future = _fetch();
+      _future = _onDemand ? null : _fetch();
     }
   }
 
@@ -174,7 +181,14 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (snap.connectionState == ConnectionState.waiting &&
+                if (_future == null)
+                  OnDemandQueryPrompt(
+                    caps: caps,
+                    onQuery: () => setState(() {
+                      _future = _fetch();
+                    }),
+                  )
+                else if (snap.connectionState == ConnectionState.waiting &&
                     !snap.hasData)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),

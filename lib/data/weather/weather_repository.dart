@@ -98,15 +98,23 @@ class WeatherRepository {
     // 请求点去重（近似网格策略）。
     final gridKeys = <String>[];
     final queryPoints = <LatLng>[];
+    final queryElevations = <double?>[];
     for (var i = 0; i < nodes.length; i++) {
       final k = approxGridKey(nodes[i].pos);
       if (!gridKeys.contains(k)) {
         gridKeys.add(k);
         queryPoints.add(nodes[i].pos);
+        queryElevations.add(nodes[i].elevationM);
       }
     }
 
-    final cacheKey = _cacheKey(providerId, queryPoints, startUtc, endUtc);
+    final cacheKey = _cacheKey(
+      providerId,
+      queryPoints,
+      startUtc,
+      endUtc,
+      elevations: provider.caps.usesElevation ? queryElevations : null,
+    );
 
     if (!refresh) {
       final hit = await cache.read(CacheNs.weather, cacheKey);
@@ -131,6 +139,7 @@ class WeatherRepository {
               _fetchAndStore(
                 provider,
                 queryPoints,
+                queryElevations,
                 startUtc,
                 endUtc,
                 cacheKey,
@@ -146,6 +155,7 @@ class WeatherRepository {
     return _fetchAndStore(
       provider,
       queryPoints,
+      queryElevations,
       startUtc,
       endUtc,
       cacheKey,
@@ -156,13 +166,15 @@ class WeatherRepository {
   Future<WxSourceResult> _fetchAndStore(
     WeatherProvider provider,
     List<LatLng> queryPoints,
+    List<double?> queryElevations,
     DateTime startUtc,
     DateTime endUtc,
     String cacheKey,
     Future<void> Function()? onBackgroundRefresh,
   ) async {
-    final points = await provider.fetchPoints(
+    final points = await provider.fetchPointsAt(
       points: queryPoints,
+      elevationsM: queryElevations,
       startUtc: startUtc,
       endUtc: endUtc,
     );
@@ -191,8 +203,9 @@ class WeatherRepository {
     String providerId,
     List<LatLng> pts,
     DateTime startUtc,
-    DateTime endUtc,
-  ) {
+    DateTime endUtc, {
+    List<double?>? elevations,
+  }) {
     final coords = pts
         .map(
           (p) =>
@@ -201,7 +214,11 @@ class WeatherRepository {
         .join('|');
     final s = startUtc.toIso8601String().substring(0, 13); // 小时粒度
     final e = endUtc.toIso8601String().substring(0, 13);
-    return 'v3|$providerId|$coords|$s|$e';
+    // 按海拔计算的来源：海拔（10 m 取整）进入缓存键，避免不同海拔误用同一缓存。
+    final ele = elevations == null
+        ? ''
+        : '|ele:${elevations.map((x) => x == null ? '-' : (x / 10).round() * 10).join(',')}';
+    return 'v3|$providerId|$coords|$s|$e$ele';
   }
 
   String _encode(WxSourceResult r) {

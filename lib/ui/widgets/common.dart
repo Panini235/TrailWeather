@@ -287,3 +287,39 @@ class WaypointMarker extends StatelessWidget {
     );
   }
 }
+
+/// 按次计费来源（如 meteoblue）的查询入口：不自动请求，点击后才查询并消耗额度。
+class OnDemandQueryPrompt extends StatelessWidget {
+  const OnDemandQueryPrompt({
+    super.key,
+    required this.caps,
+    required this.onQuery,
+  });
+
+  final ProviderCapabilities caps;
+  final VoidCallback onQuery;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (caps.quotaNote != null)
+          Text(
+            caps.quotaNote!,
+            style: TextStyle(
+              fontSize: 11,
+              height: 1.4,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        const SizedBox(height: 6),
+        FilledButton.tonalIcon(
+          onPressed: onQuery,
+          icon: const Icon(Icons.cloud_download_outlined, size: 18),
+          label: const Text(S.onDemandQuery),
+        ),
+      ],
+    );
+  }
+}

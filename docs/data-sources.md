@@ -86,6 +86,31 @@
 | 署名 | “天气数据：和风天气 qweather.com” |
 | 真实联网验证 | **未验证**（无 key）；域名直连可达已实测。fixture 契约测试覆盖解析；待用户配置 key 后用 Live Smoke 验证 |
 
+### 4. meteoblue Forecast API（basic-1h，按需单点）
+
+核验：2026-10-15，用户自有 Free key 实测 1 次 + 官方页面（business.meteoblue.com 免费版对比表、
+docs.meteoblue.com 逐时 pictogram 表）。
+
+| 项 | 事实 |
+| --- | --- |
+| 端点 | `GET https://my.meteoblue.com/packages/basic-1h?apikey=…&lat=…&lon=…&asl=…&format=json&tz=UTC` |
+| 计费 | 响应头 `mb-credits-accounted: 8000`（每次）；免费版 1000 万 credits / 1 年 ≈ 1,250 次（页面另写“约 2,500 次调用”，以账户为准） |
+| 批量 | 一次一个坐标，无多点批量 |
+| 海拔 | `asl` 指定海拔后按该海拔计算；不指定时用 80 m 高程模型；`metadata.height` 回显所用海拔 |
+| 时效 | `data_1h` 自当天 00:00 UTC 起 169 个逐时值（7 天） |
+| 变量 | 气温、体感、降水量、降水概率、风速（ms-1）、风向、湿度、海平面气压、降雪占比（snowfraction）、pictocode |
+| 不含 | 阵风、能见度、云量（在 wind/clouds 包，免费版仅 3 小时分辨率）→ 保持 null |
+| Web | CORS `Access-Control-Allow-Origin: *`（实测）；Web 端 key 出现在请求地址中 |
+| 授权 | 免费版页面对比表标注 “Commercial use ✓”；早期页面写非商用。**以账户条款为准**，商用前复核 |
+| 署名 | 展示“天气数据：meteoblue” |
+
+**接入方式（因额度）**：`caps.onDemandOnly = true`——不参与线路自动请求与首页位置天气；只在节点详情
+“多来源对比”或地图选点里用户点击“查询此点”时单点请求，按节点轨迹海拔传 `asl`，缓存 3 小时（缓存键含海拔）。
+本机记录真实请求次数（设置页显示），剩余额度以 meteoblue 后台为准。密钥仅存本机（`meteoblue.v1`），不入库。
+
+**pictocode**：basic-1h 使用逐时编码表（1–35），日数据为另一套（1–25），不能混用；映射见
+`lib/data/weather/weather_phenomena.dart`。
+
 ## 其他数据服务
 
 ### Open-Meteo Geocoding（地点搜索）

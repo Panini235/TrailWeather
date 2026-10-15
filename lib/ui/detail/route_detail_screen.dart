@@ -292,11 +292,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   @override
   void initState() {
     super.initState();
-    final enabled = ref.read(settingsProvider).enabledProviderIds;
-    final providers = ref.read(weatherProvidersProvider);
-    _providerId = enabled.firstWhere(
-      (e) => providers.any((p) => p.caps.providerId == e),
-      orElse: () => providers.first.caps.providerId,
+    _providerId = primaryProviderId(
+      ref.read(settingsProvider).enabledProviderIds,
+      ref.read(weatherProvidersProvider),
     );
   }
 
@@ -1277,7 +1275,8 @@ class _SourceChips extends ConsumerWidget {
               runSpacing: 4,
               children: [
                 for (final p in providers)
-                  if (enabled.contains(p.caps.providerId))
+                  if (enabled.contains(p.caps.providerId) &&
+                      !p.caps.onDemandOnly)
                     ChoiceChip(
                       label: Text(
                         p.caps.displayName,

@@ -10,6 +10,8 @@ import 'routes/sample_routes.dart';
 import 'settings/favorites_repository.dart';
 import 'settings/settings_repository.dart';
 import 'weather/met_norway_provider.dart';
+import 'weather/meteoblue_provider.dart';
+import 'weather/meteoblue_settings.dart';
 import 'weather/open_meteo_provider.dart';
 import 'weather/qweather_provider.dart';
 import 'weather/weather_provider.dart';
@@ -37,18 +39,39 @@ final overpassRouteSourceProvider = Provider<OverpassRouteSource>(
 List<WeatherProvider> defaultWeatherProviders({
   String qweatherApiHost = '',
   String qweatherApiKey = '',
+  String meteoblueApiKey = '',
+  void Function()? onMeteoblueCall,
 }) => [
   OpenMeteoProvider(model: 'best_match'),
   OpenMeteoProvider(model: 'ecmwf_ifs025'),
   MetNorwayProvider(),
   QWeatherProvider(apiHost: qweatherApiHost, apiKey: qweatherApiKey),
+  // 按次计费，只在用户点击时单点查询（caps.onDemandOnly）。
+  MeteoblueProvider(apiKey: meteoblueApiKey, onNetworkCall: onMeteoblueCall),
 ];
+
+/// 自动请求（线路天气、首页位置天气）用的主来源：已启用、且不是按次计费的按需来源。
+String primaryProviderId(
+  List<String> enabledIds,
+  List<WeatherProvider> providers,
+) {
+  final auto = providers.where((p) => !p.caps.onDemandOnly).toList();
+  return enabledIds.firstWhere(
+    (e) => auto.any((p) => p.caps.providerId == e),
+    orElse: () => auto.first.caps.providerId,
+  );
+}
 
 final weatherProvidersProvider = Provider<List<WeatherProvider>>((ref) {
   final settings = ref.watch(settingsProvider);
+  // 只监听 key：调用计数变化不应重建来源列表（否则会连带刷新所有天气请求）。
+  final mbKey = ref.watch(meteoblueSettingsProvider.select((s) => s.apiKey));
   return defaultWeatherProviders(
     qweatherApiHost: settings.qweatherApiHost,
     qweatherApiKey: settings.qweatherApiKey,
+    meteoblueApiKey: mbKey,
+    onMeteoblueCall: () =>
+        ref.read(meteoblueSettingsProvider.notifier).recordCall(),
   );
 });
 

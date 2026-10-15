@@ -20,7 +20,10 @@ enum WxVar {
   humidity('%'),
   cloudCover('%'),
   visibility('m'),
-  pressure('hPa');
+  pressure('hPa'),
+  // 追加在末尾：缓存按枚举下标编码，不能改变已有成员顺序。
+  /// 降水中降雪所占比例（meteoblue snowfraction），不是降雪量。
+  snowFraction('%');
 
   const WxVar(this.stdUnit);
   final String stdUnit;
@@ -37,6 +40,7 @@ enum WxVar {
     cloudCover => '云量',
     visibility => '能见度',
     pressure => '气压',
+    snowFraction => '降雪占比',
   };
 }
 
@@ -85,6 +89,9 @@ class ProviderCapabilities {
     required this.recommendedCacheTtl,
     this.spatialResolutionNote,
     this.modelOverlapNote,
+    this.onDemandOnly = false,
+    this.usesElevation = false,
+    this.quotaNote,
   });
 
   final String providerId; // 如 'open-meteo:best_match'
@@ -113,6 +120,15 @@ class ProviderCapabilities {
 
   /// 与其他来源可能共享底层模型的说明。
   final String? modelOverlapNote;
+
+  /// 按次计费/额度很少的来源：只在用户点击时单点查询，不参与线路自动请求。
+  final bool onDemandOnly;
+
+  /// 是否使用请求点海拔（如 meteoblue asl）；为真时缓存键包含海拔。
+  final bool usesElevation;
+
+  /// 额度说明（展示给用户）。
+  final String? quotaNote;
 
   bool supports(WxVar v) => supportedVars.contains(v);
 }

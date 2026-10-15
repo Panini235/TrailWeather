@@ -352,3 +352,21 @@ map_layers 组件 3 项；集成测试断言节点着色与图例）。
 相册/相机权限弹窗与 iOS 用途文案、图片保存与重启后恢复、节点颜色在实际天气下的观感。
 **CI 结果**：run 38733804863（workflow_dispatch，分支 feat/robust-track-import）conclusion=success，
 analyze ✓ / test ✓ / Web release ✓ / APK release ✓（含 image_picker Android 原生插件编译）。iOS 构建未触发（手动工作流）。
+
+## Round 17 — 2026-10-15（接入 meteoblue：按需单点 + 节点海拔）
+
+**起因**：用户获取 meteoblue Free key（1000 万 credits，至 2027-10-15）。
+
+**核验**：实测 1 次 basic-1h（响应头 mb-credits-accounted: 8000；asl 生效；CORS *；169 个逐时值）；
+官方逐时 pictocode 表（浏览器渲染读取）；免费版页面对比表标“可商用”（以账户条款为准）。
+
+**完成**：
+- `meteoblue_provider.dart`：asl=节点轨迹海拔、单位固定（C / ms-1 / mm）、错误 JSON 如实抛出且不含 key。
+- 额度保护：ProviderCapabilities 新增 onDemandOnly / usesElevation / quotaNote；`primaryProviderId()` 让线路天气与
+  首页位置天气跳过按需来源；节点“多来源对比”与地图选点卡片显示“查询此点（消耗 1 次额度）”；缓存 3 h，缓存键含海拔。
+- `WxVar.snowFraction`（追加在枚举末尾，兼容旧缓存）；`weather_phenomena.dart` 逐时现象（雾/霾/雷暴/雪/雨夹雪）。
+- 设置页 meteoblue 卡片（独立存储 `meteoblue.v1`，不改 AppSettings，避免与天地图双 key 分支冲突），显示本机请求次数。
+- 修复：地图选点卡片“重试”与新按钮的 setState 回调返回 Future（debug 下点击即断言失败）。
+
+**本地验证**：flutter analyze 0；flutter test 199/199；key 未写入任何仓库文件（git grep 无结果）。
+

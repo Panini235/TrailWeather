@@ -1,3 +1,5 @@
+import 'meteoblue_card.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -124,6 +126,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _section(context, '数据源密钥'),
           const _QweatherCredentialsCard(),
+          const MeteoblueCredentialsCard(),
           _section(context, '天气来源'),
           Card(
             child: Column(

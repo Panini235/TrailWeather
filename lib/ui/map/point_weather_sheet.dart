@@ -157,7 +157,15 @@ class _PointSourceCard extends ConsumerStatefulWidget {
 }
 
 class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
-  late Future<RouteWeatherBundle> _future = _fetch();
+  /// 按次计费来源（caps.onDemandOnly）不自动请求：null 表示等待用户点击查询。
+  late Future<RouteWeatherBundle>? _future =
+      ref
+          .read(weatherProvidersProvider)
+          .firstWhere((p) => p.caps.providerId == widget.providerId)
+          .caps
+          .onDemandOnly
+      ? null
+      : _fetch();
 
   Future<RouteWeatherBundle> _fetch({bool refresh = false}) =>
       fetchPointWeather(
@@ -170,7 +178,9 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
       );
 
   void _retry() {
-    setState(() => _future = _fetch(refresh: true));
+    setState(() {
+      _future = _fetch(refresh: true);
+    });
   }
 
   @override
@@ -180,6 +190,27 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
         .firstWhere((p) => p.caps.providerId == widget.providerId)
         .caps;
 
+    if (_future == null) {
+      return Card(
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SourceBadge(caps: caps),
+              const SizedBox(height: 8),
+              OnDemandQueryPrompt(
+                caps: caps,
+                onQuery: () => setState(() {
+                  _future = _fetch();
+                }),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(

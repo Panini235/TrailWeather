@@ -388,14 +388,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     }
   }
 
-  String _primaryProviderId() {
-    final enabled = ref.read(settingsProvider).enabledProviderIds;
-    final providers = ref.read(weatherProvidersProvider);
-    return enabled.firstWhere(
-      (e) => providers.any((p) => p.caps.providerId == e),
-      orElse: () => providers.first.caps.providerId,
-    );
-  }
+  String _primaryProviderId() => primaryProviderId(
+    ref.read(settingsProvider).enabledProviderIds,
+    ref.read(weatherProvidersProvider),
+  );
 
   String _myLocationSheetLabel(LocationFix fix) =>
       fix.isLastKnown ? S.lastKnownLocation : S.currentLocation;

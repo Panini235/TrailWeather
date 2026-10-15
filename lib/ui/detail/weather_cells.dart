@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/units.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
+import '../../data/weather/weather_phenomena.dart';
 import '../strings.dart';
 
 /// 单个变量的“名称 + 值”行。缺失时如实显示“此来源未提供”。
@@ -71,7 +72,8 @@ class WxVarGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final v = wx.values;
-    return GridView.count(
+    final phen = phenomenonOf(wx);
+    final grid = GridView.count(
       crossAxisCount: 4,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -133,6 +135,27 @@ class WxVarGrid extends StatelessWidget {
           value: v[WxVar.pressure],
           formatter: (x) => '${x.toStringAsFixed(0)} hPa',
         ),
+        // 只有提供该变量的来源才显示（目前为 meteoblue），避免每个来源都多一格“未提供”。
+        if (v[WxVar.snowFraction] != null)
+          WxVarTile(
+            label: WxVar.snowFraction.label,
+            value: v[WxVar.snowFraction],
+            formatter: (x) => '${x.toStringAsFixed(0)}%',
+          ),
+      ],
+    );
+    if (phen == null) return grid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            '${S.phenomenonLabel}：${phen.label}',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+        grid,
       ],
     );
   }
