@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../core/gcj02.dart';
@@ -14,30 +15,43 @@ import '../../data/settings/settings_repository.dart';
 ///
 /// 偏移说明（诚实）：GCJ-02 为国测局加密坐标，偏移约 100–700 m；
 /// 转换为业内通用近似算法（迭代逆变换误差米级），非官方精确参数。
+///
+/// 天地图 Key 按 [flutterMapRequester] 选择：原生 App 用服务端 Key，Web 用
+/// 浏览器端 Key（平台判断在数据层，见 [TileRequester]）。
 class Basemap {
-  const Basemap(this.style);
+  const Basemap(this.style, {this.tiandituClient});
 
-  factory Basemap.fromSettings(AppSettings s) => Basemap(
+  /// [tiandituClient]：天地图图层使用的 http client（通常为
+  /// `tiandituTileClientProvider`，用于识别 403 错误码）；为 null 时用
+  /// flutter_map 默认 client。只做坐标换算、不渲染瓦片时可不传。
+  factory Basemap.fromSettings(AppSettings s, {http.Client? tiandituClient}) =>
+      Basemap(
+        resolveMapStyle(
+          baseLayerId: s.baseLayerId,
+          overlays: s.overlayLayers,
+          custom: s.customTileSources,
+          tiandituKeys: s.tiandituKeys,
+          requester: flutterMapRequester,
+        ),
+        tiandituClient: tiandituClient,
+      );
+
+  /// 仅指定底图（测试与简单场景）。
+  factory Basemap.base(
+    String baseLayerId, {
+    TiandituKeys tiandituKeys = const TiandituKeys(),
+  }) => Basemap(
     resolveMapStyle(
-      baseLayerId: s.baseLayerId,
-      overlays: s.overlayLayers,
-      custom: s.customTileSources,
-      tiandituKey: s.tiandituKey,
+      baseLayerId: baseLayerId,
+      overlays: const [],
+      custom: const [],
+      tiandituKeys: tiandituKeys,
+      requester: flutterMapRequester,
     ),
   );
 
-  /// 仅指定底图（测试与简单场景）。
-  factory Basemap.base(String baseLayerId, {String tiandituKey = ''}) =>
-      Basemap(
-        resolveMapStyle(
-          baseLayerId: baseLayerId,
-          overlays: const [],
-          custom: const [],
-          tiandituKey: tiandituKey,
-        ),
-      );
-
   final ResolvedMapStyle style;
+  final http.Client? tiandituClient;
 
   bool get isGcj => style.datum == TileDatum.gcj02;
 
@@ -63,13 +77,20 @@ class Basemap {
       : b;
 
   /// flutter_map 没有 `{-y}` 占位符：转为 `{y}` + tms 翻转。
-  static TileLayer _layer(TileSourceDef def, String template) => TileLayer(
-    urlTemplate: template.replaceAll('{-y}', '{y}'),
-    subdomains: def.subdomains,
-    userAgentPackageName: 'dev.trailweather.trailweather',
-    maxNativeZoom: def.maxNativeZoom,
-    tms: template.contains('{-y}'),
-  );
+  /// 天地图图层用 [tiandituClient]（外部传入的 client 不会被 TileLayer 关闭）。
+  TileLayer _layer(TileSourceDef def, String template) {
+    final client = def.needsTiandituKey ? tiandituClient : null;
+    return TileLayer(
+      urlTemplate: template.replaceAll('{-y}', '{y}'),
+      subdomains: def.subdomains,
+      userAgentPackageName: 'dev.trailweather.trailweather',
+      maxNativeZoom: def.maxNativeZoom,
+      tms: template.contains('{-y}'),
+      tileProvider: client == null
+          ? null
+          : NetworkTileProvider(httpClient: client),
+    );
+  }
 
   /// 底图 + 叠加层（自下而上）。在地图 children 中展开使用。
   List<Widget> tileLayers() => [

@@ -181,8 +181,46 @@ Strava API 主要读取获授权用户自己的路线。第三方“scraper API�
   面板中显示原因。业务计算始终 WGS-84。
 - 天地图需用户自行申请 Key（`{tk}` 占位），未填写时天地图图层不可选；所选天地图底图在 Key 缺失时回退默认底图并提示。
   天地图为 CGCS2000，与 WGS-84 差异厘米级，按 WGS-84 处理。天地图地形与地形注记最高 14 级。
-- 国内可达性未实测：OpenTopoMap、Esri 为海外服务，面板中注明“国内常常加载缓慢或失败”；天地图请求头/Key 类型
-  （浏览器端/服务端/移动端）是否需要额外设置待真机验证。
+  Key 类型与错误码见下节。
+- 国内可达性未实测：OpenTopoMap、Esri 为海外服务，面板中注明“国内常常加载缓慢或失败”。
+
+### 天地图 Key 类型与错误码（2026-10-15 实测）
+
+App 直接请求天地图 HTTP 瓦片（`t{0-7}.tianditu.gov.cn/DataServer?T=…&tk=…`），不使用天地图 Android/iOS SDK。
+用户在天地图控制台申请了“浏览器端”和“服务端”两个 Key，直连 `t3.tianditu.gov.cn`，z10 北京附近，
+vec/img/ter/cva/cia/cta 六个图层实测（原始记录：claude/zealous-cori-926437 分支 `docs/3d-map-evaluation.md` §5.1）。
+
+**天地图按 User-Agent 是否含 `Mozilla` 判定请求是否来自浏览器，与 Referer 无关**，再按 Key 的“应用类型”放行：
+
+| Key 类型 | UA 不含 Mozilla（flutter_map 默认 UA、空 UA、`Dart/…`、`okhttp/…`） | UA 含 Mozilla（浏览器、WebView） |
+| --- | --- | --- |
+| 浏览器端 | 403 `{"code":301012,"msg":"权限类型错误","resolve":"Key权限类型为:浏览器端，请使用浏览器访问！"}` | 200 图片 |
+| 服务端 | 200 图片（t0/t3/t7 子域、z10/z12 均通过） | 403 `{"code":301013,"msg":"权限类型错误","resolve":"Key权限类型为:服务器端，请使用服务器端访问！"}` |
+
+- 错误 Key：403 `{"resolve":"请到API控制台重新申请Key","code":301001,"msg":"非法key"}`
+  （用户实测；本轮又用 32 位十六进制假值复测，UA 含/不含 Mozilla 结果相同）。
+- Key 格式异常：本轮用 15 位、含非十六进制字符的假值请求，返回 418 防火墙拦截页（HTML，`Server: CW`），不是 JSON；
+  具体触发条件（长度还是字符）未细分。
+- 403 JSON 响应带 `Access-Control-Allow-Origin: *`（本轮复测），Web 端可以读到响应体；同时带 `Cache-Control: max-age=432000`（5 天），
+  浏览器可能缓存同一 URL 的 403。在控制台修改已有 Key 的类型后，网页版可能需要清除站点缓存才生效（推断，未实测）。
+
+**App 的做法（D-023）**：
+
+| 渲染环境 | 发出的 UA | 使用的 Key（设置项） |
+| --- | --- | --- |
+| Android / iOS 原生 2D（flutter_map） | `flutter_map (dev.trailweather.trailweather)` | 服务端（`tiandituServerKey`） |
+| Flutter Web 2D | 浏览器 UA（无法改写） | 浏览器端（`tiandituBrowserKey`） |
+| 将来的 3D 视图（WebView / iframe） | 浏览器 UA | 浏览器端 |
+
+- 选 Key 在数据层：`TileRequester` + `TiandituKeys.forRequester`（`lib/data/map/tile_sources.dart`），平台判断只有
+  `flutterMapRequester = kIsWeb ? browser : nativeApp` 一处。对应 Key 未填时该端天地图图层不可选（不跨端借用另一个 Key）。
+- 不伪造浏览器 UA 绕过类型校验（用户决定）。
+- 天地图图层的瓦片请求经过 `TiandituErrorSniffingClient`（`lib/data/map/tianditu.dart`）：只在天地图域名的错误响应上
+  读取响应体，按 code 映射为明确提示（301001 Key 无效 / 301012 服务端栏填了浏览器端 Key / 301013 浏览器端栏填了服务端 Key /
+  418 拦截 / 其他状态码），显示在地图顶部与 Key 设置卡片中，而不是只留空白瓦片。
+- 两栏填同一个值时设置卡片提示“必有一端无法出图”；旧版单一 `tiandituKey` 迁移后两栏相同，同样会提示。
+- 申请方法：天地图控制台“创建新应用”，应用类型分别选“服务端”与“浏览器端”，白名单留空。“安卓端”类型需要
+  发布版 SHA1 + 包名，用于天地图 Android SDK 的签名校验，本项目不用 SDK，且 CI 每次构建签名都不同，不使用（推断，未实测）。
 - 3D 地形/地图未实现：flutter_map 只支持 2D 栅格，需要更换渲染引擎，另行评估。
 
 ## OSM 衍生数据义务评估（简要）

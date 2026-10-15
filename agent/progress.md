@@ -370,3 +370,24 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓（含 image_picker An
 
 **本地验证**：flutter analyze 0；flutter test 199/199；key 未写入任何仓库文件（git grep 无结果）。
 **CI 结果**：run 38740383191 conclusion=success（commit 053373c；analyze / test / Web / APK）。
+
+## Round 18 — 2026-10-15（天地图两种 Key；并行分支，合并时由 Round 17 重号）
+
+**起因**：用户申请“浏览器端”“服务端”两个天地图 Key 实测：天地图按 UA 是否含 Mozilla 判定浏览器，浏览器端 Key 在原生 App
+返回 403/301012，服务端 Key 在浏览器返回 403/301013。原单一 `tiandituKey` 无法同时满足 Android/iOS 与 Web。用户决定不伪造 UA。
+
+**完成（T-155，D-023）**：
+- 设置拆为 `tiandituServerKey`（原生）/ `tiandituBrowserKey`（Web、将来 3D WebView）；旧 `tiandituKey` 迁移到两栏。
+- 数据层按发起方选 Key：`TileRequester`、`TiandituKeys.forRequester`、`flutterMapRequester`（唯一的 kIsWeb 判断）；
+  缺对应 Key 时该端天地图不可选，回退/不可用原因写明缺哪一种 Key。
+- 错误识别：flutter_map 的 errorTileCallback 拿不到响应体，改为给天地图图层的 `NetworkTileProvider` 传入
+  `TiandituErrorSniffingClient`，按 301001/301012/301013/418/其他映射提示；首页地图、详情小地图与全屏图、规划工坊、
+  图层面板显示可关闭的提示横幅（含“设置天地图 Key”入口），Key 设置卡片显示最近错误与“两栏相同”警告。
+- `http` 改为直接依赖并锁定 1.6.0（原为同版本传递依赖）。
+- 文档：data-sources「天地图 Key 类型与错误码」、B-014 更新、D-023、T-155。
+
+**本地验证**：flutter analyze 0 问题；flutter test 207/207（新增 key 选择/跨端不借用/迁移、错误码分类、拦截 client、
+错误去重与关闭、文案映射、Key 卡片与提示横幅组件测试，以及 FlutterMap+TileLayer 经 MockClient 返回 301012 的端到端测试）。
+测试只用假 Key、不访问网络。另用 curl 以假 Key 复测：32 位十六进制假值 → 403/301001（带 `Access-Control-Allow-Origin: *`），
+含非十六进制字符的假值 → 418 拦截页。
+**未做 / 待确认**：未 push、未跑 CI（等用户确认）；用户在 App 内填入两个真实 Key 后，在 Android/iOS 真机与 Web 上确认出图。

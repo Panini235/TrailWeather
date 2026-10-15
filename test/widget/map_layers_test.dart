@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trailweather/data/map/tianditu.dart';
 import 'package:trailweather/data/map/tile_sources.dart';
 import 'package:trailweather/data/photos/photo_picker.dart';
 import 'package:trailweather/data/photos/photo_store.dart';
@@ -82,10 +83,91 @@ void main() {
     ]);
     expect(find.text(S.overlayOpacity), findsOneWidget);
 
-    // 填写 Key 后天地图可选。
-    await c.read(settingsProvider.notifier).setTiandituKey('k');
+    // 只填浏览器端 Key 时，原生 App（测试运行环境）仍不可选。
+    await c
+        .read(settingsProvider.notifier)
+        .setTiandituKeys(server: '', browser: 'fake-browser');
+    await tester.pumpAndSettle();
+    expect(tester.widget<ListTile>(tdtTile).enabled, isFalse);
+    expect(find.textContaining(S.tiandituServerKeyMissing), findsWidgets);
+
+    // 填写服务端 Key 后天地图可选。
+    await c
+        .read(settingsProvider.notifier)
+        .setTiandituKeys(server: 'fake-server', browser: 'fake-browser');
     await tester.pumpAndSettle();
     expect(tester.widget<ListTile>(tdtTile).enabled, isTrue);
+  });
+
+  testWidgets('天地图 Key 卡片：两栏分别保存，两栏相同给出提示', (tester) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final c = await _pump(tester, const TiandituKeyCard());
+    expect(find.text(S.tiandituServerKeyLabel), findsOneWidget);
+    expect(find.text(S.tiandituBrowserKeyLabel), findsOneWidget);
+    expect(find.text(S.tiandituUsingServerKey), findsOneWidget);
+    expect(find.text(S.tiandituKeyNotConfigured), findsNWidgets(2));
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), ' fake-server ');
+    await tester.enterText(fields.at(1), 'fake-browser');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    final s = c.read(settingsProvider);
+    expect(s.tiandituServerKey, 'fake-server');
+    expect(s.tiandituBrowserKey, 'fake-browser');
+    expect(find.text(S.tiandituKeyNotConfigured), findsNothing);
+    expect(find.text(S.tiandituSameKeyWarning), findsNothing);
+
+    await tester.enterText(fields.at(1), 'fake-server');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(find.text(S.tiandituSameKeyWarning), findsOneWidget);
+  });
+
+  testWidgets('天地图错误提示：按错误码显示，Key 已更换时不显示，可关闭', (tester) async {
+    final c = await _pump(tester, const TiandituErrorBanner());
+    final n = c.read(settingsProvider.notifier);
+    await n.setBaseLayer('tianditu_vec');
+    await n.setTiandituKeys(server: 'fake-server', browser: '');
+
+    // 来自旧 Key 的错误：不显示。
+    c
+        .read(tiandituErrorProvider.notifier)
+        .report(
+          const TiandituTileError(
+            kind: TiandituErrorKind.invalidKey,
+            statusCode: 403,
+            code: 301001,
+            key: 'old-fake',
+          ),
+        );
+    await tester.pumpAndSettle();
+    expect(find.textContaining(S.tiandituErrorTitle), findsNothing);
+
+    c
+        .read(tiandituErrorProvider.notifier)
+        .report(
+          const TiandituTileError(
+            kind: TiandituErrorKind.browserKeyNotInBrowser,
+            statusCode: 403,
+            code: 301012,
+            key: 'fake-server',
+          ),
+        );
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        '${S.tiandituErrorTitle}：${S.tiandituErrBrowserKeyNotInBrowser}',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip(S.close));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(S.tiandituErrorTitle), findsNothing);
+    expect(c.read(tiandituErrorProvider), isNull);
   });
 
   testWidgets('自定义图源：校验失败给出原因，合法后保存', (tester) async {

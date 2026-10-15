@@ -668,6 +668,18 @@
       "acceptance": "basic-1h 适配器（asl=节点轨迹海拔、pictocode→现象、snowfraction）；onDemandOnly 不参与自动请求，点击才查询；缓存 3h 且缓存键含海拔；本机请求计数；key 仅存本机（独立存储，不改 AppSettings）",
       "verify": "flutter test test/weather/meteoblue_contract_test.dart test/widget/on_demand_source_test.dart；实测 1 次（8000 credits）",
       "result": "本地 analyze 0 + test 199 全绿；CI 38740383191 全绿"
+    },
+    {
+      "id": "T-155",
+      "p": "P1",
+      "title": "天地图拆分服务端/浏览器端 Key，按平台选 Key，403 错误码明确提示",
+      "deps": [
+        "T-154"
+      ],
+      "status": "done",
+      "acceptance": "设置有服务端/浏览器端两个 Key；原生用服务端、Web 用浏览器端（数据层选择，可单测）；缺对应 Key 显示未配置；旧 tiandituKey 迁移到两栏并提示两栏相同；天地图 403 按 301001/301012/301013（及 418/其他）在地图与设置卡片显示明确提示；不提交真实 Key、测试不访问网络",
+      "verify": "flutter analyze；flutter test（test/unit/tile_sources_test.dart、test/unit/tianditu_test.dart、test/widget/map_layers_test.dart、test/widget/tianditu_tiles_test.dart）",
+      "result": "本地 analyze 0 + test 207/207（新增 key 选择/迁移/错误码分类/拦截 client/提示组件与 TileLayer 端到端测试）；未 push、未跑 CI；真实 Key 真机/Web 出图待用户在 App 内填写确认（B-014）"
     }
   ]
 }

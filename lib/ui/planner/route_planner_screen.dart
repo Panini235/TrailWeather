@@ -12,6 +12,7 @@ import '../../data/routes/route_exporter.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/weather/eta.dart';
 import '../../data/settings/favorites_repository.dart';
+import '../../data/map/tianditu.dart';
 import '../../data/settings/settings_repository.dart';
 import '../detail/route_detail_screen.dart';
 import '../map/basemap.dart';
@@ -372,7 +373,10 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final basemap = Basemap.fromSettings(settings);
+    final basemap = Basemap.fromSettings(
+      settings,
+      tiandituClient: ref.watch(tiandituTileClientProvider),
+    );
 
     // 显示层点转换
     final displayPoints = [for (final p in _points) basemap.toDisplay(p)];
@@ -467,6 +471,12 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
             top: 84,
             right: 12,
             child: MapLayerButton(heroTag: 'plannerLayers'),
+          ),
+          const Positioned(
+            top: 84,
+            left: 12,
+            right: 64,
+            child: TiandituErrorBanner(),
           ),
 
           // 顶部浮动模式切换卡片

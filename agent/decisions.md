@@ -119,7 +119,7 @@
   可被 CI APK 构建编译验证；Kotlin 文件提交入库，`flutter create` 不覆盖已存在文件（已验证）。
 - intent-filter 去掉 BROWSABLE 与 `*/*`，改为明确 MIME 列表（含 octet-stream，因微信常以此传 GPX）。
 
-## D-020 分析路径串联多段 + 航点即节点
+## D-024 分析路径串联多段 + 航点即节点（原编号 D-020，与并行会话重号后改）
 - 多日导出常为首尾相接的多段：≤1 km 串联（间隙按直线计入里程，近似），段起点保留为分天候选（第 3 步用）。
 - 航点吸附到线路（≤300 m）后作为必选采样节点：营地/休息点处一定查天气；偏离的航点只在地图半透明显示。
 - 反向行走为视图状态（不改存储）；标记修改的是原方向线路并保存到“我的行程”。
@@ -153,8 +153,27 @@
   iOS Info.plist 增加相册/相机用途说明。
 - 3D 地图不在本轮：flutter_map 仅 2D 栅格，3D 需 MapLibre/Cesium 等引擎与 DEM 数据授权，需单独评估。
 
-## D-021 meteoblue 作为按需单点来源
+## D-025 meteoblue 作为按需单点来源（原编号 D-021，重号后改）
 - 8000 credits/次、免费额度约 1,250 次/年，且无多点批量：若参与线路自动请求（24 节点）约 50 次查看即耗尽 → 只按需单点。
 - 按节点轨迹海拔传 asl：这是“同一地点不同海拔”的来源侧修正，比本应用自行套用递减率更可信；溯源中标注“来源按海拔修正”。
 - 密钥独立存储（meteoblue.v1）：额度计数频繁变化，且避免与并行的天地图双 key 改动冲突。
 
+
+## D-023 天地图按请求发起方用两种 Key（2026-10-15）
+- 依据：用户申请“浏览器端”“服务端”两个 Key 实测，天地图按 UA 是否含 `Mozilla` 判定浏览器，再校验 Key 类型
+  （301012/301013，详见 docs/data-sources.md「天地图 Key 类型与错误码」）。用户决定不伪造浏览器 UA 绕过类型校验。
+- 设置 `tiandituKey` 拆为 `tiandituServerKey`（Android/iOS 原生 flutter_map）与 `tiandituBrowserKey`（Web、将来 3D WebView）。
+  选择逻辑在数据层：`TileRequester` + `TiandituKeys.forRequester`；`flutterMapRequester = kIsWeb ? browser : nativeApp`
+  是唯一的平台判断。`resolveMapStyle` / `overlayBlockReason` 改为接收两种 Key 与发起方；缺对应 Key 时该端不可选，
+  不借用另一端的 Key（必然 403）。
+- 旧值迁移：旧版只有一个 Key，类型只在天地图服务端可知，离线无法判断。迁移时**两栏都填旧值**：原本能出图的一端不受影响
+  （只迁到一栏会让另一半用户直接退化）；另一端会收到 301012/301013，地图上按错误码提示该改哪一栏，设置卡片也提示
+  “两栏相同”。新字段存在时忽略旧字段；保存后不再写出 `tiandituKey`。
+- 错误提示：flutter_map 8.3.2 的 `errorTileCallback` 只拿到 `NetworkImageLoadException`（状态码 + URL），拿不到响应体。
+  `NetworkTileProvider` 支持外部传入 `httpClient`，因此天地图图层传入 `TiandituErrorSniffingClient`（包装 `RetryClient(Client())`，
+  与 flutter_map 默认 client 相同）：只在天地图域名 ≥400 的响应上读取响应体并分类，再把相同字节交回 flutter_map；
+  其余响应流式透传。外部传入的 client 不会被 TileLayer 关闭，由 `tiandituTileClientProvider` 统一持有。
+  所以不需要退回“只提示加载失败”的方案。限制：断网等没有响应的失败不归为 Key 问题，不提示；Web 端依赖 403 响应的
+  `Access-Control-Allow-Origin: *`（已复测存在）。
+- 依赖：`http` 由传递依赖改为直接依赖，精确锁定 1.6.0（pub.dev 最新版，2025-11-10 发布；dart-lang 官方包，三端可用；
+  与 flutter_map 8.3.2 要求的 `^1.5.0` 及 lock 中版本一致，lock 只把依赖类型改为 direct main，不新增代码面）。

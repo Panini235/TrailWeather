@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/map/tianditu.dart';
 import '../../data/map/tile_sources.dart';
 import '../../data/settings/settings_repository.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
+import 'basemap.dart';
 
 /// 地图上的“图层”按钮：打开底图/叠加层选择面板。
 class MapLayerButton extends StatelessWidget {
@@ -51,14 +53,10 @@ class MapLayerPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
-    final style = resolveMapStyle(
-      baseLayerId: settings.baseLayerId,
-      overlays: settings.overlayLayers,
-      custom: settings.customTileSources,
-      tiandituKey: settings.tiandituKey,
-    );
+    final style = Basemap.fromSettings(settings).style;
     final sources = allTileSources(settings.customTileSources);
-    final key = settings.tiandituKey;
+    final keys = settings.tiandituKeys;
+    final key = keys.forRequester(flutterMapRequester);
     final selected = {for (final o in settings.overlayLayers) o.id: o};
     final muted = TextStyle(
       fontSize: 11,
@@ -76,6 +74,7 @@ class MapLayerPanel extends ConsumerWidget {
           const SizedBox(height: 6),
           GranularityNotice(text: style.baseFallbackReason!),
         ],
+        const TiandituErrorBanner(margin: EdgeInsets.only(top: 6)),
         const SizedBox(height: 8),
         Text(S.baseLayer, style: Theme.of(context).textTheme.titleSmall),
         for (final s in sources)
@@ -105,7 +104,7 @@ class MapLayerPanel extends ConsumerWidget {
                   ),
                   subtitle: Text(
                     '${datumLabel(s.datum)} · '
-                    '${usable ? s.note : S.tiandituKeyMissing}',
+                    '${usable ? s.note : _keyMissingText(flutterMapRequester)}',
                     style: muted,
                   ),
                   onTap: usable ? () => notifier.setBaseLayer(s.id) : null,
@@ -121,7 +120,8 @@ class MapLayerPanel extends ConsumerWidget {
                 final reason = overlayBlockReason(
                   style.base,
                   s,
-                  tiandituKey: key,
+                  tiandituKeys: keys,
+                  requester: flutterMapRequester,
                 );
                 final sel = selected[s.id];
                 final on = sel != null && reason == null;
@@ -203,42 +203,65 @@ class TiandituKeyCard extends ConsumerStatefulWidget {
 }
 
 class _TiandituKeyCardState extends ConsumerState<TiandituKeyCard> {
-  late final TextEditingController _key = TextEditingController(
-    text: ref.read(settingsProvider).tiandituKey,
+  late final TextEditingController _server = TextEditingController(
+    text: ref.read(settingsProvider).tiandituServerKey,
+  );
+  late final TextEditingController _browser = TextEditingController(
+    text: ref.read(settingsProvider).tiandituBrowserKey,
   );
 
   @override
   void dispose() {
-    _key.dispose();
+    _server.dispose();
+    _browser.dispose();
     super.dispose();
   }
 
+  Widget _status(bool configured) => configured
+      ? const Icon(Icons.check_circle, size: 16, color: Colors.green)
+      : const Text(
+          S.tiandituKeyNotConfigured,
+          style: TextStyle(fontSize: 11, color: Colors.orange),
+        );
+
+  Widget _field(
+    TextEditingController c, {
+    required String label,
+    required String hint,
+    required bool configured,
+  }) => TextField(
+    controller: c,
+    obscureText: true,
+    decoration: InputDecoration(
+      labelText: label,
+      helperText: hint,
+      helperMaxLines: 2,
+      isDense: true,
+      border: const OutlineInputBorder(),
+      suffixIcon: Padding(
+        padding: const EdgeInsets.only(right: 10),
+        child: _status(configured),
+      ),
+      suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    final configured = ref.watch(settingsProvider).tiandituKey.isNotEmpty;
+    final keys = ref.watch(settingsProvider).tiandituKeys;
+    final error = ref.watch(tiandituErrorProvider);
+    final errorColor = Theme.of(context).colorScheme.error;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.vpn_key_outlined, size: 16),
-                const SizedBox(width: 6),
-                const Expanded(
-                  child: Text(
-                    S.tiandituKeyTitle,
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ),
-                if (configured)
-                  const Icon(Icons.check_circle, size: 16, color: Colors.green)
-                else
-                  const Text(
-                    '未配置',
-                    style: TextStyle(fontSize: 11, color: Colors.orange),
-                  ),
+                Icon(Icons.vpn_key_outlined, size: 16),
+                SizedBox(width: 6),
+                Text(S.tiandituKeyTitle, style: TextStyle(fontSize: 14)),
               ],
             ),
             const SizedBox(height: 4),
@@ -246,16 +269,37 @@ class _TiandituKeyCardState extends ConsumerState<TiandituKeyCard> {
               S.tiandituKeyHelp,
               style: TextStyle(fontSize: 11, height: 1.5, color: Colors.grey),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _key,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: S.tiandituKeyTitle,
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
+            const SizedBox(height: 4),
+            Text(switch (flutterMapRequester) {
+              TileRequester.nativeApp => S.tiandituUsingServerKey,
+              TileRequester.browser => S.tiandituUsingBrowserKey,
+            }, style: const TextStyle(fontSize: 11, height: 1.5)),
+            const SizedBox(height: 10),
+            _field(
+              _server,
+              label: S.tiandituServerKeyLabel,
+              hint: S.tiandituServerKeyHint,
+              configured: keys.server.trim().isNotEmpty,
             ),
+            const SizedBox(height: 10),
+            _field(
+              _browser,
+              label: S.tiandituBrowserKeyLabel,
+              hint: S.tiandituBrowserKeyHint,
+              configured: keys.browser.trim().isNotEmpty,
+            ),
+            if (keys.sameValueInBoth) ...[
+              const SizedBox(height: 8),
+              const GranularityNotice(text: S.tiandituSameKeyWarning),
+            ],
+            if (error != null &&
+                error.key == keys.forRequester(flutterMapRequester)) ...[
+              const SizedBox(height: 8),
+              Text(
+                tiandituErrorText(error),
+                style: TextStyle(fontSize: 12, height: 1.4, color: errorColor),
+              ),
+            ],
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
@@ -263,7 +307,10 @@ class _TiandituKeyCardState extends ConsumerState<TiandituKeyCard> {
                 onPressed: () async {
                   await ref
                       .read(settingsProvider.notifier)
-                      .setTiandituKey(_key.text);
+                      .setTiandituKeys(
+                        server: _server.text,
+                        browser: _browser.text,
+                      );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context)
                         .showSnackBar(const SnackBar(content: Text(S.saved)));
@@ -273,6 +320,102 @@ class _TiandituKeyCardState extends ConsumerState<TiandituKeyCard> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+String _keyMissingText(TileRequester r) => switch (r) {
+  TileRequester.nativeApp => S.tiandituServerKeyMissing,
+  TileRequester.browser => S.tiandituBrowserKeyMissing,
+};
+
+/// 天地图错误码 → 提示文案。
+String tiandituErrorText(TiandituTileError e) => switch (e.kind) {
+  TiandituErrorKind.invalidKey => S.tiandituErrInvalidKey,
+  TiandituErrorKind.browserKeyNotInBrowser =>
+    S.tiandituErrBrowserKeyNotInBrowser,
+  TiandituErrorKind.serverKeyInBrowser => S.tiandituErrServerKeyInBrowser,
+  TiandituErrorKind.blocked => S.tiandituErrBlocked,
+  TiandituErrorKind.other =>
+    '${S.tiandituErrOther}（HTTP ${e.statusCode}'
+        '${e.code == null ? '' : '，code ${e.code}'}）',
+};
+
+/// 地图上的天地图错误提示：当前图层用到天地图、且错误来自当前所用 Key 时显示，
+/// 避免只留空白瓦片。可关闭；“设置”打开 Key 管理页。
+class TiandituErrorBanner extends ConsumerWidget {
+  const TiandituErrorBanner({
+    super.key,
+    this.compact = false,
+    this.margin = EdgeInsets.zero,
+  });
+
+  /// 小地图用：文案最多两行。
+  final bool compact;
+  final EdgeInsetsGeometry margin;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final error = ref.watch(tiandituErrorProvider);
+    final settings = ref.watch(settingsProvider);
+    if (error == null ||
+        !Basemap.fromSettings(settings).style.usesTianditu ||
+        error.key != settings.tiandituKeys.forRequester(flutterMapRequester)) {
+      return const SizedBox.shrink();
+    }
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: margin,
+      child: Material(
+        color: scheme.errorContainer.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 6, 0, 6),
+          child: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 18,
+                color: scheme.onErrorContainer,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  compact
+                      ? tiandituErrorText(error)
+                      : '${S.tiandituErrorTitle}：${tiandituErrorText(error)}',
+                  maxLines: compact ? 2 : null,
+                  overflow: compact ? TextOverflow.ellipsis : null,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: scheme.onErrorContainer,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: S.tiandituOpenKeySettings,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.vpn_key_outlined, size: 18),
+                color: scheme.onErrorContainer,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MapSourcesPage(),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: S.close,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.close, size: 18),
+                color: scheme.onErrorContainer,
+                onPressed: () =>
+                    ref.read(tiandituErrorProvider.notifier).dismiss(),
+              ),
+            ],
+          ),
         ),
       ),
     );
