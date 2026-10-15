@@ -350,3 +350,5 @@ map_layers 组件 3 项；集成测试断言节点着色与图例）。
 **未做**：3D 地图（flutter_map 仅 2D，需换引擎，另行评估）。
 **待真机确认**：各图源国内可达性（OpenTopoMap/Esri 海外）、天地图 Key 类型与请求头、叠加透明度性能、
 相册/相机权限弹窗与 iOS 用途文案、图片保存与重启后恢复、节点颜色在实际天气下的观感。
+**CI 结果**：run 38733804863（workflow_dispatch，分支 feat/robust-track-import）conclusion=success，
+analyze ✓ / test ✓ / Web release ✓ / APK release ✓（含 image_picker Android 原生插件编译）。iOS 构建未触发（手动工作流）。

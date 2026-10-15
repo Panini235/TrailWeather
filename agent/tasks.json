@@ -652,10 +652,10 @@
       "p": "P1",
       "title": "地图图层（卫星/等高线/天地图/自定义图源 + 叠加）、天气节点样式、节点图片",
       "deps": [],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "内置高德标准/卫星/注记、天地图矢量/影像/地形/注记（用户 Key）、OpenTopoMap 等高线、Esri 卫星、OSM；底图单选 + 多叠加层与透明度；坐标系不同的叠加不渲染并说明；自定义 XYZ 图源校验与持久化；旧 basemap 设置迁移；详情页节点按阈值着色+图标+图例（缺失不着绿）；节点可从相册/相机添加图片，本机保存、可备注/删除，地图显示图片标记，Web 如实提示不支持",
       "verify": "test/unit/tile_sources_test.dart、test/unit/node_wx_class_test.dart、test/unit/route_photos_test.dart、test/widget/map_layers_test.dart、test/integration/core_flow_test.dart",
-      "result": "本地 analyze 0 + test 189/189；真机瓦片可达性、天地图 Key 类型、相册/相机权限待确认；3D 地图未做（需换渲染引擎）"
+      "result": "本地 analyze 0 + test 189/189；CI 38733804863 全绿（analyze/test/Web/APK）；真机瓦片可达性、天地图 Key 类型、相册/相机权限待确认；3D 地图未做（需换渲染引擎）"
     }
   ]
 }
