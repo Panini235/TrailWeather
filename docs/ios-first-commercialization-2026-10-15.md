@@ -62,7 +62,7 @@
 | 高德直连栅格瓦片 | 当前代码使用无 Key 的 `webrd*.is.autonavi.com/appmaptile`。可访问不能证明它是本项目获准使用的公开产品接口。官方协议要求按相应用途与授权场景取得所需书面许可，不能仅用“是否收费”判断。[S7] | 向开放平台工单说明个人开发者、iOS/Android、免费阶段与将来收费、地图展示及离线需求，确认可用 SDK/API、个人主体是否可获相应授权和费用。按确认的官方接入改造；未经确认不以现状宣布可商用。 |
 | OSM 数据与公共标准瓦片 | OSM 数据许可允许符合条件的商业使用；托管瓦片是另一套政策，禁止离线预下载/批量抓取，服务可被限制。[S8] | 在线显示遵守标识、归因和缓存要求；正式离线地图采用明确支持离线的服务或合规自托管。具体数据整理是否触发 ODbL 义务应按交付方式判断，不把所有地图展示一概认定要公开整个 App。 |
 | Overpass 公共镜像 | 返回 OSM 数据不等于提供生产服务保障；不同镜像有独立运营规则。 | 导入线路作为核心入口，按镜像规则限流/缓存；不要把公共镜像当生产 SLA。规模增长时评估专用服务。 |
-| 和风天气（可选，当前需用户配置） | 当前官方开发者许可2.1.4允许许可范围内的商业用途，2.1.2允许存储/缓存，2.2将GeoAPI排除在相应存储与改编许可之外；仍需遵守用途、归因与计费等条件。[S9] | 使用自己已开通且覆盖目标时段的服务，明确离线天气保存与展示条件；保留归因。协议2.4.5限制涉及风险或可能伤亡的产品/用途，本项目若提供风险判断/告警/撤退建议，应向和风工单明确咨询并留存答复。不得继续泛称“和风免费全部不许商用”。 |
+| 和风天气（可选，当前需用户配置） | 待核验：本次官方许可正文未能稳定访问，不能据此确认当前账号的商用、缓存、再分发与风险提示用途范围。 | 请从已开通账号控制台导出/保存当前许可，或通过工单明确查询徒步天气、离线缓存、风险提示和商业使用；在取得证据前不宣称已可商用，也不笼统称全部禁止商用。 |
 | 内置徒步星球路线 | 本次 GitHub API 返回仓库 public、license=null，license 接口404；根目录无 LICENSE，README也没有授权声明。路线含从 OSM/OSRM/高德等生成的近似轨迹。 | 已纠正代码中的 MIT 声明。正式分发前取得作者对复制、商用、修改、离线分发的明确授权及上游数据说明，或移除/换成自主、授权数据；授权未落实前不能算解除发布阻塞。 |
 | Flutter/Dart 依赖 | 仓库登记的主依赖多数使用常见开源许可证；这与在线服务的商业使用合同是不同问题。 | 发布前按锁定版本补齐第三方许可证，保留版权/许可声明；不能用 SDK 开源替代地图或天气数据授权。 |
 
@@ -124,7 +124,7 @@ Apple 处理 App Store 交易。StoreKit 2 的已验证交易和平台恢复能�
 - [S6] MET Norway Terms / License：`https://api.met.no/doc/TermsOfService`；`https://api.met.no/doc/License`
 - [S7] 高德开放平台服务协议：`https://lbs.amap.com/pages/terms/`
 - [S8] OSM copyright / Tile policy：`https://www.openstreetmap.org/copyright`；`https://operations.osmfoundation.org/policies/tiles/`
-- [S9] 和风开发者最终用户许可：`https://www.qweather.com/terms/developers-eula`；当前条款文件最后修订为2025-02-08，2026-10-15读取：`https://staticpages.qweather.com/legal/developers-eula.html?head=0`。
+- [S9] 和风开发者最终用户许可：`https://www.qweather.com/terms/developers-eula`；本次正文访问不成功（网页工具不可访问、代理请求返回403），未将条款编号或修订日期作为已核验依据。
 - [S10] Apple Enrollment：`https://developer.apple.com/support/enrollment/`
 - [S11] Apple App information（China mainland）：`https://developer.apple.com/help/app-store-connect/reference/app-information/app-information/`
 - [S12] Apple appAccountToken：`https://developer.apple.com/documentation/storekit/product/purchaseoption/appaccounttoken(_:)`
