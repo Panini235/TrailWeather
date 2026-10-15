@@ -8,6 +8,8 @@ import '../../data/app_providers.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
+import '../map/basemap.dart';
+import '../map/map_layers_ui.dart';
 import '../strings.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -84,30 +86,40 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          _section(context, '地图底图'),
+          _section(context, '地图图层'),
           Card(
-            child: ListTile(
-              dense: true,
-              title: const Text('底图来源', style: TextStyle(fontSize: 14)),
-              subtitle: const Text(
-                '高德（国内直连快，GCJ-02 显示坐标，业务数据仍为 WGS-84）/ OSM（海外网络）',
-                style: TextStyle(fontSize: 11),
-              ),
-              trailing: SegmentedButton<BasemapSource>(
-                segments: const [
-                  ButtonSegment(
-                    value: BasemapSource.amap,
-                    label: Text('高德', style: TextStyle(fontSize: 12)),
+            child: Column(
+              children: [
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.layers_outlined),
+                  title: const Text(
+                    S.mapLayers,
+                    style: TextStyle(fontSize: 14),
                   ),
-                  ButtonSegment(
-                    value: BasemapSource.osm,
-                    label: Text('OSM', style: TextStyle(fontSize: 12)),
+                  subtitle: Text(
+                    '${Basemap.fromSettings(settings).style.base.name}'
+                    '${settings.overlayLayers.isEmpty ? '' : ' + ${settings.overlayLayers.length} 个叠加层'}',
+                    style: const TextStyle(fontSize: 11),
                   ),
-                ],
-                selected: {settings.basemap},
-                onSelectionChanged: (sel) =>
-                    notifier.update(settings.copyWith(basemap: sel.first)),
-              ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showMapLayerSheet(context),
+                ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.tune),
+                  title: const Text(
+                    S.manageTileSources,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const MapSourcesPage(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           _section(context, '数据源密钥'),

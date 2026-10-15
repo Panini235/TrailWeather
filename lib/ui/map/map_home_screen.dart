@@ -19,6 +19,7 @@ import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
 import '../detail/route_detail_screen.dart';
 import 'basemap.dart';
+import 'map_layers_ui.dart';
 import 'hybrid_route_search.dart';
 import 'point_weather_sheet.dart';
 import 'route_marks.dart';
@@ -85,7 +86,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     }
   }
 
-  Basemap get _basemap => Basemap(ref.read(settingsProvider).basemap);
+  Basemap get _basemap => Basemap.fromSettings(ref.read(settingsProvider));
 
   void _onTapMap(TapPosition pos, LatLng displayPoint) {
     // 点击线路时由 PolylineLayer 的命中通知器处理，不同时弹出点位天气。
@@ -567,7 +568,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     ]..sort((a, b) => a.name.compareTo(b.name));
 
     final selectedId = _selected?.id;
-    final basemap = Basemap(ref.watch(settingsProvider).basemap);
+    final basemap = Basemap.fromSettings(ref.watch(settingsProvider));
 
     return Scaffold(
       body: Stack(
@@ -586,7 +587,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               onTap: _onTapMap,
             ),
             children: [
-              basemap.tileLayer(),
+              ...basemap.tileLayers(),
               GestureDetector(
                 behavior: HitTestBehavior.deferToChild,
                 onTap: () {
@@ -717,6 +718,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const MapLayerButton(),
+                    const SizedBox(height: 10),
                     FloatingActionButton.small(
                       heroTag: 'locate',
                       onPressed: _locating ? null : _locate,

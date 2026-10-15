@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailweather/core/gcj02.dart';
 import 'package:trailweather/data/routes/route_models.dart';
-import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/map/basemap.dart';
 import 'package:trailweather/ui/map/route_camera.dart';
 
@@ -19,8 +18,8 @@ HikingRoute _route(List<List<LatLng>> segments) => HikingRoute(
 );
 
 void main() {
-  const osm = Basemap(BasemapSource.osm);
-  const amap = Basemap(BasemapSource.amap);
+  final osm = Basemap.base('osm');
+  final amap = Basemap.base('amap');
 
   group('routeDisplayBounds', () {
     test('覆盖全部几何段，而不只是最长段', () {

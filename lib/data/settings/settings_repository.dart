@@ -4,10 +4,7 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 底图来源。
-/// amap：高德栅格瓦片（大陆直连快；GCJ-02 坐标系，业务坐标渲染时转换）。
-/// osm：OpenStreetMap 标准瓦片（WGS-84；大陆直连通常不可用）。
-enum BasemapSource { amap, osm }
+import '../map/tile_sources.dart';
 
 /// 单位与偏好设置。
 class AppSettings {
@@ -19,7 +16,10 @@ class AppSettings {
     this.enabledProviderIds = defaultProviderIds,
     this.samplingSpacingKm = 1.5,
     this.maxNodesPerRoute = 24,
-    this.basemap = BasemapSource.amap,
+    this.baseLayerId = defaultBaseLayerId,
+    this.overlayLayers = const [],
+    this.customTileSources = const [],
+    this.tiandituKey = '',
     this.qweatherApiHost = '',
     this.qweatherApiKey = '',
     this.hasCompletedOnboarding = false,
@@ -43,7 +43,17 @@ class AppSettings {
   final double samplingSpacingKm;
   final int maxNodesPerRoute;
 
-  final BasemapSource basemap;
+  /// 底图来源 id（见 tile_sources.dart；旧版 `basemap` 字段自动迁移）。
+  final String baseLayerId;
+
+  /// 叠加图层（自下而上）。
+  final List<OverlaySelection> overlayLayers;
+
+  /// 用户自定义瓦片来源。
+  final List<TileSourceDef> customTileSources;
+
+  /// 天地图 Key（用户自行申请，仅保存在本机）。
+  final String tiandituKey;
 
   /// 和风天气 API Host（控制台专属域名，如 abc123.qweatherapi.com；
   /// 旧账号可为 devapi.qweather.com）。仅保存在本机。
@@ -71,7 +81,10 @@ class AppSettings {
     List<String>? enabledProviderIds,
     double? samplingSpacingKm,
     int? maxNodesPerRoute,
-    BasemapSource? basemap,
+    String? baseLayerId,
+    List<OverlaySelection>? overlayLayers,
+    List<TileSourceDef>? customTileSources,
+    String? tiandituKey,
     String? qweatherApiHost,
     String? qweatherApiKey,
     bool? hasCompletedOnboarding,
@@ -84,7 +97,10 @@ class AppSettings {
     enabledProviderIds: enabledProviderIds ?? List.of(this.enabledProviderIds),
     samplingSpacingKm: samplingSpacingKm ?? this.samplingSpacingKm,
     maxNodesPerRoute: maxNodesPerRoute ?? this.maxNodesPerRoute,
-    basemap: basemap ?? this.basemap,
+    baseLayerId: baseLayerId ?? this.baseLayerId,
+    overlayLayers: overlayLayers ?? List.of(this.overlayLayers),
+    customTileSources: customTileSources ?? List.of(this.customTileSources),
+    tiandituKey: tiandituKey ?? this.tiandituKey,
     qweatherApiHost: qweatherApiHost ?? this.qweatherApiHost,
     qweatherApiKey: qweatherApiKey ?? this.qweatherApiKey,
     hasCompletedOnboarding:
@@ -101,7 +117,10 @@ class AppSettings {
     'enabledProviderIds': enabledProviderIds,
     'samplingSpacingKm': samplingSpacingKm,
     'maxNodesPerRoute': maxNodesPerRoute,
-    'basemap': basemap.name,
+    'baseLayerId': baseLayerId,
+    'overlayLayers': [for (final o in overlayLayers) o.toJson()],
+    'customTileSources': [for (final c in customTileSources) c.toJson()],
+    'tiandituKey': tiandituKey,
     'qweatherApiHost': qweatherApiHost,
     'qweatherApiKey': qweatherApiKey,
     'hasCompletedOnboarding': hasCompletedOnboarding,
@@ -118,9 +137,20 @@ class AppSettings {
         List.of(defaultProviderIds),
     samplingSpacingKm: (m['samplingSpacingKm'] as num?)?.toDouble() ?? 1.5,
     maxNodesPerRoute: (m['maxNodesPerRoute'] as num?)?.toInt() ?? 24,
-    basemap: BasemapSource.values.byName(
-      m['basemap'] as String? ?? BasemapSource.amap.name,
-    ),
+    // 旧版只存 `basemap`（amap/osm），与新 id 同名，可直接迁移。
+    baseLayerId:
+        m['baseLayerId'] as String? ??
+        m['basemap'] as String? ??
+        defaultBaseLayerId,
+    overlayLayers: [
+      for (final o in (m['overlayLayers'] as List?) ?? const [])
+        OverlaySelection.fromJson(o as Map<String, dynamic>),
+    ],
+    customTileSources: [
+      for (final c in (m['customTileSources'] as List?) ?? const [])
+        TileSourceDef.customFromJson(c as Map<String, dynamic>),
+    ],
+    tiandituKey: m['tiandituKey'] as String? ?? '',
     qweatherApiHost: m['qweatherApiHost'] as String? ?? '',
     qweatherApiKey: m['qweatherApiKey'] as String? ?? '',
     hasCompletedOnboarding: m['hasCompletedOnboarding'] as bool? ?? false,
@@ -173,6 +203,60 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   Future<void> setLapseRateCorrection(bool v) =>
       update(state.copyWith(elevationLapseRateCorrection: v));
+
+  // —— 地图图层 ——
+
+  Future<void> setBaseLayer(String id) {
+    // 新底图本身若在叠加列表中则移除，避免同一来源叠两次。
+    final overlays = state.overlayLayers.where((o) => o.id != id).toList();
+    return update(state.copyWith(baseLayerId: id, overlayLayers: overlays));
+  }
+
+  Future<void> toggleOverlay(String id) {
+    final overlays = List.of(state.overlayLayers);
+    final i = overlays.indexWhere((o) => o.id == id);
+    if (i >= 0) {
+      overlays.removeAt(i);
+    } else {
+      overlays.add(OverlaySelection(id, opacity: 0.7));
+    }
+    return update(state.copyWith(overlayLayers: overlays));
+  }
+
+  Future<void> setOverlayOpacity(String id, double opacity) => update(
+    state.copyWith(
+      overlayLayers: [
+        for (final o in state.overlayLayers)
+          o.id == id ? o.copyWith(opacity: opacity.clamp(0.1, 1.0)) : o,
+      ],
+    ),
+  );
+
+  Future<void> upsertCustomTileSource(TileSourceDef def) {
+    final list = List.of(state.customTileSources);
+    final i = list.indexWhere((c) => c.id == def.id);
+    if (i >= 0) {
+      list[i] = def;
+    } else {
+      list.add(def);
+    }
+    return update(state.copyWith(customTileSources: list));
+  }
+
+  Future<void> removeCustomTileSource(String id) => update(
+    state.copyWith(
+      customTileSources: state.customTileSources
+          .where((c) => c.id != id)
+          .toList(),
+      overlayLayers: state.overlayLayers.where((o) => o.id != id).toList(),
+      baseLayerId: state.baseLayerId == id
+          ? defaultBaseLayerId
+          : state.baseLayerId,
+    ),
+  );
+
+  Future<void> setTiandituKey(String key) =>
+      update(state.copyWith(tiandituKey: key.trim()));
 }
 
 final prefsProvider = Provider<SharedPreferences>((ref) {

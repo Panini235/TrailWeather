@@ -33,6 +33,11 @@ dependencies:
   geolocator: ^14.1.1
   # 用户主动打开外部攻略网页（Android/iOS/Web）
   url_launcher: 6.3.3
+  # 节点图片：系统相册/相机选择（flutter.dev 官方包）。精确锁定发布超过 2 周的
+  # 版本（1.2.3，2026-06-30；1.2.4 发布不足 2 周），见 agent/decisions.md D-022
+  image_picker: 1.2.3
+  # 节点图片本地文件目录（已是传递依赖，直接声明；Web 端走条件导入不调用）
+  path_provider: 2.1.6
 
 dev_dependencies:
   flutter_test:

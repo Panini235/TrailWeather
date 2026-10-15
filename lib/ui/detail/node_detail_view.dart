@@ -8,6 +8,7 @@ import '../strings.dart';
 import '../widgets/common.dart';
 import 'detail_state.dart';
 import 'node_detail_sheet.dart';
+import 'node_photos.dart';
 import 'weather_cells.dart';
 
 /// 节点详情：到达时间、当前来源完整天气、未来 12 小时、标记操作、多来源对比。
@@ -26,6 +27,7 @@ class NodeDetailView extends StatefulWidget {
     required this.onMark,
     required this.onEditMark,
     required this.onRemoveMark,
+    this.routeId,
   });
 
   final List<NodeWxRow> rows;
@@ -37,6 +39,9 @@ class NodeDetailView extends StatefulWidget {
   final void Function(RouteNodeRef node, WaypointType type) onMark;
   final void Function(RouteWaypoint waypoint) onEditMark;
   final void Function(RouteWaypoint waypoint) onRemoveMark;
+
+  /// 线路 id；提供时显示节点图片区。
+  final String? routeId;
 
   @override
   State<NodeDetailView> createState() => _NodeDetailViewState();
@@ -108,6 +113,10 @@ class _NodeDetailViewState extends State<NodeDetailView> {
         ),
         const SizedBox(height: 10),
         _markSection(context, wp, label),
+        if (widget.routeId != null) ...[
+          const SizedBox(height: 10),
+          NodePhotosSection(routeId: widget.routeId!, pos: node.pos),
+        ],
         const SizedBox(height: 10),
         if (wx == null)
           const GranularityNotice(text: '此来源在该时刻没有数据（超出预报范围或来源未提供）。')

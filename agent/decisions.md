@@ -142,3 +142,13 @@
 - 应用标题、原生显示名、文件打开提示、引导页、导出标识和Web验证入口同步更新；内部包名、存储键和安装身份保持兼容。
 - 原生图标放assets/branding/platforms，CI的flutter create之后用Python标准库脚本覆盖并验证，继续不提交完整平台模板。
 - 增加产物品牌校验，确认APK与iOS包内名称和图标资源；不新增Flutter依赖，不启用订阅，不发布商店。
+
+## D-022 地图图层体系、节点图片依赖（2026-10-15）
+- `BasemapSource` 枚举改为来源注册表 + `baseLayerId`/`overlayLayers`/`customTileSources`/`tiandituKey`；
+  旧设置 `basemap: amap|osm` 与新 id 同名，直接迁移。
+- 叠加层必须与底图同坐标系，否则不渲染（不做逐瓦片重投影；GCJ-02 是非线性偏移，栅格无法精确纠偏）。
+- 节点图片按坐标锚定（不按节点序号），因为采样间距/反向行走会重算节点；详情中 60 m 内视为该节点图片。
+- 新依赖：`image_picker` 精确锁定 1.2.3（flutter.dev 官方，2026-06-30 发布；1.2.4 于 2026-10-06 发布不足 2 周，
+  未采用），Android/iOS/Web 均有官方实现；`path_provider` 2.1.6 由传递依赖改为直接依赖（Web 走条件导入不调用）。
+  iOS Info.plist 增加相册/相机用途说明。
+- 3D 地图不在本轮：flutter_map 仅 2D 栅格，3D 需 MapLibre/Cesium 等引擎与 DEM 数据授权，需单独评估。

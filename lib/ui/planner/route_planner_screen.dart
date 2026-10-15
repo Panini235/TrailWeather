@@ -15,6 +15,7 @@ import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
 import '../detail/route_detail_screen.dart';
 import '../map/basemap.dart';
+import '../map/map_layers_ui.dart';
 import '../widgets/common.dart';
 
 enum PlannerMode { draw, waypoint }
@@ -53,7 +54,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
 
   void _onTapMap(TapPosition _, LatLng latLng) {
     final settings = ref.read(settingsProvider);
-    final basemap = Basemap(settings.basemap);
+    final basemap = Basemap.fromSettings(settings);
     final wgsPoint = basemap.toBusiness(latLng);
 
     if (_mode == PlannerMode.draw) {
@@ -371,7 +372,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final basemap = Basemap(settings.basemap);
+    final basemap = Basemap.fromSettings(settings);
 
     // 显示层点转换
     final displayPoints = [for (final p in _points) basemap.toDisplay(p)];
@@ -425,7 +426,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
               onTap: _onTapMap,
             ),
             children: [
-              basemap.tileLayer(),
+              ...basemap.tileLayers(),
               if (displayPoints.length >= 2)
                 PolylineLayer(
                   polylines: [
@@ -460,6 +461,12 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                 ],
               ),
             ],
+          ),
+
+          const Positioned(
+            top: 84,
+            right: 12,
+            child: MapLayerButton(heroTag: 'plannerLayers'),
           ),
 
           // 顶部浮动模式切换卡片

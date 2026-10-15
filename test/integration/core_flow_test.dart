@@ -13,6 +13,7 @@ import 'package:trailweather/data/weather/weather_provider.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
 import 'package:trailweather/ui/map/map_home_screen.dart';
 import 'package:trailweather/ui/widgets/common.dart';
+import 'package:trailweather/ui/detail/node_wx_style.dart';
 import 'package:trailweather/ui/strings.dart';
 
 /// 集成假来源：返回固定但结构完整的逐时数据（不联网）。
@@ -210,6 +211,10 @@ void main() {
     // 4. 详情页：事实卡 + 演示标签（ListView 懒挂载，断言前滚动到目标）
     expect(find.text('集成测试线路'), findsOneWidget);
     expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
+
+    // 节点按天气阈值着色，并附图例说明（非官方预警）。
+    expect(find.byType(NodeWxMarker), findsWidgets);
+    expect(find.text(S.nodeWxLegendNote), findsOneWidget);
 
     // 线路小地图：可打开可交互的全屏大图，并能“显示整条线路”。
     await tester.tap(find.byTooltip(S.routeMapFullscreen));

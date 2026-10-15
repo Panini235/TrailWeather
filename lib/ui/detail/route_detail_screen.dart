@@ -10,7 +10,9 @@ import '../../data/routes/route_models.dart';
 import '../../data/routes/route_sampling.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
+import '../../data/photos/route_photos.dart';
 import '../../data/weather/eta.dart';
+import '../../data/weather/node_wx_class.dart';
 import '../../data/weather/risk_rules.dart';
 import '../../data/weather/weather_models.dart';
 import '../../data/weather/weather_provider.dart';
@@ -18,11 +20,14 @@ import '../../data/weather/weather_repository.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 import '../map/basemap.dart';
+import '../map/map_layers_ui.dart';
 import '../map/route_camera.dart';
 import '../map/route_marks.dart';
 import 'detail_state.dart';
 import 'elevation_profile.dart';
 import 'node_detail_view.dart';
+import 'node_photos.dart';
+import 'node_wx_style.dart';
 import 'weather_cells.dart';
 
 class RouteDetailArgs {
@@ -631,6 +636,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
               ),
               onEditMark: (wp) => closeThen(() => _editMark(wp)),
               onRemoveMark: (wp) => closeThen(() => _removeMark(wp)),
+              routeId: _base.id,
             ),
           ],
         ),
@@ -660,56 +666,73 @@ class _RouteMiniMap extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final basemap = Basemap(ref.watch(settingsProvider).basemap);
+    final basemap = Basemap.fromSettings(ref.watch(settingsProvider));
     final fit = routeCameraFit(route, basemap);
+    final photos = ref
+        .watch(routePhotosProvider)
+        .where((p) => p.routeId == route.id)
+        .toList();
     // 小地图不响应拖动/缩放，避免与外层 ListView 滚动手势冲突；
     // 点节点标记选中节点，点空白处或全屏按钮进入可交互大图。
-    return SizedBox(
-      height: 220,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            FlutterMap(
-              // 反向行走时几何不变但起终点互换，key 带上方向让相机与标记重建。
-              key: ValueKey(
-                'mini-${route.id}-${basemap.source.name}-${route.flatPoints.first}',
-              ),
-              options: MapOptions(
-                initialCameraFit: fit,
-                // 无几何时的兜底；有 fit 时 initialCameraFit 优先。
-                initialCenter: const LatLng(39.99, 116.17),
-                initialZoom: 12,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 220,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                FlutterMap(
+                  // 反向行走时几何不变但起终点互换，key 带上方向让相机与标记重建。
+                  key: ValueKey(
+                    'mini-${route.id}-${basemap.signature}-${route.flatPoints.first}',
+                  ),
+                  options: MapOptions(
+                    initialCameraFit: fit,
+                    // 无几何时的兜底；有 fit 时 initialCameraFit 优先。
+                    initialCenter: const LatLng(39.99, 116.17),
+                    initialZoom: 12,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.none,
+                    ),
+                    onTap: (_, _) => onOpenFullscreen(),
+                  ),
+                  children: _routeMapLayers(
+                    basemap: basemap,
+                    route: route,
+                    rows: rows,
+                    selectedIndex: selectedIndex,
+                    onTapNode: onTapNode,
+                    photos: photos,
+                    onTapPhoto: (p) => showRoutePhotoViewer(context, p),
+                  ),
                 ),
-                onTap: (_, _) => onOpenFullscreen(),
-              ),
-              children: _routeMapLayers(
-                basemap: basemap,
-                route: route,
-                rows: rows,
-                selectedIndex: selectedIndex,
-                onTapNode: onTapNode,
-              ),
-            ),
-            Positioned(
-              top: 6,
-              right: 6,
-              child: Material(
-                color: Theme.of(context).colorScheme.surface
-                    .withValues(alpha: 0.9),
-                shape: const CircleBorder(),
-                child: IconButton(
-                  tooltip: S.routeMapFullscreen,
-                  icon: const Icon(Icons.fullscreen),
-                  onPressed: onOpenFullscreen,
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: Material(
+                    color: Theme.of(context).colorScheme.surface
+                        .withValues(alpha: 0.9),
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      tooltip: S.routeMapFullscreen,
+                      icon: const Icon(Icons.fullscreen),
+                      onPressed: onOpenFullscreen,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
+          ),
+        ),
+        NodeWxLegend(
+          classes: [
+            for (final r in rows)
+              if (r.node.waypoint == null) classifyNodeWx(r.wx),
           ],
         ),
-      ),
+      ],
     );
   }
 }
@@ -721,6 +744,8 @@ List<Widget> _routeMapLayers({
   required List<NodeWxRow> rows,
   required int? selectedIndex,
   ValueChanged<int>? onTapNode,
+  List<RoutePhoto> photos = const [],
+  ValueChanged<RoutePhoto>? onTapPhoto,
   bool attribution = false,
 }) {
   final onRoute = {
@@ -731,7 +756,7 @@ List<Widget> _routeMapLayers({
       ? selectedIndex
       : null;
   return [
-    basemap.tileLayer(),
+    ...basemap.tileLayers(),
     PolylineLayer(
       polylines: [
         for (final seg in route.segments)
@@ -776,12 +801,9 @@ List<Widget> _routeMapLayers({
                         type: rows[i].node.waypoint!.type,
                         size: sel == i ? 22 : 16,
                       )
-                    : Icon(
-                        Icons.circle,
-                        size: sel == i ? 14 : 10,
-                        color: rows[i].wx == null
-                            ? Colors.grey
-                            : Colors.deepOrange,
+                    : NodeWxMarker(
+                        cls: classifyNodeWx(rows[i].wx),
+                        selected: sel == i,
                       ),
               ),
             ),
@@ -789,6 +811,23 @@ List<Widget> _routeMapLayers({
       ],
     ),
     routeEndpointLayer(route, basemap),
+    if (photos.isNotEmpty)
+      MarkerLayer(
+        markers: [
+          for (final p in photos)
+            Marker(
+              point: basemap.toDisplay(p.pos),
+              width: 24,
+              height: 24,
+              alignment: Alignment.topRight,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTapPhoto == null ? null : () => onTapPhoto(p),
+                child: const PhotoMapMarker(),
+              ),
+            ),
+        ],
+      ),
     if (sel != null)
       MarkerLayer(
         markers: [
@@ -837,7 +876,7 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final basemap = Basemap(settings.basemap);
+    final basemap = Basemap.fromSettings(settings);
     final fit = routeCameraFit(
       widget.route,
       basemap,
@@ -846,13 +885,21 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
     final sel = _sel != null && _sel! < widget.rows.length ? _sel : null;
     return Scaffold(
       appBar: AppBar(title: Text(widget.route.name)),
-      floatingActionButton: fit == null
-          ? null
-          : FloatingActionButton.small(
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const MapLayerButton(heroTag: 'detailLayers'),
+          if (fit != null) ...[
+            const SizedBox(height: 10),
+            FloatingActionButton.small(
+              heroTag: 'detailFit',
               tooltip: S.routeMapFitAll,
               onPressed: () => _controller.fitCamera(fit),
               child: const Icon(Icons.fit_screen),
             ),
+          ],
+        ],
+      ),
       body: Stack(
         children: [
           FlutterMap(
@@ -876,6 +923,11 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
                 setState(() => _sel = i);
                 widget.onSelect(i);
               },
+              photos: ref
+                  .watch(routePhotosProvider)
+                  .where((p) => p.routeId == widget.route.id)
+                  .toList(),
+              onTapPhoto: (p) => showRoutePhotoViewer(context, p),
               attribution: true,
             ),
           ),

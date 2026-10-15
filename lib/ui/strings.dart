@@ -149,4 +149,41 @@ abstract final class S {
   static const validTime = '数据有效时间';
   static const granularityLabel = '位置颗粒度';
   static const timeAlignmentNote = '各来源的最近数据时次可能不同，以下按各自最接近的有效时刻展示并标注差值。';
+
+  // 地图图层
+  static const mapLayers = '地图图层';
+  static const baseLayer = '底图';
+  static const overlayLayers = '叠加图层';
+  static const overlayOpacity = '透明度';
+  static const manageTileSources = '管理图源与天地图 Key';
+  static const mapLayerDatumNote =
+      '显示坐标系由底图决定。高德为 GCJ-02，其余为 WGS-84；坐标系不同的图层叠加会错位约 100–700 m，因此不可同时叠加。线路与天气计算始终使用 WGS-84。';
+  static const tiandituKeyTitle = '天地图 Key';
+  static const tiandituKeyHelp =
+      '在天地图开放平台（console.tianditu.gov.cn）用你自己的账号申请 Key 后填写，仅保存在本机。'
+      'App 不代为注册。填写后可使用天地图矢量、影像（卫星）、地形晕渲与注记图层。';
+  static const tiandituKeyMissing = '需先在“管理图源与天地图 Key”中填写天地图 Key';
+  static const customTileSources = '自定义图源';
+  static const customTileSourcesHelp =
+      '填写 XYZ 瓦片地址模板，例如 https://{s}.example.com/{z}/{x}/{y}.png。'
+      '支持 {x} {y} {-y} {z} {s} {r} {tk}（{tk} 使用天地图 Key）。图源的可用性与授权由你自行确认。';
+  static const addCustomTileSource = '添加自定义图源';
+  static const editCustomTileSource = '编辑自定义图源';
+  static const customTileOverlayOnly = '仅作叠加（透明图层，不能作底图）';
+  static const noCustomTileSources = '尚未添加自定义图源。';
+  static const saved = '已保存（仅本机）';
+
+  // 节点天气样式与图片
+  static const nodeWxLegendNote = '节点颜色按固定阈值归类所选来源该时刻的数据，非安全评分、非官方预警；灰色表示数据不足。';
+  static const nodePhotos = '节点图片';
+  static const photoFromGallery = '相册';
+  static const photoFromCamera = '拍照';
+  static const noNodePhotos = '此节点附近还没有图片。';
+  static const photosLocalOnly = '图片只保存在本机，不上传；卸载 App 会一并删除。';
+  static const photosUnsupported = '当前平台（Web）暂不支持保存图片，请在手机 App 中添加。';
+  static const photoAddFailed = '图片添加失败，请重试。';
+  static const photoMissing = '图片文件已丢失';
+  static const photoAddedAt = '添加于';
+  static const photoCaption = '备注';
+  static const photoDelete = '删除图片';
 }

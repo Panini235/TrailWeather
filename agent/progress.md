@@ -329,3 +329,24 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓。
 **本地验证**：analyze0；171/171 tests；临时项目三端资源应用/check模式、PNG尺寸与不透明性、D主图一致性通过。
 **CI**：38706513896 success（analyze/test/Web/APK）；38706518000 success（iOS release --no-codesign）。新增产物校验确认APK实际label“山晴”、启动图标声明和品牌图片，iOS实际Info.plist名称与编译AppIcon目录，Web实际标题/manifest/图标。
 **边界**：无签名构建不代表商店上架或真机安装验收；名称商标/商店重名在发布阶段核验。本轮没有启动订阅或发布商店。
+
+## Round 16 — 2026-10-15（地图图层、天气节点样式、节点图片）
+
+**起因**：用户要求增加地图样式（等高线、卫星、天地图）并支持叠加、自定义图源；天气不同的节点有不同颜色/样式；
+节点可添加图片；“如果可以添加 3D 地图更好”。
+
+**完成（T-154）**：
+- 图层：`lib/data/map/tile_sources.dart` 来源注册表 + `resolveMapStyle`（底图回退、叠加校验）+ 自定义模板校验；
+  `Basemap.fromSettings` 渲染底图 + 叠加层（透明度）；首页、详情全屏图、规划工坊有“图层”按钮；设置页可打开图层面板与
+  “管理图源与天地图 Key”（天地图 Key、自定义图源增删改）。坐标系不同的叠加层禁用并说明原因。
+- 天气节点：`node_wx_class.dart` 按 redesign-v2 阈值归类（阵风 7/8 级、降水 2 mm/h、-10 ℃，另有降水/冰点提示），
+  颜色=级别、图标=类别；缺失数据显示“信息不足/无数据”（灰），不显示为“未触发阈值”；小地图下方图例注明非官方预警。
+- 节点图片：相册/拍照（image_picker 1.2.3），本机文档目录保存，坐标锚定，节点详情中查看/备注/删除，线路地图显示图片标记；
+  Web 端如实提示暂不支持。
+- 文档：data-sources / licenses / privacy 更新；D-022；B-014（天地图 Key）。
+
+**本地验证**：flutter analyze 0 问题；flutter test 189/189 通过（新增 tile_sources 9、node_wx_class 4、route_photos 2、
+map_layers 组件 3 项；集成测试断言节点着色与图例）。
+**未做**：3D 地图（flutter_map 仅 2D，需换引擎，另行评估）。
+**待真机确认**：各图源国内可达性（OpenTopoMap/Esri 海外）、天地图 Key 类型与请求头、叠加透明度性能、
+相册/相机权限弹窗与 iOS 用途文案、图片保存与重启后恢复、节点颜色在实际天气下的观感。
