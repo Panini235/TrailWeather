@@ -407,4 +407,4 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓（含 image_picker An
 
 **本地验证**：flutter analyze 0；flutter test 228/228。
 **未验证**：真机展示与网络时延。
-
+**CI 结果**：run 38743636066 conclusion=success（commit 69d9990；含天地图双 Key 合并；analyze / test / Web / APK）。

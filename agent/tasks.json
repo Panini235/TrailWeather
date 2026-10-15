@@ -489,7 +489,7 @@
       "status": "done",
       "acceptance": "去掉 0.1° 合并抹平海拔差（或按海拔分档）；Open-Meteo elevation 参数；weather_code/snowfall/freezing_level_height；Open-Meteo Air Quality（区域级标注）",
       "verify": "flutter test test/weather/altitude_weather_test.dart；接口形态 2026-10-15 实测（elevation 列表、nan 行为、AQ 多点、Elevation API）",
-      "result": "本地 analyze 0 + test 228 全绿；Open-Meteo 按节点海拔降尺度（同网格海拔差≥100 m 不合并）；weather_code/snowfall/freezing_level；雷暴/降雪/雾/0℃ 层提示；同一地点不同海拔卡片；空气质量卡片（CAMS 区域级）"
+      "result": "本地 analyze 0 + test 228 全绿；Open-Meteo 按节点海拔降尺度（同网格海拔差≥100 m 不合并）；weather_code/snowfall/freezing_level；雷暴/降雪/雾/0℃ 层提示；同一地点不同海拔卡片；空气质量卡片（CAMS 区域级）；CI 38743636066 全绿"
     },
     {
       "id": "T-140",
@@ -679,7 +679,7 @@
       "status": "done",
       "acceptance": "设置有服务端/浏览器端两个 Key；原生用服务端、Web 用浏览器端（数据层选择，可单测）；缺对应 Key 显示未配置；旧 tiandituKey 迁移到两栏并提示两栏相同；天地图 403 按 301001/301012/301013（及 418/其他）在地图与设置卡片显示明确提示；不提交真实 Key、测试不访问网络",
       "verify": "flutter analyze；flutter test（test/unit/tile_sources_test.dart、test/unit/tianditu_test.dart、test/widget/map_layers_test.dart、test/widget/tianditu_tiles_test.dart）",
-      "result": "本地 analyze 0 + test 207/207（新增 key 选择/迁移/错误码分类/拦截 client/提示组件与 TileLayer 端到端测试）；未 push、未跑 CI；真实 Key 真机/Web 出图待用户在 App 内填写确认（B-014）"
+      "result": "本地 analyze 0 + test 207/207（新增 key 选择/迁移/错误码分类/拦截 client/提示组件与 TileLayer 端到端测试）；未 push、未跑 CI；真实 Key 真机/Web 出图待用户在 App 内填写确认（B-014）；2026-10-15 已合并入 feat/robust-track-import 并随 CI 38743636066 验证"
     }
   ]
 }
