@@ -633,7 +633,19 @@
       "status": "done",
       "acceptance": "提供可选择的名称和原创图标，含小尺寸验证；正式替换前由用户选定并核验重名。",
       "verify": "6组SVG/1024PNG/64PNG与对照图视觉检查。",
-      "result": "design/brand-options/2026-10-15/；推荐山晴｜徒步天气+A；未替换正式品牌。"
+      "result": "6组候选已交付；用户于2026-10-15选定“山晴”＋D，正式实施见T-153。"
+    },
+    {
+      "id": "T-153",
+      "p": "P0",
+      "title": "正式应用山晴名称与第四个D图标",
+      "deps": [
+        "T-152"
+      ],
+      "status": "done",
+      "acceptance": "Flutter/Android/iOS显示名山晴；D方案图标进入原生安装包；CI平台生成后恢复品牌资源并验证；内部身份与数据兼容。",
+      "verify": "本地analyze/test；tool/apply_branding.py临时目录校验；CI Web/APK与iOS产物品牌校验。",
+      "result": "2816d9d；本地analyze0、171/171 tests；D主图字节匹配；CI38706513896 Web/APK及实际产物品牌校验成功；iOS38706518000无签名构建与AppIcon/显示名校验成功。"
     }
   ]
 }

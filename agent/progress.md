@@ -317,3 +317,15 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓。
 **提交**：18be281（UI）与a699aca（许可标签），已push到feat/robust-track-import。
 **验证**：本地analyze0，171/171 tests；CI38699456479 success（analyze/test/Web/APK）；iOS38699460743 success（release --no-codesign）。下载CI产物在390×844暗色浏览器验证首次引导、进入示例、设置上下区域无会员入口、旧/paywall回首页。截图存docs/verification/no-billing-2026-10-15/。
 **边界**：iOS无签名构建不等于真机/上架；当前接口授权、离线与缓存缺陷仍按任务推进。图标和名字为候选，正式平台资源未替换。T-145/T-146按用户决定暂缓；没有注册商户、购买服务或发布。
+
+
+## Round 15 — 2026-10-15（山晴名称＋第四个D图标）
+
+**用户确认**：名称“山晴”，图标第四个D（日出叠山、沙色背景）。
+
+**完成T-153**：Flutter应用标题、引导页品牌图片、系统打开提示、GPX导出标识、Android标签、iOS显示名及Web验证入口同步。图标主图与原D方案字节一致，生成Android普通/自适应/主题前景、iOS全部模板尺寸和Web资源。原生资源保存在assets/branding/platforms，CI在flutter create后应用，继续不提交完整平台模板。内部应用身份、MethodChannel、存储键保持兼容。
+
+**提交**：2816d9d。
+**本地验证**：analyze0；171/171 tests；临时项目三端资源应用/check模式、PNG尺寸与不透明性、D主图一致性通过。
+**CI**：38706513896 success（analyze/test/Web/APK）；38706518000 success（iOS release --no-codesign）。新增产物校验确认APK实际label“山晴”、启动图标声明和品牌图片，iOS实际Info.plist名称与编译AppIcon目录，Web实际标题/manifest/图标。
+**边界**：无签名构建不代表商店上架或真机安装验收；名称商标/商店重名在发布阶段核验。本轮没有启动订阅或发布商店。

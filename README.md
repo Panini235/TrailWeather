@@ -1,4 +1,4 @@
-# TrailWeather 徒步天气
+# 山晴
 
 面向徒步爱好者的天气 App：在地图上发现徒步线路 → 查看线路沿途天气 →
 按出发时间分析各路段天气 → 比较多个天气来源。
@@ -28,12 +28,14 @@
 - `web/`（中文标题、manifest）
 
 其余平台文件在构建前由 `flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .`
-生成（CI 已内置此步骤；本地构建同样先执行一次该命令）。
+生成（CI 已内置此步骤）。生成后运行 `python3 tool/apply_branding.py --platforms android web`
+应用正式名称与图标；iOS工作流对应使用 `--platforms ios`。详见 `docs/branding.md`。
 
 ## 运行
 
 ```bash
 flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .
+python3 tool/apply_branding.py --platforms android web
 flutter pub get
 flutter run            # 选择设备/浏览器
 ```
@@ -97,13 +99,13 @@ test/              单元 / 来源契约(fixture) / 组件 / 集成
 2026-10-15：个人开发者、iOS优先、Android兼容；Web暂停作为公开发行产品，保留工程验证能力。
 当前免注册、不展示订阅。首次引导直接导入或查看示例线路，设置会员入口已移除，旧付费链接返回首页。
 
-业务提交 `a699aca`（含 `18be281` UI改动）：本地 analyze 0 issues、171项测试通过；
-CI **38699456479**（Web/APK）与 **38699460743**（iOS release --no-codesign）成功。
+业务提交 `2816d9d`：正式名称“山晴”＋第四个D图标；本地 analyze 0 issues、171项测试通过；
+CI **38706513896**（Web/APK）与 **38706518000**（iOS release --no-codesign）成功，包含实际产物的名称与图标资源校验。
 iOS无签名构建不能替代真机验收或商店发布。
 
 天气缓存/离线可靠性仍按任务推进。高德接入授权和内置徒步星球目录许可未解决，
 不宣称可正式商用分发。详见 `docs/ios-first-commercialization-2026-10-15.md`、
-`agent/blockers.md`。名称/图标候选位于 `design/brand-options/2026-10-15/`。
+`agent/blockers.md`。正式名称已选定“山晴”、图标为第四个D方案，资源与构建说明见 `docs/branding.md`；历史候选保留在 `design/brand-options/2026-10-15/`。
 
 ## 本地开发
 
