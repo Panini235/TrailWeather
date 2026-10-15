@@ -25,7 +25,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 标题与来源说明
-    expect(find.text('TrailWeather Pro'), findsOneWidget);
+    expect(find.text('山晴 Pro'), findsOneWidget);
     expect(find.textContaining('当前操作涉及 Pro 专享权益'), findsOneWidget);
 
     // 核心特权清单

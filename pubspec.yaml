@@ -1,5 +1,5 @@
 name: trailweather
-description: "TrailWeather 徒步天气：地图找徒步线路、查看沿途天气、比较多来源预报"
+description: "山晴：行前规划，沿途看天气"
 publish_to: "none"
 version: 0.1.0+1
 
@@ -43,3 +43,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/routes/
+    - assets/branding/app-icon.png

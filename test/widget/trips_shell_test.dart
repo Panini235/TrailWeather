@@ -129,7 +129,7 @@ void main() {
     await tester.tap(find.text(S.tabSettings));
     await tester.pumpAndSettle();
     expect(find.text(S.myTrips), findsNothing);
-    expect(find.textContaining('TrailWeather Pro'), findsNothing);
+    expect(find.textContaining('山晴 Pro'), findsNothing);
     expect(find.text('查看方案预览'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('查看使用指引'),
@@ -166,7 +166,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(S.myTrips), findsOneWidget);
     expect(find.text('年度会员'), findsNothing);
-    expect(find.textContaining('TrailWeather Pro'), findsNothing);
+    expect(find.textContaining('山晴 Pro'), findsNothing);
   });
 
   testWidgets('外部应用传入文件：解析 → 确认 → 保存到行程', (tester) async {

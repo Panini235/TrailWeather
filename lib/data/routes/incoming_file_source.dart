@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 外部应用传入的文件（“用徒步天气打开” / 分享）。
+/// 外部应用传入的文件（“用山晴打开” / 分享）。
 class IncomingFile {
   const IncomingFile({required this.uri, required this.name});
 

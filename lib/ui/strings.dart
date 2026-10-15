@@ -4,7 +4,7 @@
 /// 迁移到 ARB/gen-l10n 时只需把这些常量改为生成访问器，
 /// 不需要改动业务代码（见 docs/architecture.md）。
 abstract final class S {
-  static const appTitle = 'TrailWeather 徒步天气';
+  static const appTitle = '山晴';
 
   // 通用
   static const ok = '确定';
@@ -43,7 +43,7 @@ abstract final class S {
   static const emptyTripsTitle = '导入你的第一条轨迹';
   static const emptyTripsBody =
       '从两步路、六只脚、奥维等导出 GPX / KML / KMZ，导入后按出发时间查看沿途天气。';
-  static const openWithHint = '也可以在两步路、奥维、微信或文件管理器里打开轨迹文件时，选择“徒步天气”直接导入。';
+  static const openWithHint = '也可以在两步路、奥维、微信或文件管理器里打开轨迹文件时，选择“山晴”直接导入。';
   static const exampleRoutes = '示例线路';
   static const planetEntry = '徒步星球 · 全球经典线路';
   static const planetEntryHint = '44 条经典线路，可直接体验沿途天气';

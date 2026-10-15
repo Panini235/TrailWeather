@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/settings/settings_repository.dart';
+import '../strings.dart';
 
 /// 首次使用先进入真实线路体验；商业化暂缓期间不展示套餐或购买引导。
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -37,13 +38,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Icon(
-                Icons.landscape_outlined,
-                size: 56,
-                color: colors.primary,
-              ),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/branding/app-icon.png',
+                    width: 64,
+                    height: 64,
+                    semanticLabel: S.appTitle,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(S.appTitle, style: theme.textTheme.headlineSmall),
+              ],
             ),
             const SizedBox(height: 20),
             Text(

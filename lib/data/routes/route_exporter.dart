@@ -7,7 +7,7 @@ class RouteExporter {
     final buf = StringBuffer();
     buf.writeln('<?xml version="1.0" encoding="UTF-8"?>');
     buf.writeln(
-      '<gpx version="1.1" creator="TrailWeather" xmlns="http://www.topografix.com/GPX/1/1">',
+      '<gpx version="1.1" creator="山晴" xmlns="http://www.topografix.com/GPX/1/1">',
     );
     buf.writeln('  <metadata>');
     buf.writeln('    <name>${_escapeXml(route.name)}</name>');

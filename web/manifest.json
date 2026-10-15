@@ -1,11 +1,24 @@
 {
-  "name": "TrailWeather 徒步天气",
-  "short_name": "TrailWeather",
+  "name": "山晴",
+  "short_name": "山晴",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#101410",
   "theme_color": "#2E5D32",
-  "description": "地图找徒步线路、查看沿途天气、比较多来源预报",
+  "description": "行前规划，沿途看天气",
   "lang": "zh-CN",
-  "icons": []
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

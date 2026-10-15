@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/monetization/subscription_models.dart';
 import '../../data/monetization/subscription_repository.dart';
 
-/// TrailWeather Pro 会员付费墙。
+/// 山晴 Pro 会员付费墙。
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key, this.sourceFeature});
 
@@ -37,7 +37,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🎉 恭喜！您已成功解锁 TrailWeather Pro 专业会员全量特权！'),
+          content: Text('🎉 恭喜！您已成功解锁 山晴 Pro 专业会员全量特权！'),
           backgroundColor: Color(0xFF2E5D32),
           duration: Duration(seconds: 3),
         ),
@@ -68,7 +68,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TrailWeather Pro'),
+        title: const Text('山晴 Pro'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           tooltip: '关闭',

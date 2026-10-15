@@ -9,7 +9,7 @@ import '../strings.dart';
 
 /// 导入确认 → 保存到“我的行程” → 打开详情。
 ///
-/// 导入页与“用 TrailWeather 打开”（外部应用传入文件）共用同一流程，
+/// 导入页与“用山晴打开”（外部应用传入文件）共用同一流程，
 /// 保证两条入口的摘要、隐私提示和保存行为一致。返回是否已保存。
 Future<bool> confirmAndSaveImportedRoute(
   BuildContext context,

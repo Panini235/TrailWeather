@@ -150,7 +150,7 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
   }
 }
 
-/// “用 TrailWeather 打开”目前只在 Android 接入（iOS 待验证，见 agent/tasks.json）。
+/// “用山晴打开”目前只在 Android 接入（iOS 待验证，见 agent/tasks.json）。
 bool get _supportsOpenWith =>
     !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
