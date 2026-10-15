@@ -11,12 +11,16 @@ class KmlParseResult {
     required this.elevations,
     required this.warnings,
     this.extractedName,
+    this.waypoints = const [],
   });
 
   final List<List<LatLng>> segments;
   final List<double?> elevations;
   final List<String> warnings;
   final String? extractedName;
+
+  /// 有名称的 Point 地标（营地/水源等）。
+  final List<RouteWaypoint> waypoints;
 }
 
 /// KML（Keyhole Markup Language，奥维互动地图、两步路、Google Earth 常用格式）解析器。
@@ -176,6 +180,43 @@ class KmlImport {
       }
     }
 
+    // 1b. 有名称的 Point 地标作为航点（跳过起终点与线路同名点）。
+    final namedWaypoints = <RouteWaypoint>[];
+    for (final pm in placemarks) {
+      final point = pm.descendants
+          .whereType<XmlElement>()
+          .where((e) => e.name.local.toLowerCase() == 'point')
+          .firstOrNull;
+      if (point == null) continue;
+      final coordText = point.descendants
+          .whereType<XmlElement>()
+          .where((e) => e.name.local.toLowerCase() == 'coordinates')
+          .firstOrNull
+          ?.innerText
+          .trim();
+      final parts = coordText?.split(RegExp(r'[\s,]+')) ?? const <String>[];
+      if (parts.length < 2) continue;
+      final lon = double.tryParse(parts[0]);
+      final lat = double.tryParse(parts[1]);
+      if (lat == null || lon == null || lat.abs() > 90 || lon.abs() > 180) {
+        continue;
+      }
+      final ele = parts.length >= 3 ? double.tryParse(parts[2]) : null;
+      final wp = importedWaypoint(
+        name: pm.children
+            .whereType<XmlElement>()
+            .where((e) => e.name.local.toLowerCase() == 'name')
+            .firstOrNull
+            ?.innerText,
+        point: LatLng(lat, lon),
+        elevationM: ele != null && ele >= -500 && ele <= 10000 ? ele : null,
+        routeName: routeName,
+      );
+      if (wp != null && namedWaypoints.length < maxImportedWaypoints) {
+        namedWaypoints.add(wp);
+      }
+    }
+
     // 2. 容错：如果未在 Placemark 中找到，全局查找所有 coordinates 元素
     if (segments.isEmpty) {
       final allCoords = root.descendants.whereType<XmlElement>().where(
@@ -232,6 +273,7 @@ class KmlImport {
       segments: finalSegments,
       elevations: finalElevations,
       warnings: warns,
+      waypoints: namedWaypoints,
       extractedName: routeName,
     );
   }
@@ -246,6 +288,7 @@ class KmlImport {
       elevationsM: r.elevations,
       sourceName: '用户导入 KML：$fileName',
       importedAtUtc: DateTime.now().toUtc(),
+      waypoints: r.waypoints,
     );
   }
 

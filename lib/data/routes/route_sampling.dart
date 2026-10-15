@@ -1,6 +1,7 @@
 import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart';
+import 'route_models.dart';
 
 /// 线路上的一个天气采样节点。
 class RouteNode {
@@ -10,6 +11,7 @@ class RouteNode {
     required this.elevationM,
     required this.distFromStartM,
     this.label,
+    this.waypoint,
   });
 
   /// 在展平几何中的索引。
@@ -22,6 +24,9 @@ class RouteNode {
 
   /// 起点名/终点/高点等标注（可空）。
   final String? label;
+
+  /// 吸附到此节点的航点（营地、休息点等）；决定图标、名称与停留时长。
+  final RouteWaypoint? waypoint;
 
   String describe() {
     final ele = elevationM == null
@@ -49,6 +54,7 @@ List<RouteNode> sampleRoute({
   required List<double?> elevations,
   double spacingM = 1500,
   int maxNodes = 24,
+  Map<int, RouteWaypoint> waypointsAt = const {},
 }) {
   assert(points.length == elevations.length);
   if (points.isEmpty) return const [];
@@ -78,6 +84,8 @@ List<RouteNode> sampleRoute({
     }
   }
   if (maxIdx >= 0) keyIdx.add(maxIdx);
+  // 航点（营地/休息点等）必为节点：用户关心的位置一定查天气。
+  keyIdx.addAll(waypointsAt.keys.where((i) => i >= 0 && i < points.length));
 
   final selected = <int>{...keyIdx};
   var nextAt = 0.0;
@@ -105,6 +113,8 @@ List<RouteNode> sampleRoute({
   }
 
   String? labelOf(int i) {
+    final wp = waypointsAt[i];
+    if (wp != null) return wp.name;
     if (i == 0) return '起点';
     if (i == points.length - 1) return '终点';
     if (i == maxIdx) return '高点';
@@ -119,6 +129,31 @@ List<RouteNode> sampleRoute({
         elevationM: elevations[i],
         distFromStartM: cum[i],
         label: labelOf(i),
+        waypoint: waypointsAt[i],
       ),
   ];
+}
+
+/// 航点吸附到路径上最近的点（偏离超过 [maxOffsetM] 的航点不进入沿途时间线，
+/// 仍可在地图上显示）。多个航点落到同一点时保留先出现的那个。
+Map<int, RouteWaypoint> snapWaypoints(
+  List<LatLng> points,
+  List<RouteWaypoint> waypoints, {
+  double maxOffsetM = 300,
+}) {
+  final out = <int, RouteWaypoint>{};
+  if (points.isEmpty) return out;
+  for (final wp in waypoints) {
+    var best = -1;
+    var bestD = double.infinity;
+    for (var i = 0; i < points.length; i++) {
+      final d = Geo.distanceM(points[i], wp.point);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    if (best >= 0 && bestD <= maxOffsetM) out.putIfAbsent(best, () => wp);
+  }
+  return out;
 }

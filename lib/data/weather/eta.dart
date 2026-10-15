@@ -71,6 +71,8 @@ List<DateTime> computeEtas({
                     ? 1
                     : nodes.last.distFromStartM)))
             .clamp(0.0, 1.0);
+    // 上一节点若是带停留时长的航点（如休息点），在离开前计入停留。
+    elapsedMin += nodes[i - 1].waypoint?.stopMinutes ?? 0;
     elapsedMin += segMin;
     out.add(
       startUtc.add(Duration(milliseconds: (elapsedMin * 60 * 1000).round())),

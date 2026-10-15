@@ -117,7 +117,29 @@ abstract final class S {
       '按当前配速估算全程超过 12 小时：行程模式按连续行走推算，未计入夜间宿营。'
       '多日线路的后段到达时间与对应天气仅供参考，请按每日行程分段查看。';
   static const multiSegmentNote =
-      '此线路包含多段不连续几何（OSM 路线关系可能多段/缺失）。行程模式基于最长连续段计算。';
+      '此线路包含相距较远（超过 1 km）的断开段，沿途天气只分析首尾相接的最长部分；断开处不自动连线。';
+  // 线路详情 v2：方向、起终点、节点联动、标记（docs/redesign-v2.md 第 1 步）
+  static const save = '保存';
+  static const startPoint = '起点';
+  static const endPoint = '终点';
+  static const loopRoute = '环线';
+  static const reverseRoute = '反向行走';
+  static const reversedNote = '已切换为反向行走：起终点互换，预计到达时间与沿途天气按新方向重新推算。';
+  static const nodeDetail2 = '节点详情';
+  static const markAs = '标记为';
+  static const removeMark = '移除标记';
+  static const editMark = '编辑标记';
+  static const markName = '名称';
+  static const markStopMinutes = '停留时长（分钟，计入后续到达时间）';
+  static const markSavedNew = '已保存到“我的行程”（含你的标记）';
+  static const markTooFar = '离线路太远（超过 300 m），请在线路附近长按添加标记';
+  static const longPressToMark = '长按线路附近任意位置可添加营地、休息点等标记';
+  static const next12h = '此节点未来 12 小时（当前来源）';
+  static const multiSourceCompare = '多来源对比';
+  static const arrivalEstimate = '预计到达（估算）';
+  static const fixedMoment = '选定时刻';
+  static const tapAgainForDetail = '再点一次查看节点详情';
+  static const offRouteWaypoint = '偏离线路超过 300 m，未计入沿途时间线';
   static const sharedGridNotePrefix = '网格说明';
 
   // 节点

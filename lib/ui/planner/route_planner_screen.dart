@@ -15,6 +15,7 @@ import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
 import '../detail/route_detail_screen.dart';
 import '../map/basemap.dart';
+import '../widgets/common.dart';
 
 enum PlannerMode { draw, waypoint }
 
@@ -383,7 +384,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
           height: 36,
           child: Tooltip(
             message: '${wp.name} (${waypointTypeLabel(wp.type)})',
-            child: _WaypointMarkerWidget(type: wp.type),
+            child: WaypointMarker(type: wp.type),
           ),
         ),
     ];
@@ -567,36 +568,6 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _WaypointMarkerWidget extends StatelessWidget {
-  const _WaypointMarkerWidget({required this.type});
-
-  final WaypointType type;
-
-  @override
-  Widget build(BuildContext context) {
-    final (icon, col) = switch (type) {
-      WaypointType.camp => (Icons.cabin, Colors.amber.shade800),
-      WaypointType.water => (Icons.water_drop, Colors.blue),
-      WaypointType.danger => (Icons.warning, Colors.red),
-      WaypointType.pass => (Icons.landscape, Colors.deepPurple),
-      WaypointType.exit => (Icons.exit_to_app, Colors.teal),
-      WaypointType.poi => (Icons.place, Colors.orange),
-    };
-
-    return Container(
-      decoration: BoxDecoration(
-        color: col,
-        shape: BoxShape.circle,
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }

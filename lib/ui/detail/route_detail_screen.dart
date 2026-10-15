@@ -19,9 +19,10 @@ import '../strings.dart';
 import '../widgets/common.dart';
 import '../map/basemap.dart';
 import '../map/route_camera.dart';
+import '../map/route_marks.dart';
 import 'detail_state.dart';
 import 'elevation_profile.dart';
-import 'node_detail_sheet.dart';
+import 'node_detail_view.dart';
 import 'weather_cells.dart';
 
 class RouteDetailArgs {
@@ -82,6 +83,207 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   int? _selectedNode;
   double? _previewHour; // 滑块拖动中的预览（不触发请求）
 
+  /// 用户标记会更新这条线路（并保存到“我的行程”）；反向行走只是视图状态。
+  late HikingRoute _base = widget.args.route;
+  bool _reversed = false;
+  final ScrollController _scroll = ScrollController();
+  final Map<int, GlobalKey> _tileKeys = {};
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// 选中节点：地图标记、海拔剖面、时间线三处共享同一选中状态。
+  void _select(int i, {bool scroll = false}) {
+    setState(() => _selectedNode = i);
+    if (!scroll) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _tileKeys[i]?.currentContext;
+      if (ctx != null && ctx.mounted) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 250),
+          alignment: 0.3,
+        );
+      }
+    });
+  }
+
+  void _toggleReverse() {
+    setState(() {
+      _reversed = !_reversed;
+      _selectedNode = null;
+    });
+  }
+
+  // ---- 标记（营地 / 休息点 …）----
+
+  Future<void> _persist(HikingRoute updated) async {
+    final wasSaved = ref.read(favoritesProvider).any((r) => r.id == updated.id);
+    setState(() => _base = updated);
+    await ref.read(favoritesProvider.notifier).add(updated);
+    if (!wasSaved && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text(S.markSavedNew)));
+    }
+  }
+
+  Future<RouteWaypoint?> _editDialog(RouteWaypoint initial) {
+    final nameCtrl = TextEditingController(text: initial.name);
+    final stopCtrl = TextEditingController(
+      text: initial.stopMinutes?.toString() ?? '',
+    );
+    var type = initial.type;
+    return showDialog<RouteWaypoint>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text(initial.name.isEmpty ? S.markAs : S.editMark),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<WaypointType>(
+                initialValue: type,
+                items: [
+                  for (final t in WaypointType.values)
+                    DropdownMenuItem(
+                      value: t,
+                      child: Text(waypointTypeLabel(t)),
+                    ),
+                ],
+                onChanged: (t) => setLocal(() {
+                  if (t == null) return;
+                  // 名称仍是默认类型名时跟随类型变化
+                  if (nameCtrl.text == defaultWaypointName(type)) {
+                    nameCtrl.text = defaultWaypointName(t);
+                  }
+                  type = t;
+                }),
+              ),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: S.markName),
+              ),
+              if (type != WaypointType.camp)
+                TextField(
+                  controller: stopCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: S.markStopMinutes,
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(S.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = nameCtrl.text.trim();
+                final stop = int.tryParse(stopCtrl.text.trim());
+                Navigator.pop(
+                  ctx,
+                  RouteWaypoint(
+                    name: name.isEmpty ? defaultWaypointName(type) : name,
+                    point: initial.point,
+                    type: type,
+                    desc: initial.desc,
+                    elevationM: initial.elevationM,
+                    stopMinutes: type == WaypointType.camp || stop == null
+                        ? null
+                        : stop.clamp(0, 24 * 60),
+                  ),
+                );
+              },
+              child: const Text(S.save),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addMark(LatLng at, WaypointType type, {double? ele}) async {
+    final created = await _editDialog(
+      RouteWaypoint(
+        name: defaultWaypointName(type),
+        point: at,
+        type: type,
+        elevationM: ele,
+        stopMinutes: type == WaypointType.rest ? 15 : null,
+      ),
+    );
+    if (created == null) return;
+    await _persist(_base.copyWith(waypoints: [..._base.waypoints, created]));
+  }
+
+  Future<void> _editMark(RouteWaypoint wp) async {
+    final edited = await _editDialog(wp);
+    if (edited == null) return;
+    await _persist(
+      _base.copyWith(
+        waypoints: [
+          for (final w in _base.waypoints) identical(w, wp) ? edited : w,
+        ],
+      ),
+    );
+  }
+
+  Future<void> _removeMark(RouteWaypoint wp) async {
+    await _persist(
+      _base.copyWith(
+        waypoints: [
+          for (final w in _base.waypoints)
+            if (!identical(w, wp)) w,
+        ],
+      ),
+    );
+  }
+
+  /// 全屏地图返回：int = 查看该节点详情；LatLng = 在此处添加标记（已吸附检查）。
+  Future<void> _openFullMap(
+    HikingRoute route,
+    List<NodeWxRow> rows,
+    AppSettings settings,
+  ) async {
+    final result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _RouteFullMapPage(
+          route: route,
+          rows: rows,
+          selectedIndex: _selectedNode,
+          onSelect: (i) => _select(i),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (result is int) {
+      _select(result, scroll: true);
+      _showNodeSheet(rows, settings, initialIndex: result);
+    } else if (result is LatLng) {
+      final path = route.analysisPath.points;
+      final snapped = snapWaypoints(path, [
+        RouteWaypoint(name: '', point: result, type: WaypointType.poi),
+      ]);
+      if (snapped.isEmpty) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text(S.markTooFar)));
+        return;
+      }
+      final idx = snapped.keys.first;
+      await _addMark(
+        path[idx],
+        WaypointType.rest,
+        ele: route.analysisPath.elevations[idx],
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -127,7 +329,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final route = widget.args.route;
+    final route = _reversed ? _base.reversed() : _base;
     final nodes = nodesForRoute(
       route,
       spacingKm: settings.effectiveSamplingSpacingKm,
@@ -197,16 +399,27 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                   : Icons.star_border,
             ),
             tooltip: S.favorites,
-            onPressed: () => ref.read(favoritesProvider.notifier).toggle(route),
+            onPressed: () => ref.read(favoritesProvider.notifier).toggle(_base),
           ),
         ],
       ),
       body: ListView(
+        controller: _scroll,
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         children: [
-          _RouteMiniMap(route: route, rows: rows, selectedIndex: _selectedNode),
+          _RouteMiniMap(
+            route: route,
+            rows: rows,
+            selectedIndex: _selectedNode,
+            onTapNode: (i) => _select(i, scroll: true),
+            onOpenFullscreen: () => _openFullMap(route, rows, settings),
+          ),
           const SizedBox(height: 8),
-          _RouteFactsCard(route: route),
+          _RouteFactsCard(
+            route: route,
+            reversed: _reversed,
+            onToggleReverse: _toggleReverse,
+          ),
           const SizedBox(height: 8),
           _TimeControlsCard(
             mode: _mode,
@@ -328,8 +541,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       const SizedBox(height: 8),
       _SummaryCard(summary: summary, settings: settings),
       const SizedBox(height: 8),
-      if (route.mainSegment.length != route.flatPoints.length)
+      if (!route.analysisPath.coversAllSegments)
         const GranularityNotice(text: S.multiSegmentNote),
+      if (_reversed) const GranularityNotice(text: S.reversedNote),
       if (route.origin == RouteOrigin.planet)
         const GranularityNotice(text: S.planetElevationNote),
       if (_mode == TimeMode.trip &&
@@ -346,18 +560,27 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           distancesM: [for (final r in rows) r.node.distFromStartM],
           elevationsM: [for (final r in rows) r.node.elevationM],
           selectedIndex: _selectedNode ?? -1,
-          onTapNode: (i) => setState(() => _selectedNode = i),
+          onTapNode: (i) => _select(i, scroll: true),
         ),
       ] else
         const GranularityNotice(text: S.noElevation),
       const SizedBox(height: 4),
       for (var i = 0; i < rows.length; i++)
         _NodeTile(
+          key: _tileKeys.putIfAbsent(i, GlobalKey.new),
           row: rows[i],
+          index: i,
+          isLast: i == rows.length - 1,
           selected: _selectedNode == i,
           settings: settings,
-          onTap: () => setState(() => _selectedNode = i),
-          onLongPress: () => _showNodeSheet(rows, settings, initialIndex: i),
+          // 第一次点选中（地图/剖面同步高亮），再点打开详情。
+          onTap: () => _selectedNode == i
+              ? _showNodeSheet(rows, settings, initialIndex: i)
+              : _select(i),
+          onDetail: () {
+            _select(i);
+            _showNodeSheet(rows, settings, initialIndex: i);
+          },
         ),
       const SizedBox(height: 8),
       _TransparencyCard(provider: provider, bundle: bundle),
@@ -369,26 +592,45 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     AppSettings settings, {
     int? initialIndex,
   }) {
+    if (rows.isEmpty) return;
     final idx =
         initialIndex ??
         (_selectedNode != null && _selectedNode! < rows.length
             ? _selectedNode!
             : 0);
+    // 标记操作先关闭面板再弹编辑框；线路更新后节点会重新计算。
+    void closeThen(Future<void> Function() action) {
+      Navigator.of(context).pop();
+      action();
+    }
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetCtx) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.7,
+        initialChildSize: 0.75,
         builder: (_, scrollCtrl) => ListView(
           controller: scrollCtrl,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
-            NodeComparePanel(
+            NodeDetailView(
               rows: rows,
               initialIndex: idx,
-              fixedUtc: _mode == TimeMode.fixed ? _fixedUtc() : null,
+              tripMode: _mode == TimeMode.trip,
+              fixedUtc: _fixedUtc(),
+              settings: settings,
+              onIndexChanged: (i) => _select(i, scroll: true),
+              onMark: (n, type) => closeThen(
+                () => _addMark(
+                  rows[n.index].node.pos,
+                  type,
+                  ele: rows[n.index].node.elevationM,
+                ),
+              ),
+              onEditMark: (wp) => closeThen(() => _editMark(wp)),
+              onRemoveMark: (wp) => closeThen(() => _removeMark(wp)),
             ),
           ],
         ),
@@ -406,31 +648,22 @@ class _RouteMiniMap extends ConsumerWidget {
     required this.route,
     required this.rows,
     required this.selectedIndex,
+    required this.onTapNode,
+    required this.onOpenFullscreen,
   });
 
   final HikingRoute route;
   final List<NodeWxRow> rows;
   final int? selectedIndex;
-
-  void _openFullscreen(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) => _RouteFullMapPage(
-          route: route,
-          rows: rows,
-          selectedIndex: selectedIndex,
-        ),
-      ),
-    );
-  }
+  final ValueChanged<int> onTapNode;
+  final VoidCallback onOpenFullscreen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final basemap = Basemap(ref.watch(settingsProvider).basemap);
     final fit = routeCameraFit(route, basemap);
     // 小地图不响应拖动/缩放，避免与外层 ListView 滚动手势冲突；
-    // 点击或全屏按钮进入可交互大图。
+    // 点节点标记选中节点，点空白处或全屏按钮进入可交互大图。
     return SizedBox(
       height: 220,
       child: ClipRRect(
@@ -438,7 +671,10 @@ class _RouteMiniMap extends ConsumerWidget {
         child: Stack(
           children: [
             FlutterMap(
-              key: ValueKey('mini-${route.id}-${basemap.source.name}'),
+              // 反向行走时几何不变但起终点互换，key 带上方向让相机与标记重建。
+              key: ValueKey(
+                'mini-${route.id}-${basemap.source.name}-${route.flatPoints.first}',
+              ),
               options: MapOptions(
                 initialCameraFit: fit,
                 // 无几何时的兜底；有 fit 时 initialCameraFit 优先。
@@ -447,13 +683,14 @@ class _RouteMiniMap extends ConsumerWidget {
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.none,
                 ),
-                onTap: (_, _) => _openFullscreen(context),
+                onTap: (_, _) => onOpenFullscreen(),
               ),
               children: _routeMapLayers(
                 basemap: basemap,
                 route: route,
                 rows: rows,
                 selectedIndex: selectedIndex,
+                onTapNode: onTapNode,
               ),
             ),
             Positioned(
@@ -466,7 +703,7 @@ class _RouteMiniMap extends ConsumerWidget {
                 child: IconButton(
                   tooltip: S.routeMapFullscreen,
                   icon: const Icon(Icons.fullscreen),
-                  onPressed: () => _openFullscreen(context),
+                  onPressed: onOpenFullscreen,
                 ),
               ),
             ),
@@ -477,13 +714,22 @@ class _RouteMiniMap extends ConsumerWidget {
   }
 }
 
+/// 线路地图图层：线路、方向箭头、节点（可点选）、航点、起终点、选中高亮。
 List<Widget> _routeMapLayers({
   required Basemap basemap,
   required HikingRoute route,
   required List<NodeWxRow> rows,
   required int? selectedIndex,
+  ValueChanged<int>? onTapNode,
   bool attribution = false,
 }) {
+  final onRoute = {
+    for (final r in rows)
+      if (r.node.waypoint != null) r.node.waypoint!,
+  };
+  final sel = selectedIndex != null && selectedIndex < rows.length
+      ? selectedIndex
+      : null;
   return [
     basemap.tileLayer(),
     PolylineLayer(
@@ -498,38 +744,87 @@ List<Widget> _routeMapLayers({
           ),
       ],
     ),
+    routeDirectionLayer(route, basemap),
     MarkerLayer(
       markers: [
+        // 偏离线路、未进入时间线的航点：半透明显示，不可选。
+        for (final wp in route.waypoints)
+          if (!onRoute.contains(wp))
+            Marker(
+              point: basemap.toDisplay(wp.point),
+              width: 22,
+              height: 22,
+              child: Tooltip(
+                message: '${wp.name}（${S.offRouteWaypoint}）',
+                child: Opacity(
+                  opacity: 0.55,
+                  child: WaypointMarker(type: wp.type, size: 14),
+                ),
+              ),
+            ),
         for (var i = 0; i < rows.length; i++)
           Marker(
             point: basemap.toDisplay(rows[i].node.pos),
-            width: 26,
-            height: 26,
-            child: Icon(
-              selectedIndex == i ? Icons.place : Icons.circle,
-              size: selectedIndex == i ? 24 : 10,
-              color: selectedIndex == i
-                  ? Colors.red
-                  : (rows[i].wx == null ? Colors.grey : Colors.deepOrange),
+            width: 30,
+            height: 30,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTapNode == null ? null : () => onTapNode(i),
+              child: Center(
+                child: rows[i].node.waypoint != null
+                    ? WaypointMarker(
+                        type: rows[i].node.waypoint!.type,
+                        size: sel == i ? 22 : 16,
+                      )
+                    : Icon(
+                        Icons.circle,
+                        size: sel == i ? 14 : 10,
+                        color: rows[i].wx == null
+                            ? Colors.grey
+                            : Colors.deepOrange,
+                      ),
+              ),
             ),
           ),
       ],
     ),
+    routeEndpointLayer(route, basemap),
+    if (sel != null)
+      MarkerLayer(
+        markers: [
+          Marker(
+            point: basemap.toDisplay(rows[sel].node.pos),
+            width: 38,
+            height: 38,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.red, width: 3),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     if (attribution) basemap.attributionWidget(),
   ];
 }
 
 /// 可拖动/缩放的线路大图；打开时自动适配整条线路范围。
+/// 点节点选中并显示摘要卡；长按线路附近返回该位置用于添加标记。
 class _RouteFullMapPage extends ConsumerStatefulWidget {
   const _RouteFullMapPage({
     required this.route,
     required this.rows,
     required this.selectedIndex,
+    required this.onSelect,
   });
 
   final HikingRoute route;
   final List<NodeWxRow> rows;
   final int? selectedIndex;
+  final ValueChanged<int> onSelect;
 
   @override
   ConsumerState<_RouteFullMapPage> createState() => _RouteFullMapPageState();
@@ -537,15 +832,18 @@ class _RouteFullMapPage extends ConsumerStatefulWidget {
 
 class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
   final MapController _controller = MapController();
+  late int? _sel = widget.selectedIndex;
 
   @override
   Widget build(BuildContext context) {
-    final basemap = Basemap(ref.watch(settingsProvider).basemap);
+    final settings = ref.watch(settingsProvider);
+    final basemap = Basemap(settings.basemap);
     final fit = routeCameraFit(
       widget.route,
       basemap,
       padding: const EdgeInsets.all(40),
     );
+    final sel = _sel != null && _sel! < widget.rows.length ? _sel : null;
     return Scaffold(
       appBar: AppBar(title: Text(widget.route.name)),
       floatingActionButton: fit == null
@@ -555,36 +853,93 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
               onPressed: () => _controller.fitCamera(fit),
               child: const Icon(Icons.fit_screen),
             ),
-      body: FlutterMap(
-        mapController: _controller,
-        options: MapOptions(
-          initialCameraFit: fit,
-          minZoom: 3,
-          maxZoom: 18,
-          interactionOptions: const InteractionOptions(
-            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _controller,
+            options: MapOptions(
+              initialCameraFit: fit,
+              minZoom: 3,
+              maxZoom: 18,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onLongPress: (_, p) =>
+                  Navigator.of(context).pop(basemap.toBusiness(p)),
+            ),
+            children: _routeMapLayers(
+              basemap: basemap,
+              route: widget.route,
+              rows: widget.rows,
+              selectedIndex: sel,
+              onTapNode: (i) {
+                setState(() => _sel = i);
+                widget.onSelect(i);
+              },
+              attribution: true,
+            ),
           ),
-        ),
-        children: _routeMapLayers(
-          basemap: basemap,
-          route: widget.route,
-          rows: widget.rows,
-          selectedIndex: widget.selectedIndex,
-          attribution: true,
-        ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Material(
+                color: Theme.of(context).colorScheme.surface
+                    .withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(8),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: Text(
+                    S.longPressToMark,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (sel != null)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Card(
+                  margin: const EdgeInsets.fromLTRB(12, 0, 64, 12),
+                  child: ListTile(
+                    title: Text(
+                      '${widget.rows[sel].node.label ?? '节点 ${sel + 1}'} · '
+                      '${(widget.rows[sel].node.distFromStartM / 1000).toStringAsFixed(1)} km',
+                    ),
+                    subtitle: WxBriefLine(
+                      wx: widget.rows[sel].wx,
+                      settings: settings,
+                    ),
+                    trailing: TextButton(
+                      onPressed: () => Navigator.of(context).pop(sel),
+                      child: const Text(S.nodeDetail2),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
 class _RouteFactsCard extends ConsumerWidget {
-  const _RouteFactsCard({required this.route});
+  const _RouteFactsCard({
+    required this.route,
+    required this.reversed,
+    required this.onToggleReverse,
+  });
 
   final HikingRoute route;
+  final bool reversed;
+  final VoidCallback onToggleReverse;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final style = const TextStyle(fontSize: 13);
+    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -605,6 +960,31 @@ class _RouteFactsCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  route.isLoop ? Icons.loop : Icons.trending_flat,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    route.isLoop
+                        ? '${S.loopRoute}（起终点相同，箭头为行进方向）'
+                        : '${S.startPoint}（绿）→ ${S.endPoint}（红）'
+                              '${reversed ? ' · 已反向' : ''}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+                // 环线同样有方向（顺/逆时针到达各点的时间不同），始终可反向。
+                TextButton.icon(
+                  onPressed: onToggleReverse,
+                  icon: const Icon(Icons.swap_horiz, size: 18),
+                  label: Text(reversed ? '恢复原方向' : S.reverseRoute),
+                ),
+              ],
+            ),
             RouteSourceLine(route: route),
           ],
         ),
@@ -1051,39 +1431,52 @@ class _HintsCard extends StatelessWidget {
 
 class _NodeTile extends StatelessWidget {
   const _NodeTile({
+    super.key,
     required this.row,
+    required this.index,
+    required this.isLast,
     required this.selected,
     required this.settings,
     required this.onTap,
-    required this.onLongPress,
+    required this.onDetail,
   });
 
   final NodeWxRow row;
+  final int index;
+  final bool isLast;
   final bool selected;
   final AppSettings settings;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback onDetail;
 
   @override
   Widget build(BuildContext context) {
     final local = row.validUtc.toLocal();
+    final wp = row.node.waypoint;
+    final Widget leading;
+    if (wp != null) {
+      leading = WaypointMarker(type: wp.type, size: 16);
+    } else if (index == 0) {
+      leading = const Icon(Icons.flag, size: 18, color: Color(0xFF2E7D32));
+    } else if (isLast) {
+      leading = const Icon(
+        Icons.sports_score,
+        size: 18,
+        color: Color(0xFFC62828),
+      );
+    } else if (row.node.label == '高点') {
+      leading = const Icon(Icons.terrain_outlined, size: 18);
+    } else {
+      leading = const Icon(Icons.circle, size: 10);
+    }
     return ListTile(
       dense: true,
       selected: selected,
       selectedTileColor: Theme.of(context).colorScheme.primaryContainer
           .withValues(alpha: 0.3),
-      leading: Icon(
-        row.node.label == '起点'
-            ? Icons.flag_outlined
-            : row.node.label == '终点'
-            ? Icons.outlined_flag
-            : row.node.label == '高点'
-            ? Icons.terrain_outlined
-            : Icons.circle,
-        size: 18,
-      ),
+      leading: SizedBox(width: 24, child: Center(child: leading)),
       title: Text(
-        '${row.node.label ?? '节点'} · ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km'
+        '${row.node.label ?? '节点 ${index + 1}'} · ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km'
         '${row.node.elevationM == null ? '' : ' · ${row.node.elevationM!.toStringAsFixed(0)} m'}',
         style: const TextStyle(fontSize: 13),
       ),
@@ -1091,14 +1484,25 @@ class _NodeTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${_fmt(local)}（UTC ${_fmtUtc(row.validUtc)}）${row.sharedWithPrev ? ' · 与上一节点共享同一查询点' : ''}',
+            '${_fmt(local)}（UTC ${_fmtUtc(row.validUtc)}）'
+            '${wp?.stopMinutes == null ? '' : ' · 停留 ${wp!.stopMinutes} 分钟'}'
+            '${row.sharedWithPrev ? ' · 与上一节点共享同一查询点' : ''}',
             style: const TextStyle(fontSize: 10, color: Colors.grey),
           ),
           WxBriefLine(wx: row.wx, settings: settings),
+          if (selected)
+            const Text(
+              S.tapAgainForDetail,
+              style: TextStyle(fontSize: 10, color: Colors.grey),
+            ),
         ],
       ),
+      trailing: IconButton(
+        tooltip: S.nodeDetail2,
+        icon: const Icon(Icons.info_outline, size: 20),
+        onPressed: onDetail,
+      ),
       onTap: onTap,
-      onLongPress: onLongPress,
     );
   }
 

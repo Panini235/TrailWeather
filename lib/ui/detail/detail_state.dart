@@ -162,17 +162,20 @@ RouteWxSummary summarizeRows(List<NodeWxRow> rows) {
   );
 }
 
-/// 采样 + ETA（行程模式）使用的节点序列：基于最长连续段。
+/// 采样 + ETA（行程模式）使用的节点序列：基于分析路径（首尾相接的段已串联），
+/// 航点吸附后必为节点。
 List<RouteNode> nodesForRoute(
   HikingRoute route, {
   required double spacingKm,
   required int maxNodes,
 }) {
+  final path = route.analysisPath;
   return sampleRoute(
-    points: route.mainSegment,
-    elevations: route.mainSegmentElevations,
+    points: path.points,
+    elevations: path.elevations,
     spacingM: spacingKm * 1000,
     maxNodes: maxNodes,
+    waypointsAt: snapWaypoints(path.points, route.waypoints),
   );
 }
 

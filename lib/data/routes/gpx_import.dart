@@ -11,12 +11,16 @@ class GpxParseResult {
     required this.elevations,
     required this.warnings,
     this.extractedName,
+    this.waypoints = const [],
   });
 
   final List<List<LatLng>> segments;
   final List<double?> elevations;
   final List<String> warnings;
   final String? extractedName;
+
+  /// 有名称的 `<wpt>`（有轨迹时才作为航点；无轨迹时 wpt 已被合成为路线）。
+  final List<RouteWaypoint> waypoints;
 }
 
 class GpxImport {
@@ -161,7 +165,36 @@ class GpxImport {
       }
     }
 
-    // 3. 容错尝试读取分散的 <wpt>
+    // 3. 有轨迹时：有名称的 <wpt> 作为航点（营地/水源等），无名称的（多为照片点）跳过。
+    final namedWaypoints = <RouteWaypoint>[];
+    if (segments.isNotEmpty) {
+      for (final w in root.children.whereType<XmlElement>().where(
+        (e) => e.name.local == 'wpt',
+      )) {
+        final lat = double.tryParse(w.getAttribute('lat') ?? '');
+        final lon = double.tryParse(w.getAttribute('lon') ?? '');
+        if (lat == null || lon == null || lat.abs() > 90 || lon.abs() > 180) {
+          continue;
+        }
+        String? child(String local) => w.children
+            .whereType<XmlElement>()
+            .where((e) => e.name.local.toLowerCase() == local)
+            .firstOrNull
+            ?.innerText;
+        final ele = double.tryParse(child('ele')?.trim() ?? '');
+        final wp = importedWaypoint(
+          name: child('name'),
+          point: LatLng(lat, lon),
+          elevationM: ele != null && ele >= -500 && ele <= 10000 ? ele : null,
+          routeName: trackName,
+        );
+        if (wp != null && namedWaypoints.length < maxImportedWaypoints) {
+          namedWaypoints.add(wp);
+        }
+      }
+    }
+
+    // 4. 容错尝试读取分散的 <wpt>
     if (segments.isEmpty) {
       final wpts = root.children
           .whereType<XmlElement>()
@@ -222,6 +255,7 @@ class GpxImport {
       elevations: finalElevations,
       warnings: warns,
       extractedName: trackName,
+      waypoints: namedWaypoints,
     );
   }
 
@@ -235,6 +269,7 @@ class GpxImport {
       elevationsM: r.elevations,
       sourceName: '用户导入 GPX：$fileName',
       importedAtUtc: DateTime.now().toUtc(),
+      waypoints: r.waypoints,
     );
   }
 

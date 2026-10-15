@@ -21,6 +21,19 @@ class Geo {
     return 2 * _earthRadiusM * math.asin(math.sqrt(h.clamp(0.0, 1.0)));
   }
 
+  /// 初始方位角（度，0 = 正北，顺时针 0–360）。
+  static double bearingDeg(LatLng a, LatLng b) {
+    final la1 = _rad(a.latitude);
+    final la2 = _rad(b.latitude);
+    final dLon = _rad(b.longitude - a.longitude);
+    final y = math.sin(dLon) * math.cos(la2);
+    final x =
+        math.cos(la1) * math.sin(la2) -
+        math.sin(la1) * math.cos(la2) * math.cos(dLon);
+    final deg = math.atan2(y, x) * 180 / math.pi;
+    return (deg + 360) % 360;
+  }
+
   /// 累计里程：out[i] 为 points[0..i] 的长度（米），out[0] = 0。
   static List<double> cumulativeDistancesM(List<LatLng> points) {
     final out = List<double>.filled(points.length, 0);

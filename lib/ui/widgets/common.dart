@@ -250,3 +250,40 @@ class DataKindChip extends StatelessWidget {
     );
   }
 }
+
+/// 航点类型的图标与颜色（规划工坊、线路详情、地图共用）。
+(IconData, Color) waypointStyle(WaypointType type) => switch (type) {
+  WaypointType.camp => (Icons.cabin, Colors.amber.shade800),
+  WaypointType.water => (Icons.water_drop, Colors.blue),
+  WaypointType.danger => (Icons.warning, Colors.red),
+  WaypointType.pass => (Icons.landscape, Colors.deepPurple),
+  WaypointType.exit => (Icons.exit_to_app, Colors.teal),
+  WaypointType.poi => (Icons.place, Colors.orange),
+  WaypointType.rest => (Icons.coffee, Colors.brown),
+  WaypointType.supply => (Icons.storefront, Colors.green.shade700),
+};
+
+/// 地图上的航点圆形标记。
+class WaypointMarker extends StatelessWidget {
+  const WaypointMarker({super.key, required this.type, this.size = 20});
+
+  final WaypointType type;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, col) = waypointStyle(type);
+    return Container(
+      decoration: BoxDecoration(
+        color: col,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Icon(icon, color: Colors.white, size: size * 0.8),
+    );
+  }
+}

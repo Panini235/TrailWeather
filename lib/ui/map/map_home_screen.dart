@@ -21,6 +21,7 @@ import '../detail/route_detail_screen.dart';
 import 'basemap.dart';
 import 'hybrid_route_search.dart';
 import 'point_weather_sheet.dart';
+import 'route_marks.dart';
 import 'route_camera.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
@@ -633,6 +634,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                   ],
                 ),
               ),
+              // 选中线路：方向箭头与起终点
+              if (_selected != null) routeDirectionLayer(_selected!, basemap),
+              if (_selected != null) routeEndpointLayer(_selected!, basemap),
               if (_weatherPoint != null)
                 MarkerLayer(
                   markers: [
