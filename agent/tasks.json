@@ -70,7 +70,7 @@
       "status": "done",
       "acceptance": "首页一次定位成功后显示当前位置多来源天气并查询当地线路；地图点选可查天气；定位按钮请求结束后可再次使用；拒绝/永久拒绝/服务关闭/超时可恢复",
       "verify": "flutter analyze + flutter test（99 项）+ GitHub Actions web/apk",
-      "result": "本地 analyze 0 问题、99 项测试通过；CI run 38510507584 全绿（Web/APK 产物已上传）"
+      "result": "本地 analyze 0 问题、99 项测试通过；CI run 38510507584 全绿（Web/APK 产物已上传）；2026-10-15 复核：KMZ 实际未支持（zip 按文本解码），移动端文件选择器不可用 → 由 T-100 修复"
     },
     {
       "id": "T-081",
@@ -320,7 +320,7 @@
       "status": "done",
       "acceptance": "解除硬限制、自适应 RDP 抽稀保证高程1:1、KML/KMZ解析、外部文件调用意图注册",
       "verify": "CI run 38534512846 全绿",
-      "result": "完成；CI 验证通过"
+      "result": "完成；CI 验证通过；2026-10-15 复核：KMZ 实际未支持（zip 按文本解码），移动端文件选择器不可用 → 由 T-100 修复"
     },
     {
       "id": "T-081",
@@ -357,7 +357,43 @@
       "status": "done",
       "acceptance": "痛点问诊/空间反差引导、主推年度套餐并享7天免费试用、终身买断与月度方案、安全退出与恢复购买、高程垂直递减率微气候计算与离线包下载",
       "verify": "flutter analyze 0 issues + flutter test 121/121 全绿 + CI 构建",
-      "result": "完成；本地 analyze 0 issues，121 tests 100% 通过 + CI 38552136025 全绿（Web+APK）"
+      "result": "完成；本地 analyze 0 issues，121 tests 100% 通过 + CI 38552136025 全绿（Web+APK）；2026-10-15 复核：4 项 Pro 权益未实现、购买为本地白送 → 由 T-101 下线虚假宣称"
+    },
+    {
+      "id": "T-100",
+      "p": "P0",
+      "title": "本地轨迹文件导入可用性修复（选择器/KMZ/统一入口）",
+      "deps": [
+        "T-080"
+      ],
+      "status": "done",
+      "acceptance": "Android/iOS 选择器不按扩展名过滤（iOS 原抛 ArgumentError、Android gpx 无 MIME 被置灰）；按内容嗅探 GPX/KML/KMZ/GeoJSON；KMZ 解压；后台 isolate 解析；告警去重；GeoJSON 超长轨迹抽稀不拒绝",
+      "verify": "flutter test test/unit/route_file_import_test.dart；本地对 example/ 4 个真实文件（gpx/kml/kml 2/kmz）全部导入 74.5 km",
+      "result": "本地 analyze 0 + test 138 全绿；真机选择器行为待 CI 产物人工验证"
+    },
+    {
+      "id": "T-101",
+      "p": "P0",
+      "title": "Pro 权益与支付真实性整改",
+      "deps": [
+        "T-090"
+      ],
+      "status": "done",
+      "acceptance": "支付未接入时 purchase 抛错不授予 Pro、遗留本机 Pro 失效；未实现权益标“开发中”；移除“已启用/已完整离网缓存”等虚假提示、虚构原价与试用文案",
+      "verify": "test/unit/subscription_test.dart、test/widget/paywall_screen_test.dart、onboarding_screen_test.dart",
+      "result": "完成；真实支付接入登记 B-008"
+    },
+    {
+      "id": "T-102",
+      "p": "P0",
+      "title": "天气计算逻辑修复（审查发现）",
+      "deps": [
+        "T-003"
+      ],
+      "status": "done",
+      "acceptance": "Open-Meteo 当天已过去小时可查、早于今天给出正确原因；详情默认时刻不落在过去；沿途降水按小时取最大再累加；日落取出发后第一次；节点面板本地时间与重复请求；多日行程/插值海拔标注；规划工坊配速统一；星球随机不打乱缓存；收藏星标状态；爬升显示 m",
+      "verify": "test/weather/provider_contract_test.dart、test/unit/risk_rules_test.dart",
+      "result": "完成；本地全绿"
     }
   ]
 }

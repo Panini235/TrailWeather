@@ -66,7 +66,7 @@ class IntegrationFakeProvider extends WeatherProvider {
         WxPointForecast(
           lat: p.latitude,
           lon: p.longitude,
-          dailySunsetUtc: DateTime.utc(now.year, now.month, now.day, 11),
+          dailySunsetsUtc: [DateTime.utc(now.year, now.month, now.day, 11)],
           hours: [
             for (var i = 0; i < 72; i++)
               WxHourValue(

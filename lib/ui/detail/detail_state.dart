@@ -121,6 +121,8 @@ class RouteWxSummary {
   final double? minTempC;
   final double? maxTempC;
   final double? maxGustMs;
+
+  /// 见 [routePrecipMm]：按小时取沿途最大值后累加（估算），非逐节点求和。
   final double? totalPrecipMm;
   final int precipNodeCount;
   final int nodesWithData;
@@ -130,10 +132,10 @@ class RouteWxSummary {
 }
 
 RouteWxSummary summarizeRows(List<NodeWxRow> rows) {
-  double? minT, maxT, maxG, totalP;
+  double? minT, maxT, maxG;
   var precipNodes = 0;
   var withData = 0;
-  var precipSeen = false;
+  final precipSamples = <(DateTime, double?)>[];
   for (final r in rows) {
     final w = r.wx;
     if (w == null) continue;
@@ -146,17 +148,14 @@ RouteWxSummary summarizeRows(List<NodeWxRow> rows) {
     final g = w.values[WxVar.windGust];
     if (g != null && (maxG == null || g > maxG)) maxG = g;
     final p = w.values[WxVar.precip];
-    if (p != null) {
-      precipSeen = true;
-      if (p > 0.1) precipNodes++;
-      totalP = (totalP ?? 0) + p;
-    }
+    if (p != null && p > 0.1) precipNodes++;
+    precipSamples.add((r.validUtc, p));
   }
   return RouteWxSummary(
     minTempC: minT,
     maxTempC: maxT,
     maxGustMs: maxG,
-    totalPrecipMm: precipSeen ? totalP : null,
+    totalPrecipMm: routePrecipMm(precipSamples),
     precipNodeCount: precipNodes,
     nodesWithData: withData,
     totalNodes: rows.length,

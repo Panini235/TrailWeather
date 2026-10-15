@@ -96,3 +96,11 @@
      - 设置页展示专属 Pro 尊享卡片与一键续费/升级入口。
 
 
+
+## D-017 KMZ 解压依赖与 Pro 真实性整改
+- `archive` 精确锁定 4.3.0（2026-09-13 发布，>2 周）：已是 flutter_map→proj4dart→mgrs_dart→unicode
+  的传递依赖，直接声明不新增代码面；主库纯 Dart、Web 可用（io 部分条件导入）。
+- 移动端文件选择器不按扩展名过滤、改为内容嗅探：Android MimeTypeMap 无 gpx、iOS 需 UTI，
+  扩展名过滤在移动端不可靠。
+- 支付：未接入商店内购与验单前 `Billing.available=false`，purchase 抛错、不授予 Pro；
+  修订 D-016 中“已落地”的 Pro 权益为“开发中”。真实支付接入为需授权事项（B-008）。

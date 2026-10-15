@@ -22,11 +22,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Future<void> _handlePurchase() async {
     setState(() => _isProcessing = true);
-    // 模拟处理网络请求
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    try {
+      await ref.read(subscriptionProvider.notifier).purchase(_selectedPlan);
+    } on StateError catch (e) {
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    }
     if (!mounted) return;
-
-    await ref.read(subscriptionProvider.notifier).purchase(_selectedPlan);
     setState(() => _isProcessing = false);
 
     if (mounted) {
@@ -43,7 +48,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Future<void> _handleRestore() async {
     setState(() => _isProcessing = true);
-    await Future<void>.delayed(const Duration(milliseconds: 400));
     final ok = await ref.read(subscriptionProvider.notifier).restorePurchases();
     if (!mounted) return;
     setState(() => _isProcessing = false);
@@ -72,7 +76,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _isProcessing ? null : _handleRestore,
+            onPressed: (_isProcessing || !Billing.available)
+                ? null
+                : _handleRestore,
             child: const Text('恢复购买'),
           ),
         ],
@@ -121,7 +127,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     Text(
                       widget.sourceFeature != null
                           ? '当前操作涉及 Pro 专享权益：【${widget.sourceFeature}】'
-                          : '解锁真正属于户外领队与徒步高手的气象哨兵体系',
+                          : '以下为 Pro 方案规划，标注“开发中”的功能尚未上线',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.grey.shade700,
@@ -131,11 +137,35 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 ),
               ),
 
+              if (!Billing.available) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          Billing.unavailableNotice,
+                          style: TextStyle(fontSize: 12, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 18),
 
               // 2. 权益清单对比
               Text(
-                'Pro 专享核心功能',
+                'Pro 权益规划',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -163,6 +193,22 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 6),
+                                if (!item.available)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      '开发中',
+                                      style: TextStyle(fontSize: 9),
+                                    ),
+                                  ),
                                 if (!item.freeIncluded)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -223,7 +269,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: (_isProcessing || sub.isPro)
+                onPressed: (_isProcessing || sub.isPro || !Billing.available)
                     ? null
                     : _handlePurchase,
                 child: _isProcessing
@@ -238,6 +284,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     : Text(
                         sub.isPro
                             ? '已是 Pro 专业会员'
+                            : !Billing.available
+                            ? '支付未接入，暂不可开通'
                             : (_selectedPlan == SubscriptionPlan.yearly
                                   ? '立即开始 7 天免费试用（试用后 ¥98/年）'
                                   : (_selectedPlan == SubscriptionPlan.monthly
@@ -251,19 +299,20 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               ),
 
               const SizedBox(height: 8),
-              Text(
-                _selectedPlan == SubscriptionPlan.lifetime
-                    ? '终身买断一次性付费，尊享后续算法升级，无需续费。'
-                    : '试用期内可随时在应用商店或设置中取消，不产生扣费。自动续订，可随时取消。',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
+              if (Billing.available)
+                Text(
+                  _selectedPlan == SubscriptionPlan.lifetime
+                      ? '终身买断一次性付费，尊享后续算法升级，无需续费。'
+                      : '试用期内可随时在应用商店或设置中取消，不产生扣费。自动续订，可随时取消。',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
 
               const SizedBox(height: 12),
               Center(
                 child: TextButton(
                   onPressed: () => context.pop(),
-                  child: const Text('暂不开启，继续免费体验'),
+                  child: const Text('返回，继续免费使用'),
                 ),
               ),
             ],

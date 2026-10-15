@@ -142,4 +142,34 @@ void main() {
     expect(officialAlertsNotAvailable, contains('未接入'));
     expect(officialAlertsNotAvailable, contains('不能替代'));
   });
+
+  group('routePrecipMm（沿途降水按小时取最大再累加）', () {
+    test('同一小时 20 个节点各 0.5 mm 不累加成 10 mm', () {
+      final t = DateTime.utc(2026, 10, 13, 10);
+      expect(routePrecipMm([for (var i = 0; i < 20; i++) (t, 0.5)]), 0.5);
+      final hints = computeHints(
+        entries: [
+          for (var i = 0; i < 20; i++)
+            NodeWeatherEntry(weather: _hour(precip: 0.5), validUtc: t),
+        ],
+      );
+      expect(hints.any((h) => h.id == 'precip'), isFalse);
+    });
+
+    test('跨小时取每小时最大值后累加；分钟不影响分组', () {
+      expect(
+        routePrecipMm([
+          (DateTime.utc(2026, 10, 13, 10, 5), 1.0),
+          (DateTime.utc(2026, 10, 13, 10, 40), 2.0),
+          (DateTime.utc(2026, 10, 13, 11), 3.0),
+          (DateTime.utc(2026, 10, 13, 12), null),
+        ]),
+        5.0,
+      );
+    });
+
+    test('全部缺失返回 null 而不是 0', () {
+      expect(routePrecipMm([(DateTime.utc(2026), null)]), isNull);
+    });
+  });
 }

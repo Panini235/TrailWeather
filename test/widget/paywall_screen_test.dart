@@ -6,7 +6,7 @@ import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/paywall/paywall_screen.dart';
 
 void main() {
-  testWidgets('PaywallScreen 展示特权清单与 3 档套餐并完成开通', (tester) async {
+  testWidgets('PaywallScreen 展示权益规划与套餐，支付未接入时不可开通', (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -38,13 +38,14 @@ void main() {
     expect(find.text('月度会员'), findsOneWidget);
     expect(find.text('终身买断'), findsOneWidget);
 
-    // 默认主推年度会员（¥98）
-    expect(find.textContaining('立即开始 7 天免费试用'), findsOneWidget);
-
-    // 切换到终身买断
-    await tester.tap(find.text('终身买断'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('一次性购买终身会员'), findsOneWidget);
+    // 支付未接入：明确告知、购买按钮禁用、未实现权益标“开发中”
+    expect(find.textContaining('支付尚未接入'), findsOneWidget);
+    expect(find.text('开发中'), findsNWidgets(4));
+    final buy = find.widgetWithText(FilledButton, '支付未接入，暂不可开通');
+    expect(buy, findsOneWidget);
+    expect(tester.widget<FilledButton>(buy).onPressed, isNull);
+    expect(find.textContaining('7 天免费试用'), findsNothing);
+    expect(find.text('¥398'), findsNothing); // 不展示虚构原价
 
     // 恢复购买按钮
     expect(find.text('恢复购买'), findsOneWidget);

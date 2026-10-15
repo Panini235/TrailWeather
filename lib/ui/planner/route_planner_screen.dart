@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/geo.dart';
 import '../../data/routes/route_exporter.dart';
 import '../../data/routes/route_models.dart';
+import '../../data/weather/eta.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
 import '../detail/route_detail_screen.dart';
@@ -35,10 +36,11 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
   double get _totalDistM =>
       _points.length < 2 ? 0.0 : Geo.cumulativeDistancesM(_points).last;
 
-  /// 基于常规户外徒步平均速度（平地约 4.2 km/h）估算徒步耗时（分钟）
+  /// 平地耗时估算（分钟），与详情页行程模式使用同一默认配速，避免同一线路两个耗时。
+  /// 手绘线路无海拔，未计入爬升。
   int get _estimatedDurationMin {
     final km = _totalDistM / 1000.0;
-    return (km / 4.2 * 60).round();
+    return (km / PaceConfig.defaults.speedKmh * 60).round();
   }
 
   void _pushUndo() {

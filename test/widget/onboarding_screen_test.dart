@@ -33,6 +33,7 @@ void main() {
     expect(find.textContaining('为什么普通天气预报在山里不准？'), findsOneWidget);
     expect(find.textContaining('普通手机天气'), findsOneWidget);
     expect(find.textContaining('TrailWeather 空间微气候推演'), findsOneWidget);
+    expect(find.textContaining('失温哨兵'), findsNothing);
 
     // 点击下一步进入 Page 2: 全能功能展示
     await tester.tap(find.text('下一步'));
@@ -43,8 +44,9 @@ void main() {
     // 点击下一步进入 Page 3: 权益与试用选择
     await tester.tap(find.text('下一步'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('开启 TrailWeather Pro 7天免费试用'), findsOneWidget);
-    expect(find.text('查看 Pro 方案并开始 7 天试用'), findsOneWidget);
-    expect(find.text('先免费体验，稍后再说'), findsOneWidget);
+    expect(find.textContaining('TrailWeather Pro（规划中）'), findsOneWidget);
+    expect(find.textContaining('支付尚未接入'), findsOneWidget);
+    expect(find.text('查看 Pro 方案预览'), findsOneWidget);
+    expect(find.text('开始免费使用'), findsOneWidget);
   });
 }

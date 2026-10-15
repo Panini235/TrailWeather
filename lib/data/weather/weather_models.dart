@@ -258,7 +258,7 @@ class WxPointForecast {
     required this.lon,
     required this.hours,
     required this.provenance,
-    this.dailySunsetUtc,
+    this.dailySunsetsUtc = const [],
   });
 
   final double lat;
@@ -266,8 +266,16 @@ class WxPointForecast {
   final List<WxHourValue> hours;
   final WxProvenance provenance;
 
-  /// 当日日落（如来源提供；Open-Meteo daily sunset，MET 未提供）。
-  final DateTime? dailySunsetUtc;
+  /// 逐日日落（UTC，升序；Open-Meteo daily sunset，MET 未提供 → 空）。
+  final List<DateTime> dailySunsetsUtc;
+
+  /// [utc] 之后的第一次日落（如出发后的当天日落）；来源未提供则 null。
+  DateTime? nextSunsetAfter(DateTime utc) {
+    for (final s in dailySunsetsUtc) {
+      if (s.isAfter(utc)) return s;
+    }
+    return null;
+  }
 
   DateTime? get firstValidUtc =>
       hours.isEmpty ? null : hours.first.validFromUtc;

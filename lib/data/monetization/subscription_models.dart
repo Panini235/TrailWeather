@@ -1,3 +1,13 @@
+/// 支付通道状态。
+///
+/// 未接入应用商店内购（Google Play Billing / App Store IAP）与服务端验单前，
+/// 不得在本地直接授予 Pro：否则任何人点击即可免费获得“终身会员”。
+/// 接入支付属于需用户授权的事项（见 agent/blockers.md）。
+class Billing {
+  static const available = false;
+  static const unavailableNotice = '支付尚未接入：当前为方案预览，暂不可购买或试用，不会产生任何扣费。';
+}
+
 /// 会员等级。
 enum SubscriptionTier {
   /// 免费版：基础城市天气、示例路线、基础手绘与导入
@@ -58,10 +68,9 @@ class PlanProduct {
       rawPrice: 98.0,
       currency: 'CNY',
       billingPeriodDesc: '每年自动续订，折合 ¥8.1/月',
-      originalPriceDesc: '¥216',
       trialDays: 7,
       isFeatured: true,
-      tag: '最推荐 · 享 7 天免费试用',
+      tag: '推荐',
     ),
     PlanProduct(
       plan: SubscriptionPlan.monthly,
@@ -70,8 +79,7 @@ class PlanProduct {
       rawPrice: 18.0,
       currency: 'CNY',
       billingPeriodDesc: '按月自动续订，适合假期出行',
-      originalPriceDesc: '¥28',
-      tag: '首月特惠',
+      tag: '按月',
     ),
     PlanProduct(
       plan: SubscriptionPlan.lifetime,
@@ -80,8 +88,7 @@ class PlanProduct {
       rawPrice: 198.0,
       currency: 'CNY',
       billingPeriodDesc: '一次付费，终身尊享全部专业功能',
-      originalPriceDesc: '¥398',
-      tag: '限时买断',
+      tag: '买断',
     ),
   ];
 }
@@ -94,6 +101,7 @@ class EntitlementItem {
     required this.freeIncluded,
     required this.proIncluded,
     required this.icon,
+    this.available = true,
   });
 
   final String title;
@@ -102,6 +110,9 @@ class EntitlementItem {
   final bool proIncluded;
   final String icon;
 
+  /// 功能是否已实现上线。未实现的必须标“开发中”，不得宣称已启用。
+  final bool available;
+
   static const List<EntitlementItem> list = [
     EntitlementItem(
       title: '高程微气候垂直修正',
@@ -109,6 +120,7 @@ class EntitlementItem {
       freeIncluded: false,
       proIncluded: true,
       icon: '🏔️',
+      available: false,
     ),
     EntitlementItem(
       title: '高山失温与极端天气哨兵',
@@ -116,6 +128,7 @@ class EntitlementItem {
       freeIncluded: false,
       proIncluded: true,
       icon: '⚡️',
+      available: false,
     ),
     EntitlementItem(
       title: '离网气象与离线轨迹包',
@@ -123,6 +136,7 @@ class EntitlementItem {
       freeIncluded: false,
       proIncluded: true,
       icon: '🛰️',
+      available: false,
     ),
     EntitlementItem(
       title: '等高线地形与户外专题底图',
@@ -130,6 +144,7 @@ class EntitlementItem {
       freeIncluded: false,
       proIncluded: true,
       icon: '🗺️',
+      available: false,
     ),
     EntitlementItem(
       title: '手绘规划工坊与双向互通',

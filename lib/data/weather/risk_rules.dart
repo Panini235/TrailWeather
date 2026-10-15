@@ -39,6 +39,21 @@ class NodeWeatherEntry {
 const String officialAlertsNotAvailable =
     '官方气象预警：未接入。本页提示为 App 自行计算的阈值参考，不能替代官方预警与户外安全判断。';
 
+/// 行程降水量估算（mm）：按有效小时分组，每小时取沿途节点的最大小时降水量，
+/// 再跨小时累加。节点是空间采样而非时间累积：同一小时内的多个节点
+/// （含共享同一网格的节点）不重复相加。全部缺失返回 null（不当作 0）。
+double? routePrecipMm(Iterable<(DateTime, double?)> samples) {
+  final perHour = <DateTime, double>{};
+  for (final (t, mm) in samples) {
+    if (mm == null) continue;
+    final h = DateTime.utc(t.year, t.month, t.day, t.hour);
+    final prev = perHour[h];
+    if (prev == null || mm > prev) perHour[h] = mm;
+  }
+  if (perHour.isEmpty) return null;
+  return perHour.values.fold<double>(0, (a, b) => a + b);
+}
+
 /// 计算沿途提示。规则与阈值全部显式给出。
 List<WxHint> computeHints({required List<NodeWeatherEntry> entries}) {
   final hints = <WxHint>[];
@@ -62,8 +77,9 @@ List<WxHint> computeHints({required List<NodeWeatherEntry> entries}) {
   double? maxPrecipProb;
   double? minTemp;
   double? maxTemp;
-  var totalPrecip = 0.0;
-  var precipSeen = false;
+  final routePrecip = routePrecipMm([
+    for (final e in withData) (e.validUtc, e.weather!.values[WxVar.precip]),
+  ]);
   var missingNodes = entries.length - withData.length;
 
   for (final e in withData) {
@@ -73,11 +89,6 @@ List<WxHint> computeHints({required List<NodeWeatherEntry> entries}) {
     final pp = w.values[WxVar.precipProb];
     if (pp != null && (maxPrecipProb == null || pp > maxPrecipProb)) {
       maxPrecipProb = pp;
-    }
-    final pr = w.values[WxVar.precip];
-    if (pr != null) {
-      precipSeen = true;
-      totalPrecip += pr;
     }
     final t = w.values[WxVar.temperature];
     if (t != null) {
@@ -98,19 +109,20 @@ List<WxHint> computeHints({required List<NodeWeatherEntry> entries}) {
       ),
     );
   }
-  if (totalPrecip >= 8 && precipSeen) {
+  final heavyPrecip = routePrecip != null && routePrecip >= 8;
+  if (heavyPrecip) {
     hints.add(
       WxHint(
         id: 'precip',
         title: '较强降水提示',
         detail:
-            '选定时段沿途累计预报降水量约 ${totalPrecip.toStringAsFixed(1)} mm，注意防雨、防滑与溪水上涨。',
-        basis: '阈值：时段累计降水 ≥ 8 mm。自行计算，非官方预警。',
+            '选定时段沿途预报降水量约 ${routePrecip.toStringAsFixed(1)} mm（估算），注意防雨、防滑与溪水上涨。',
+        basis: '阈值：≥ 8 mm。计算：按小时取沿途最大小时降水量后累加，同一小时的多个节点不重复计入。自行计算，非官方预警。',
         level: HintLevel.caution,
       ),
     );
   }
-  if (maxPrecipProb != null && maxPrecipProb >= 70 && !(totalPrecip >= 8)) {
+  if (maxPrecipProb != null && maxPrecipProb >= 70 && !heavyPrecip) {
     hints.add(
       WxHint(
         id: 'precip_prob',

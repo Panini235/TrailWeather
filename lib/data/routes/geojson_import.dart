@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:latlong2/latlong.dart';
 
+import '../../core/geo.dart';
 import 'route_models.dart';
 
 /// GeoJSON（LineString / MultiLineString / Feature / FeatureCollection）导入。
@@ -9,12 +10,12 @@ import 'route_models.dart';
 /// 坐标格式为 [lon, lat, (ele?)]——注意 GeoJSON 经度在前。
 /// 全部字段视为不可信输入：类型、范围、结构逐项校验。
 class GeoJsonImport {
-  static const maxInputBytes = 2 * 1024 * 1024;
-  static const maxPoints = 5000;
+  static const maxInputBytes = 30 * 1024 * 1024; // 与 GPX/KML 一致
+  static const autoSimplifyThreshold = 3000; // 超过则自适应抽稀，不拒绝文件
 
   static (List<List<LatLng>>, List<double?>) parse(String input) {
     if (input.length > maxInputBytes) {
-      throw const GeoJsonImportException('文件超过 2 MB 限制');
+      throw const GeoJsonImportException('文件超过 30 MB 大小限制');
     }
     final dynamic json;
     try {
@@ -101,10 +102,28 @@ class GeoJsonImport {
     if (segments.isEmpty) {
       throw const GeoJsonImportException('未找到 LineString/MultiLineString 几何');
     }
-    if (total > maxPoints) {
-      throw GeoJsonImportException('轨迹点数 $total 超过上限 $maxPoints');
+    if (total <= autoSimplifyThreshold) return (segments, elevations);
+
+    // 超长轨迹：按段占比分配点数后抽稀（保留峰顶与关键转折），与 GPX/KML 行为一致。
+    final newSegs = <List<LatLng>>[];
+    final newEles = <double?>[];
+    var offset = 0;
+    for (final seg in segments) {
+      final segEle = elevations.sublist(offset, offset + seg.length);
+      offset += seg.length;
+      final target = (seg.length / total * autoSimplifyThreshold).round().clamp(
+        2,
+        autoSimplifyThreshold,
+      );
+      final (pts, eles) = Geo.simplifyTrack(
+        seg,
+        segEle,
+        targetMaxPoints: target,
+      );
+      newSegs.add(pts);
+      newEles.addAll(eles);
     }
-    return (segments, elevations);
+    return (newSegs, newEles);
   }
 
   static HikingRoute toRoute(String input, {required String fileName}) {

@@ -96,11 +96,13 @@ class _NodeComparePanelState extends ConsumerState<NodeComparePanel> {
 
   String _fmt(DateTime t) =>
       '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:00';
-  String _fmtLocal(DateTime t) =>
-      '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  String _fmtLocal(DateTime utc) {
+    final t = utc.toLocal();
+    return '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  }
 }
 
-class _SourceNodeCard extends ConsumerWidget {
+class _SourceNodeCard extends ConsumerStatefulWidget {
   const _SourceNodeCard({
     required this.providerId,
     required this.node,
@@ -113,7 +115,31 @@ class _SourceNodeCard extends ConsumerWidget {
   final DateTime wantUtc;
   final AppSettings settings;
 
-  Future<RouteWeatherBundle> _fetch(WidgetRef ref) async {
+  @override
+  ConsumerState<_SourceNodeCard> createState() => _SourceNodeCardState();
+}
+
+/// 请求 Future 保存在 State 中：仅当来源/节点/时刻变化才重新请求，
+/// 避免每次重建（如切换节点、设置变化）都重复发起网络请求。
+class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
+  late Future<RouteWeatherBundle> _future = _fetch();
+
+  @override
+  void didUpdateWidget(covariant _SourceNodeCard old) {
+    super.didUpdateWidget(old);
+    if (old.providerId != widget.providerId ||
+        old.node.pos != widget.node.pos ||
+        old.wantUtc != widget.wantUtc) {
+      _future = _fetch();
+    }
+  }
+
+  String get providerId => widget.providerId;
+  RouteNode get node => widget.node;
+  DateTime get wantUtc => widget.wantUtc;
+  AppSettings get settings => widget.settings;
+
+  Future<RouteWeatherBundle> _fetch() async {
     final repo = ref.read(weatherRepositoryProvider);
     return repo.getRouteWeatherBundle(
       providerId: providerId,
@@ -124,7 +150,7 @@ class _SourceNodeCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final caps = ref
         .watch(weatherProvidersProvider)
         .firstWhere((p) => p.caps.providerId == providerId)
@@ -134,7 +160,7 @@ class _SourceNodeCard extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: FutureBuilder<RouteWeatherBundle>(
-          future: _fetch(ref),
+          future: _future,
           builder: (context, snap) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,

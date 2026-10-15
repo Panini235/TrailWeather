@@ -18,6 +18,8 @@ class SubscriptionNotifier extends Notifier<UserSubscription> {
     if (raw == null || raw.isEmpty) {
       return UserSubscription.free;
     }
+    // 支付未接入期间，本机遗留的 Pro 记录（旧版本“模拟开通”写入）一律无效。
+    if (!Billing.available) return UserSubscription.free;
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
       final sub = UserSubscription.fromJson(json);
@@ -33,8 +35,13 @@ class SubscriptionNotifier extends Notifier<UserSubscription> {
     }
   }
 
-  /// 购买套餐或开始试用
+  /// 购买套餐或开始试用。
+  ///
+  /// 支付未接入时抛 [StateError]：绝不在没有真实支付/验单的情况下授予 Pro。
   Future<void> purchase(SubscriptionPlan plan) async {
+    if (!Billing.available) {
+      throw StateError(Billing.unavailableNotice);
+    }
     final now = DateTime.now().toUtc();
     final UserSubscription newSub = switch (plan) {
       SubscriptionPlan.yearly => UserSubscription(
@@ -62,8 +69,9 @@ class SubscriptionNotifier extends Notifier<UserSubscription> {
     await _prefs.setString(_prefKey, jsonEncode(newSub.toJson()));
   }
 
-  /// 恢复购买
+  /// 恢复购买。需向商店查询订单；支付未接入时没有可恢复的订单。
   Future<bool> restorePurchases() async {
+    if (!Billing.available) return false;
     final raw = _prefs.getString(_prefKey);
     if (raw != null && raw.isNotEmpty) {
       try {

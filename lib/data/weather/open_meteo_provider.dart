@@ -76,6 +76,11 @@ class OpenMeteoProvider extends WeatherProvider {
     CancelToken? cancelToken,
   }) async {
     final now = DateTime.now().toUtc();
+    final todayUtc = DateTime.utc(now.year, now.month, now.day);
+    if (endUtc.isBefore(todayUtc)) {
+      // 预报接口从当天 00:00 UTC 起提供；更早的时刻不是预报，不外推。
+      throw WxOutOfRange('请求时间早于今天，Open-Meteo 预报接口不提供该时段');
+    }
     final days = _forecastDays(now, startUtc, endUtc);
     if (days <= 0) {
       throw WxOutOfRange('请求起始时间超过 Open-Meteo 16 天预报窗口');
@@ -119,9 +124,9 @@ class OpenMeteoProvider extends WeatherProvider {
     final horizonEnd = nowUtc.add(Duration(days: caps.forecastHorizonDays));
     // 请求起点已超出来源真实预报窗口：如实抛出，由 UI 显示“此来源暂无该日期数据”。
     if (startUtc.isAfter(horizonEnd)) return 0;
+    // 响应从当天 00:00 UTC 起，当天已过去的小时同样可用（仅要求不早于今天）。
     final effEnd = endUtc.isAfter(horizonEnd) ? horizonEnd : endUtc;
-    if (effEnd.isBefore(nowUtc)) return 0;
-    var days =
+    final days =
         effEnd
             .difference(DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day))
             .inDays +
@@ -185,13 +190,13 @@ class OpenMeteoProvider extends WeatherProvider {
       series.add(WxHourValue(validFromUtc: t, values: values));
     }
 
-    DateTime? sunset;
+    // 保留每一天的日落；取哪一天由调用方按出发时间决定（不能默认取“今天”）。
+    final sunsets = <DateTime>[];
     final daily = m['daily'] as Map<String, dynamic>?;
-    if (daily != null) {
-      final s = (daily['sunset'] as List?);
-      if (s != null && s.isNotEmpty) {
-        sunset = _parseUtcHour(s.first as String)?.toUtc();
-      }
+    final s = daily?['sunset'] as List?;
+    for (final raw in s ?? const []) {
+      final t = raw is String ? _parseUtcHour(raw) : null;
+      if (t != null) sunsets.add(t);
     }
 
     final prov = WxProvenance(
@@ -223,7 +228,7 @@ class OpenMeteoProvider extends WeatherProvider {
       lon: req.longitude,
       hours: series,
       provenance: prov,
-      dailySunsetUtc: sunset,
+      dailySunsetsUtc: sunsets,
     );
   }
 

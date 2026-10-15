@@ -101,6 +101,16 @@ const metNorwayFixture = '''
 }
 ''';
 
+/// 单点、日期为今天的最小响应（用于“今天已过去的小时”用例）。
+String openMeteoSinglePointToday() {
+  final now = DateTime.now().toUtc();
+  final d =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  return '[{"latitude":40.0,"longitude":116.0,"utc_offset_seconds":0,'
+      '"elevation":100.0,"hourly":{"time":["${d}T00:00","${d}T01:00"],'
+      '"temperature_2m":[10.0,11.0]},"daily":{"time":["$d"],"sunset":["${d}T09:58"]}}]';
+}
+
 void main() {
   group('OpenMeteoProvider 契约', () {
     test('多坐标批量：解析数组、溯源字段完整', () async {
@@ -138,7 +148,13 @@ void main() {
       );
       expect(first.hours.first.values[WxVar.temperature], 12.5);
       expect(first.hours.first.values[WxVar.precipProb], 10);
-      expect(first.dailySunsetUtc, DateTime.utc(2026, 10, 13, 9, 58));
+      expect(first.dailySunsetsUtc, [DateTime.utc(2026, 10, 13, 9, 58)]);
+      // 取“出发后的第一次日落”，而不是固定取第一天
+      expect(
+        first.nextSunsetAfter(DateTime.utc(2026, 10, 13, 1)),
+        DateTime.utc(2026, 10, 13, 9, 58),
+      );
+      expect(first.nextSunsetAfter(DateTime.utc(2026, 10, 13, 12)), isNull);
 
       // 溯源：请求坐标 vs 返回坐标分开保存
       final prov = first.provenance;
@@ -194,6 +210,49 @@ void main() {
           endUtc: now.add(const Duration(days: 1)),
         ),
         throwsA(isA<SourceHttpException>()),
+      );
+    });
+
+    test('今天已过去的小时仍可请求（预报从当天 00:00 UTC 起）', () async {
+      Uri? requested;
+      final p = OpenMeteoProvider(
+        model: 'best_match',
+        fetcher: (uri, {headers, cancelToken}) async {
+          requested = uri;
+          return openMeteoSinglePointToday();
+        },
+      );
+      final now = DateTime.now().toUtc();
+      final today = DateTime.utc(now.year, now.month, now.day);
+      await p.fetchPoints(
+        points: [const LatLng(40, 116)],
+        startUtc: today,
+        endUtc: today.add(const Duration(hours: 1)),
+      );
+      expect(requested!.queryParameters['forecast_days'], '1');
+    });
+
+    test('早于今天的时段抛 WxOutOfRange（不再误报“超过 16 天”）', () async {
+      final p = OpenMeteoProvider(
+        model: 'best_match',
+        fetcher: (uri, {headers, cancelToken}) async =>
+            openMeteoMultiPointFixture,
+      );
+      final now = DateTime.now().toUtc();
+      final yesterday = DateTime.utc(now.year, now.month, now.day - 1, 10);
+      expect(
+        () => p.fetchPoints(
+          points: [const LatLng(40, 116)],
+          startUtc: yesterday,
+          endUtc: yesterday.add(const Duration(hours: 1)),
+        ),
+        throwsA(
+          isA<WxOutOfRange>().having(
+            (e) => e.message,
+            'message',
+            contains('早于今天'),
+          ),
+        ),
       );
     });
 

@@ -155,7 +155,8 @@ class PlanetTrailsRepository {
   /// 随机获取一条经典神线（用于探索巡游模式）。
   Future<HikingRoute> getRandomRoute() async {
     final all = await loadAll();
-    return (all..shuffle()).first;
+    // 复制后再打乱：不能原地 shuffle 缓存列表，否则星球页列表顺序会被改变。
+    return (List.of(all)..shuffle()).first;
   }
 }
 

@@ -210,7 +210,7 @@ void main() {
     final cache = CacheStore(prefs);
     await cache.write(
       CacheNs.weather,
-      'v2|fake:test|40.0000,116.0000|2026-10-13T10|2026-10-13T11',
+      'v3|fake:test|40.0000,116.0000|2026-10-13T10|2026-10-13T11',
       '{"providerId":"fake:test","fetchedAt":"2026-10-13T09:00:00Z","points":[]}',
       Duration.zero,
     );

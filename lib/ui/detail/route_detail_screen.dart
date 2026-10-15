@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart';
 import '../../core/units.dart';
 import '../../data/app_providers.dart';
-import '../../data/monetization/subscription_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/routes/route_sampling.dart';
 import '../../data/settings/favorites_repository.dart';
@@ -74,8 +72,9 @@ class RouteDetailScreen extends ConsumerStatefulWidget {
 
 class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   TimeMode _mode = TimeMode.fixed;
-  DateTime _date = DateTime.now();
-  int _hour = 10; // 固定时刻模式：当天 10:00 起步
+  // 固定时刻默认：上午 10 点前为当天 10:00，之后为下一个整点（避免默认落在已过去的时刻）。
+  late DateTime _date = _defaultFixedLocal();
+  late int _hour = _date.hour;
   TimeOfDay _startTime = const TimeOfDay(hour: 7, minute: 0);
   PaceConfig _pace = PaceConfig.defaults;
   late String _providerId;
@@ -91,6 +90,12 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       (e) => providers.any((p) => p.caps.providerId == e),
       orElse: () => providers.first.caps.providerId,
     );
+  }
+
+  static DateTime _defaultFixedLocal() {
+    final now = DateTime.now();
+    if (now.hour < 10) return DateTime(now.year, now.month, now.day, 10);
+    return DateTime(now.year, now.month, now.day, now.hour + 1); // 23 点会进位到次日
   }
 
   (DateTime, DateTime) _utcWindow(List<RouteNode> nodes, List<DateTime> etas) {
@@ -165,44 +170,31 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.download_for_offline_outlined),
-            tooltip: '离线气象与轨迹包',
-            onPressed: () {
-              final sub = ref.read(subscriptionProvider);
-              if (sub.isPro) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ 该线路未来 7 天微气候与几何已完整离网缓存，深山无信号时可离网查验。'),
-                    backgroundColor: Color(0xFF2E5D32),
+            tooltip: '离线气象与轨迹包（开发中）',
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('离线气象与轨迹包（开发中）'),
+                content: const Text(
+                  '该功能尚未上线：当前不会下载或缓存任何离线数据，'
+                  '无信号时请勿依赖本 App 获取天气。\n\n'
+                  '已查看过的天气会按来源有效期短暂缓存，过期后会标注“旧数据”。',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text(S.close),
                   ),
-                );
-              } else {
-                showDialog<void>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('TrailWeather Pro 专享'),
-                    content: const Text(
-                      '无网离线气象与轨迹包为 Pro 会员专享特权，支持一键缓存高精度沿途天气，确保进入无信号无人区仍能掌握气象窗口。\n\n今日开启享受 7 天免费试用！',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('稍后再说'),
-                      ),
-                      FilledButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          context.push('/paywall', extra: '离线气象与轨迹包');
-                        },
-                        child: const Text('立即解锁'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-            },
+                ],
+              ),
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.star_border),
+            icon: Icon(
+              ref.watch(favoritesProvider).any((r) => r.id == route.id)
+                  ? Icons.star
+                  : Icons.star_border,
+            ),
             tooltip: S.favorites,
             onPressed: () => ref.read(favoritesProvider.notifier).toggle(route),
           ),
@@ -320,8 +312,12 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
 
     final bundle = bundleAsync.value;
     final summary = summarizeRows(rows);
-    final sunset = bundle?.result.points.firstOrNullValue?.dailySunsetUtc;
-    final finishEta = etas.isEmpty ? null : etas.last;
+    // 日落提示只在行程模式有意义：取出发后的第一次日落（不是“今天”的日落）。
+    final tripMode = _mode == TimeMode.trip && etas.isNotEmpty;
+    final sunset = tripMode
+        ? bundle?.result.points.firstOrNullValue?.nextSunsetAfter(etas.first)
+        : null;
+    final finishEta = tripMode ? etas.last : null;
 
     return [
       if (bundle != null && bundle.result.stale)
@@ -333,6 +329,12 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       const SizedBox(height: 8),
       if (route.mainSegment.length != route.flatPoints.length)
         const GranularityNotice(text: S.multiSegmentNote),
+      if (route.origin == RouteOrigin.planet)
+        const GranularityNotice(text: S.planetElevationNote),
+      if (_mode == TimeMode.trip &&
+          etas.length > 1 &&
+          etas.last.difference(etas.first) > const Duration(hours: 12))
+        const GranularityNotice(text: S.longTripNote),
       const SizedBox(height: 8),
       _HintsCard(rows: rows, sunsetUtc: sunset, finishEta: finishEta),
       const SizedBox(height: 8),
@@ -479,8 +481,6 @@ class _RouteFactsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sub = ref.watch(subscriptionProvider);
-    final isPro = sub.isPro;
     final style = const TextStyle(fontSize: 13);
     return Card(
       child: Padding(
@@ -496,59 +496,13 @@ class _RouteFactsCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 16),
                 Text(
-                  '${S.ascentLabel}：${route.totalAscentM == null ? S.unknown : '${(route.totalAscentM! / 1000).toStringAsFixed(2)} km'}',
+                  '${S.ascentLabel}：${route.totalAscentM == null ? S.unknown : '${route.totalAscentM!.toStringAsFixed(0)} m'}',
                   style: style,
                 ),
               ],
             ),
             const SizedBox(height: 4),
             RouteSourceLine(route: route),
-            const SizedBox(height: 8),
-            InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () {
-                if (!isPro) {
-                  context.push('/paywall', extra: '高程微气候垂直修正');
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isPro ? Colors.green.shade50 : Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isPro
-                        ? Colors.green.shade300
-                        : Colors.amber.shade300,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isPro ? Icons.check_circle : Icons.workspace_premium,
-                      size: 14,
-                      color: isPro
-                          ? Colors.green.shade700
-                          : Colors.amber.shade900,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isPro
-                          ? 'PRO 微气候高程垂直修正已启用（-0.65℃/100m）'
-                          : '高程垂直微气候修正（PRO 专享 · 点击解锁）',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isPro
-                            ? Colors.green.shade800
-                            : Colors.amber.shade900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -854,7 +808,7 @@ class _SummaryCard extends StatelessWidget {
                   '${Units.temp(summary.minTempC ?? 0, imperial: settings.imperial, digits: 0)} / ${Units.temp(summary.maxTempC ?? 0, imperial: settings.imperial)}',
                 ),
                 _kv(
-                  '累计降水',
+                  '沿途降水（估算）',
                   summary.totalPrecipMm == null
                       ? S.notProvided
                       : Units.precipMm(

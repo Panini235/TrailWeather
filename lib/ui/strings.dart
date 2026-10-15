@@ -73,6 +73,10 @@ abstract final class S {
   static const cachedAt = '缓存于';
   static const fetchedAt = '数据获取于';
   static const noElevation = '此线路无海拔数据，未显示海拔剖面，配速未计入爬升影响';
+  static const planetElevationNote = '经典线路的海拔由路线剖面按距离线性插值得到，为估算值；高点位置与爬升量仅供参考。';
+  static const longTripNote =
+      '按当前配速估算全程超过 12 小时：行程模式按连续行走推算，未计入夜间宿营。'
+      '多日线路的后段到达时间与对应天气仅供参考，请按每日行程分段查看。';
   static const multiSegmentNote =
       '此线路包含多段不连续几何（OSM 路线关系可能多段/缺失）。行程模式基于最长连续段计算。';
   static const sharedGridNotePrefix = '网格说明';

@@ -201,7 +201,7 @@ class WeatherRepository {
         .join('|');
     final s = startUtc.toIso8601String().substring(0, 13); // 小时粒度
     final e = endUtc.toIso8601String().substring(0, 13);
-    return 'v2|$providerId|$coords|$s|$e';
+    return 'v3|$providerId|$coords|$s|$e';
   }
 
   String _encode(WxSourceResult r) {
@@ -222,7 +222,7 @@ class WeatherRepository {
       points.add({
         'lat': p.lat,
         'lon': p.lon,
-        'sunset': p.dailySunsetUtc?.toIso8601String(),
+        'sunsets': [for (final t in p.dailySunsetsUtc) t.toIso8601String()],
         'hours': hours,
         'prov': _provToJson(p.provenance),
       });
@@ -271,9 +271,10 @@ class WeatherRepository {
             lon: p['lon'] as double,
             hours: hours,
             provenance: _provFromJson((p['prov'] as Map<String, dynamic>)),
-            dailySunsetUtc: p['sunset'] == null
-                ? null
-                : DateTime.parse(p['sunset'] as String),
+            dailySunsetsUtc: [
+              for (final t in (p['sunsets'] as List?) ?? const [])
+                DateTime.parse(t as String),
+            ],
           ),
         );
       }

@@ -572,9 +572,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                       heroTag: 'proBadge',
                       backgroundColor: isPro ? Colors.amber.shade700 : null,
                       onPressed: () => context.push('/paywall'),
-                      tooltip: isPro
-                          ? 'TrailWeather Pro 已激活'
-                          : '升级 Pro 会员（享 7 天免费试用）',
+                      tooltip: isPro ? 'TrailWeather Pro 已激活' : 'Pro 方案预览（开发中）',
                       child: Icon(
                         Icons.workspace_premium,
                         color: isPro ? Colors.white : Colors.amber.shade800,

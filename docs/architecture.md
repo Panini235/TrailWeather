@@ -47,7 +47,7 @@ core/          Geo（haversine/DP 简化）、Units、WxHttp、CacheStore、Exte
 
 - 内部时间一律 UTC；ETA 纯 UTC 运算（跨午夜/DST 安全）；展示按设备本地或来源偏移并标注。
 - 缓存命名空间：routes / map / weather / user。天气缓存键 =
-  `v2|providerId|请求坐标串（4 位小数）|起始小时|结束小时`；近似网格只在单次线路查询内
+  `v3|providerId|请求坐标串（4 位小数）|起始小时|结束小时`；近似网格只在单次线路查询内
   合并节点，不用于跨请求缓存身份；TTL 按来源（Open-Meteo 30min、MET 20min）；
   过期 6h 内可读但 UI 标“旧数据”并后台刷新（stale-while-revalidate）。
 

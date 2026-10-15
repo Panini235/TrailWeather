@@ -207,3 +207,23 @@ GitHub Actions Web/APK 构建待推送。
 - analyze ✓, test 121/121 ✓, Web Release ✓, Android APK Release ✓。
 - 生成产物：`web-release`、`apk-release`。
 
+
+## Round 10 — 2026-10-15（审查整改：导入可用性 + 天气逻辑 + Pro 真实性）
+
+**起因**：全项目功能审查 + 用户反馈“导入 GPX 等本地文件压根使用不了”（提供 example/ 4 个真实文件）。
+
+**根因（导入）**：解析器本身可用；问题在文件选择器——iOS 只给扩展名时 file_selector 直接抛
+ArgumentError（且调用在 try 之外，按钮无反应）；Android 扩展名转 MIME，gpx 无映射、文件常报
+octet-stream → 置灰不可选。另：KMZ 被当文本解码（从未支持）；GeoJSON >5000 点直接拒绝。
+
+**完成**：
+- T-100：`lib/data/routes/route_file_import.dart` 统一入口（内容嗅探、KMZ 解压、告警去重），
+  移动端选择器不过滤、后台 isolate 解析；example/ 四个文件均导入成功（74.5 km、爬升约 4160 m）。
+- T-102：Open-Meteo 当天已过去小时误报“超过 16 天”、沿途降水跨节点求和、日落固定取今天、
+  节点面板“本地时间”实为 UTC 及重建重复请求等逻辑错误修复，并补测试。
+- T-101：Pro 4 项权益均未实现、购买为本地白送 → 支付未接入时禁止开通，未实现权益标“开发中”，
+  移除虚假“已启用/已缓存”提示与虚构原价。
+- example/ 加入 .gitignore（真实轨迹含位置与时间，不入库）。
+
+**本地验证**：flutter analyze 0 问题；flutter test 138/138 通过。
+**未验证**：真机文件选择器（无设备）——需在 CI 产物 APK/iOS 上人工确认。

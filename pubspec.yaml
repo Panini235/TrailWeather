@@ -26,6 +26,9 @@ dependencies:
   intl: ^0.20.3
   # 文件导入（GPX/GeoJSON）
   file_selector: ^1.1.0
+  # KMZ（zip 包装的 KML）解压；纯 Dart、Web 可用。已是 flutter_map 的传递依赖，
+  # 精确锁定发布超过 2 周的版本（见 agent/decisions.md）
+  archive: 4.3.0
   # 定位（首页一次性前台定位；之后仅用户主动请求）
   geolocator: ^14.1.1
   # 用户主动打开外部攻略网页（Android/iOS/Web）

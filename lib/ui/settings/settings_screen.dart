@@ -201,42 +201,16 @@ class SettingsScreen extends ConsumerWidget {
                 SwitchListTile(
                   dense: true,
                   title: const Text(
-                    '高程气温垂直递减修正',
+                    '高程气温垂直递减修正（开发中）',
                     style: TextStyle(fontSize: 14),
                   ),
                   subtitle: const Text(
-                    '动态基于海拔差修正山脊垭口真实气温与冰点（-0.65℃/100m）',
+                    '尚未接入天气计算：开启与否都不会修改任何温度数据。',
                     style: TextStyle(fontSize: 11),
                   ),
-                  value: settings.elevationLapseRateCorrection,
-                  onChanged: (v) {
-                    if (subscription.isPro) {
-                      notifier.setLapseRateCorrection(v);
-                    } else {
-                      showDialog<void>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('TrailWeather Pro 专享'),
-                          content: const Text(
-                            '高程气温垂直递减修正引擎为 Pro 会员专享特权，支持动态推演山脊垭口真实气温与失温预警。\n\n今日开启享受 7 天免费试用！',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('稍后再说'),
-                            ),
-                            FilledButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                context.push('/paywall', extra: '高程微气候垂直修正');
-                              },
-                              child: const Text('立即解锁'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                  },
+                  value: false,
+                  // 功能未实现前禁用，避免让人以为温度已被修正。
+                  onChanged: null,
                 ),
               ],
             ),
@@ -507,7 +481,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isPro ? 'TrailWeather Pro 尊享会员' : '升级 TrailWeather Pro',
+                  isPro ? 'TrailWeather Pro 尊享会员' : 'TrailWeather Pro（规划中）',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -543,7 +517,7 @@ class SettingsScreen extends ConsumerWidget {
                   ? (sub.expiresAtUtc != null
                         ? '有效期至：${sub.expiresAtUtc!.toLocal().year}-${sub.expiresAtUtc!.toLocal().month.toString().padLeft(2, '0')}-${sub.expiresAtUtc!.toLocal().day.toString().padLeft(2, '0')}'
                         : '终身会员已永久激活，尊享所有后续专业算法与离网包升级。')
-                  : '解锁高程垂直微气候递减修正、高山失温哨兵、无网离线气象与等高线地形图。今日开启立享 7 天免费试用！',
+                  : '高程气温修正、失温提示、离线气象包与等高线地形图正在开发中，支付尚未接入。当前已上线的功能全部免费可用。',
               style: TextStyle(
                 fontSize: 12,
                 color: isPro ? Colors.amber.shade900 : Colors.grey.shade700,
@@ -556,9 +530,9 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 if (!isPro)
                   FilledButton.icon(
-                    icon: const Icon(Icons.bolt, size: 16),
+                    icon: const Icon(Icons.visibility_outlined, size: 16),
                     label: const Text(
-                      '免费试用 7 天（¥98/年）',
+                      '查看方案预览',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,

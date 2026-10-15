@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/monetization/subscription_models.dart';
 import '../../data/settings/settings_repository.dart';
 
 /// 新用户引导流（Onboarding），符合海明Dev付费转化规范：
@@ -126,7 +127,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              '定制你的专属气象哨兵',
+              '定制你的徒步天气关注点',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -165,7 +166,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             key: 'camp',
             icon: '⛺️',
             title: '山地露营与越野自驾',
-            subtitle: '夜间降温幅度、山谷阵风、雷暴窗口与离线离网预警',
+            subtitle: '夜间降温幅度、山谷阵风与降水窗口',
           ),
         ],
       ),
@@ -244,7 +245,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            '普通天气只取山脚城市基站。海拔每上升 1000m，气温下降 6.5℃，山脊阵风常超山谷数倍！',
+            '城市天气通常对应城区位置。山里海拔差大，气温一般随海拔升高而降低（典型约每 1000 m 降 6.5℃），山脊风也常比山谷强。',
             style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
           ),
           const SizedBox(height: 24),
@@ -270,7 +271,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        '仅代表山脚城市基站，无法预警山顶骤降的冰雹与失温',
+                        '对应城区附近，不代表山脊、垭口等沿途位置',
                         style: TextStyle(fontSize: 12, color: Colors.black87),
                       ),
                     ],
@@ -301,7 +302,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        '沿轨迹 24 个节点垂直修正，垭口 3℃ 阵风 9 级 ⚡️ 触发失温哨兵',
+                        '沿轨迹采样节点逐点查询网格预报，按预计到达时间对齐，多来源并排对比（预报非实测）',
                         style: TextStyle(fontSize: 12, color: Colors.black87),
                       ),
                     ],
@@ -406,7 +407,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '开启 TrailWeather Pro 7天免费试用',
+            'TrailWeather Pro（规划中）',
             textAlign: TextAlign.center,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
@@ -414,7 +415,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '尊享高程垂直微气候修正、突发失温哨兵、无网离线包与等高线地形图',
+            '高程气温修正、失温提示、离线气象包与等高线地形图正在开发中。当前已上线功能全部免费。',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
@@ -429,12 +430,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: const Column(
               children: [
                 Text(
-                  '年度会员 · ¥98/年（折合 ¥8.1/月）',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '今日开启享受 7 天免费试用，试用期内随时可免费取消',
+                  Billing.unavailableNotice,
+                  textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Colors.black87),
                 ),
               ],
@@ -450,14 +447,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
             onPressed: () => _finishOnboarding(openPaywall: true),
             child: const Text(
-              '查看 Pro 方案并开始 7 天试用',
+              '查看 Pro 方案预览',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 10),
           TextButton(
             onPressed: () => _finishOnboarding(openPaywall: false),
-            child: const Text('先免费体验，稍后再说'),
+            child: const Text('开始免费使用'),
           ),
         ],
       ),
