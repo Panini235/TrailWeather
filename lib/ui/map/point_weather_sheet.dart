@@ -11,6 +11,56 @@ import '../detail/weather_cells.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 
+/// 单点天气请求。首页当前位置标签与本面板使用同一参数，标签取到的数据
+/// 在打开面板时可直接命中缓存。
+Future<RouteWeatherBundle> fetchPointWeather(
+  WeatherRepository repository, {
+  required String providerId,
+  required LatLng point,
+  required String label,
+  required DateTime requestedAtUtc,
+  bool refresh = false,
+}) {
+  final hour = DateTime.utc(
+    requestedAtUtc.year,
+    requestedAtUtc.month,
+    requestedAtUtc.day,
+    requestedAtUtc.hour,
+  );
+  return repository.getRouteWeatherBundle(
+    providerId: providerId,
+    nodes: [
+      RouteNode(
+        pointIndex: 0,
+        pos: point,
+        elevationM: null,
+        distFromStartM: 0,
+        label: label,
+      ),
+    ],
+    startUtc: hour,
+    endUtc: hour.add(const Duration(hours: 24)),
+    refresh: refresh,
+  );
+}
+
+/// 与请求时刻最接近的小时数据；相差超过 3 小时视为无当前时段数据。
+WxHourValue? nearestPointHour(WxPointForecast point, DateTime requestedAtUtc) {
+  WxHourValue? best;
+  var bestMinutes = 1 << 30;
+  for (final hour in point.hours) {
+    final minutes = hour.validFromUtc
+        .difference(requestedAtUtc)
+        .inMinutes
+        .abs();
+    if (minutes < bestMinutes) {
+      best = hour;
+      bestMinutes = minutes;
+    }
+  }
+  return bestMinutes <= 180 ? best : null;
+}
+
 /// 地图任意点天气面板。每个来源独立请求、独立展示，不做跨来源平均。
 class PointWeatherSheet extends ConsumerWidget {
   const PointWeatherSheet({
@@ -109,31 +159,15 @@ class _PointSourceCard extends ConsumerStatefulWidget {
 class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
   late Future<RouteWeatherBundle> _future = _fetch();
 
-  Future<RouteWeatherBundle> _fetch({bool refresh = false}) {
-    final hour = DateTime.utc(
-      widget.requestedAtUtc.year,
-      widget.requestedAtUtc.month,
-      widget.requestedAtUtc.day,
-      widget.requestedAtUtc.hour,
-    );
-    return ref
-        .read(weatherRepositoryProvider)
-        .getRouteWeatherBundle(
-          providerId: widget.providerId,
-          nodes: [
-            RouteNode(
-              pointIndex: 0,
-              pos: widget.point,
-              elevationM: null,
-              distFromStartM: 0,
-              label: widget.label,
-            ),
-          ],
-          startUtc: hour,
-          endUtc: hour.add(const Duration(hours: 24)),
-          refresh: refresh,
-        );
-  }
+  Future<RouteWeatherBundle> _fetch({bool refresh = false}) =>
+      fetchPointWeather(
+        ref.read(weatherRepositoryProvider),
+        providerId: widget.providerId,
+        point: widget.point,
+        label: widget.label,
+        requestedAtUtc: widget.requestedAtUtc,
+        refresh: refresh,
+      );
 
   void _retry() {
     setState(() => _future = _fetch(refresh: true));
@@ -187,7 +221,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
               );
             }
             final forecast = result.points.first;
-            final nearest = _nearest(forecast, widget.requestedAtUtc);
+            final nearest = nearestPointHour(forecast, widget.requestedAtUtc);
             if (nearest == null) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,21 +273,5 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
         ),
       ),
     );
-  }
-
-  WxHourValue? _nearest(WxPointForecast point, DateTime requestedAtUtc) {
-    WxHourValue? best;
-    var bestMinutes = 1 << 30;
-    for (final hour in point.hours) {
-      final minutes = hour.validFromUtc
-          .difference(requestedAtUtc)
-          .inMinutes
-          .abs();
-      if (minutes < bestMinutes) {
-        best = hour;
-        bestMinutes = minutes;
-      }
-    }
-    return bestMinutes <= 180 ? best : null;
   }
 }

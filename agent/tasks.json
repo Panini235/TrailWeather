@@ -394,6 +394,18 @@
       "acceptance": "Open-Meteo 当天已过去小时可查、早于今天给出正确原因；详情默认时刻不落在过去；沿途降水按小时取最大再累加；日落取出发后第一次；节点面板本地时间与重复请求；多日行程/插值海拔标注；规划工坊配速统一；星球随机不打乱缓存；收藏星标状态；爬升显示 m",
       "verify": "test/weather/provider_contract_test.dart、test/unit/risk_rules_test.dart",
       "result": "完成；本地全绿；CI 38674705802 全绿（analyze/test/Web/APK）"
+    },
+    {
+      "id": "T-103",
+      "p": "P0",
+      "title": "真机体验修复：定位超时 / 定位后弹面板 / 线路地图适配 / 无效入口降级",
+      "deps": [
+        "T-100"
+      ],
+      "status": "in_progress",
+      "acceptance": "Android 定位强制 LocationManager + medium 精度 + 上次已知位置先居中/超时回退并标注；定位成功只移动地图并显示当前位置天气小标签，点击才开面板，不自动请求 Overpass；详情小地图按全部 segments 包围盒（GCJ-02 先 toDisplay）自适配并可进入可交互全屏大图，首页选线路适配整条线路；“搜索此区域”降为线路列表次要入口、外部攻略折叠为次要入口并写明原因（底层代码与测试保留）",
+      "verify": "test/unit/location_service_test.dart、test/unit/route_camera_test.dart、test/widget/map_home_location_test.dart、test/widget/hybrid_route_search_test.dart、test/integration/core_flow_test.dart",
+      "result": "本地 analyze 0 + test 151/151 全绿；真机定位/手势待用户确认"
     }
   ]
 }

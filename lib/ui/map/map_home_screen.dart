@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/cache_store.dart';
 import '../../core/geo.dart';
+import '../../core/units.dart';
 import '../../data/app_providers.dart';
 import '../../data/geocode.dart';
 import '../../data/location/location_service.dart';
@@ -17,10 +18,12 @@ import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
+import '../../data/weather/weather_models.dart';
 import '../detail/route_detail_screen.dart';
 import 'basemap.dart';
 import 'hybrid_route_search.dart';
 import 'point_weather_sheet.dart';
+import 'route_camera.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 
@@ -29,8 +32,10 @@ import '../widgets/common.dart';
 /// 请求纪律（低耗电）：
 /// - 地图拖动期间不发起任何天气/线路网络请求；
 /// - 本地线路按 viewport 过滤（纯本地计算）；
-/// - 首次定位成功后自动查询一次当地线路；其余线路请求由用户触发，缓存 10 分钟；
-/// - 首页只进行一次定位；之后仅在用户点击定位按钮或地图选点时请求。
+/// - 定位成功只移动地图并显示当前位置天气小标签（单点、主来源一次请求），
+///   不自动弹出面板、不自动请求 Overpass；
+/// - OSM 线路请求只由用户在线路列表中主动触发（海外服务，国内常不可达），缓存 10 分钟；
+/// - 首页只进行一次自动定位；之后仅在用户点击定位按钮或地图选点时请求。
 class MapHomeScreen extends ConsumerStatefulWidget {
   const MapHomeScreen({super.key});
 
@@ -57,6 +62,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   bool _locating = false;
   bool _autoLocateStarted = false;
   LatLng? _weatherPoint;
+  LocationFix? _myFix;
+  DateTime? _myFixAtUtc;
+  String? _myWxText;
+  String? _myWxSource;
 
   double get _zoom {
     try {
@@ -91,11 +100,22 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
 
   void _selectWeatherPoint(LatLng point, {required String label}) {
     if (!mounted) return;
-    final requestedAtUtc = DateTime.now().toUtc();
     setState(() {
       _selected = null;
       _weatherPoint = point;
     });
+    _showPointSheet(
+      point,
+      label: label,
+      requestedAtUtc: DateTime.now().toUtc(),
+    );
+  }
+
+  void _showPointSheet(
+    LatLng point, {
+    required String label,
+    required DateTime requestedAtUtc,
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -252,9 +272,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     } catch (_) {
       if (!mounted || _searchQuery != query) return;
       setState(() => _searching = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('地点候选加载失败；仍可使用本地线路和外部攻略入口。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('地点候选加载失败；仍可使用本地线路或导入轨迹。')));
     }
   }
 
@@ -262,29 +282,39 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     final query = _searchQuery;
     final point = LatLng(place.lat, place.lon);
     _mapController.move(_basemap.toDisplay(point), 13);
-    setState(() => _searching = true);
-    await _searchArea(quiet: true);
+    // 不再自动请求 Overpass（海外服务，国内常不可达）；只用已加载/本地线路。
     if (!mounted || _searchQuery != query) return;
     final namedMatches = _matchRoutes(query);
     final routes = namedMatches.isNotEmpty ? namedMatches : _visibleRoutes();
-    setState(() {
-      _routeMatches = routes;
-      _searching = false;
-    });
+    setState(() => _routeMatches = routes);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           routes.isEmpty
-              ? '该区域暂未找到可直接分析的 OSM 线路，可查看外部攻略或导入 GPX。'
+              ? S.placeMovedNoRoutes
               : '已在 ${place.name} 附近找到 ${routes.length} 条可直接分析的线路。',
         ),
       ),
     );
   }
 
+  /// 让整条线路落在视野内（避开顶部搜索栏、右侧按钮与底部线路卡）。
+  void _fitRoute(HikingRoute route) {
+    final fit = routeCameraFit(
+      route,
+      _basemap,
+      padding: const EdgeInsets.fromLTRB(32, 120, 72, 230),
+    );
+    if (fit == null) return;
+    try {
+      _mapController.fitCamera(fit);
+    } catch (_) {
+      // 地图尚未就绪时忽略；线路仍会被选中。
+    }
+  }
+
   void _selectSearchRoute(HikingRoute route) {
-    final first = route.mainSegment.first;
-    _mapController.move(_basemap.toDisplay(first), 13);
+    _fitRoute(route);
     setState(() {
       _selected = route;
       _weatherPoint = null;
@@ -317,12 +347,28 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     if (_locating) return;
     setState(() => _locating = true);
     try {
-      final point = await ref.read(locationServiceProvider).currentPosition();
+      final fix = await ref
+          .read(locationServiceProvider)
+          .currentPosition(
+            // 系统缓存的上次已知位置先用于居中，减少等待新定位时的空白。
+            onLastKnown: (point) {
+              if (mounted) _mapController.move(_basemap.toDisplay(point), 13);
+            },
+          );
       if (!mounted) return;
-      _mapController.move(_basemap.toDisplay(point), 13);
-      _selectWeatherPoint(point, label: S.currentLocation);
-      // 定位成功后补齐“打开首页就看到当地线路”的闭环；缓存避免重复消耗。
-      unawaited(_searchArea(quiet: true));
+      _mapController.move(_basemap.toDisplay(fix.point), 13);
+      final atUtc = DateTime.now().toUtc();
+      setState(() {
+        _myFix = fix;
+        _myFixAtUtc = atUtc;
+        _myWxText = null;
+        _myWxSource = null;
+      });
+      if (fix.isLastKnown) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text(S.lastKnownFallback)));
+      }
+      unawaited(_loadMyLocationWeather(fix, atUtc));
     } on LocationFailure catch (failure) {
       if (!mounted) return;
       final canOpenSettings =
@@ -348,6 +394,152 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       }
     } finally {
       if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  String _primaryProviderId() {
+    final enabled = ref.read(settingsProvider).enabledProviderIds;
+    final providers = ref.read(weatherProvidersProvider);
+    return enabled.firstWhere(
+      (e) => providers.any((p) => p.caps.providerId == e),
+      orElse: () => providers.first.caps.providerId,
+    );
+  }
+
+  String _myLocationSheetLabel(LocationFix fix) =>
+      fix.isLastKnown ? S.lastKnownLocation : S.currentLocation;
+
+  /// 当前位置小标签：只取主来源最近时次气温，详情点击后在面板中按来源展示。
+  Future<void> _loadMyLocationWeather(LocationFix fix, DateTime atUtc) async {
+    final providerId = _primaryProviderId();
+    final caps = ref
+        .read(weatherProvidersProvider)
+        .firstWhere((p) => p.caps.providerId == providerId)
+        .caps;
+    String text;
+    try {
+      final bundle = await fetchPointWeather(
+        ref.read(weatherRepositoryProvider),
+        providerId: providerId,
+        point: fix.point,
+        label: _myLocationSheetLabel(fix),
+        requestedAtUtc: atUtc,
+      );
+      final points = bundle.result.points;
+      final hour = points.isEmpty
+          ? null
+          : nearestPointHour(points.first, atUtc);
+      final temp = hour?.values[WxVar.temperature];
+      text = temp == null
+          ? S.myLocationNoTemp
+          : Units.temp(temp, imperial: ref.read(settingsProvider).imperial);
+    } catch (_) {
+      text = S.myLocationTapHint;
+    }
+    if (!mounted || !identical(_myFix, fix)) return;
+    setState(() {
+      _myWxText = text;
+      _myWxSource = caps.displayName;
+    });
+  }
+
+  void _openMyLocationWeather() {
+    final fix = _myFix;
+    final atUtc = _myFixAtUtc;
+    if (fix == null || atUtc == null) return;
+    _showPointSheet(
+      fix.point,
+      label: _myLocationSheetLabel(fix),
+      requestedAtUtc: atUtc,
+    );
+  }
+
+  Marker _myLocationMarker(Basemap basemap, LocationFix fix) {
+    final scheme = Theme.of(context).colorScheme;
+    final title = fix.isLastKnown ? S.lastKnownChip : S.myLocationChip;
+    return Marker(
+      point: basemap.toDisplay(fix.point),
+      width: 180,
+      height: 64,
+      alignment: Alignment.topCenter,
+      child: GestureDetector(
+        onTap: _openMyLocationWeather,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Material(
+              color: scheme.surface,
+              elevation: 3,
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$title · ${_myWxText ?? '…'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (_myWxSource != null)
+                      Text(
+                        _myWxSource!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: fix.isLastKnown ? Colors.grey : scheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _searchAreaFromList() async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (_zoom < 11) {
+      messenger.showSnackBar(const SnackBar(content: Text(S.areaTooLarge)));
+      return;
+    }
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(const SnackBar(content: Text(S.osmAreaLoading)));
+    final routes = await _searchArea(quiet: true);
+    if (!mounted) return;
+    messenger.clearSnackBars();
+    if (_osmError != null) {
+      messenger.showSnackBar(const SnackBar(content: Text(S.osmFetchFail)));
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            routes.isEmpty ? S.osmAreaEmpty : '已加载 ${routes.length} 条 OSM 线路。',
+          ),
+        ),
+      );
     }
   }
 
@@ -482,6 +674,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                     ),
                   ],
                 ),
+              if (_myFix != null)
+                MarkerLayer(markers: [_myLocationMarker(basemap, _myFix!)]),
               basemap.attributionWidget(),
             ],
           ),
@@ -553,19 +747,6 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.my_location),
-                    ),
-                    const SizedBox(height: 10),
-                    FloatingActionButton.small(
-                      heroTag: 'searchArea',
-                      onPressed: _osmLoading ? null : () => _searchArea(),
-                      tooltip: S.searchThisArea,
-                      child: _osmLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.travel_explore),
                     ),
                     const SizedBox(height: 10),
                     FloatingActionButton.small(
@@ -702,12 +883,34 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               ),
               onTap: () {
                 Navigator.pop(context);
+                _fitRoute(r);
                 setState(() {
                   _selected = r;
                   _weatherPoint = null;
                 });
               },
             ),
+          const Divider(height: 24),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _osmLoading
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      unawaited(_searchAreaFromList());
+                    },
+              icon: const Icon(Icons.travel_explore, size: 18),
+              label: const Text(S.tryOsmArea),
+            ),
+          ),
+          Text(
+            S.tryOsmAreaNote,
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

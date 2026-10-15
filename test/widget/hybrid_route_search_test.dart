@@ -16,7 +16,9 @@ import 'package:trailweather/ui/strings.dart';
 
 class _DeniedLocationService implements LocationService {
   @override
-  Future<LatLng> currentPosition() async =>
+  Future<LocationFix> currentPosition({
+    void Function(LatLng)? onLastKnown,
+  }) async =>
       throw const LocationFailure(LocationFailureKind.denied, '测试中不启用定位');
 
   @override
@@ -90,7 +92,7 @@ HikingRoute _localRoute() => HikingRoute(
 );
 
 void main() {
-  testWidgets('混合搜索分组展示线路、地点、外部攻略并加载附近 OSM 线路', (tester) async {
+  testWidgets('混合搜索分组展示线路与地点，外部攻略折叠为次要入口，选地点不自动请求 OSM', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     final external = _FakeExternalLauncher();
@@ -126,32 +128,41 @@ void main() {
     expect(find.text('香山环线'), findsOneWidget);
     expect(find.text(S.placeCandidates), findsOneWidget);
     expect(find.text('香山公园'), findsOneWidget);
-    expect(find.text(S.externalGuides), findsOneWidget);
-    expect(find.text('小红书攻略'), findsOneWidget);
-    expect(find.text('两步路轨迹'), findsOneWidget);
-
-    await tester.tap(find.text('小红书攻略'));
-    await tester.pumpAndSettle();
-    expect(external.opened, isNotNull);
-    expect(external.opened!.host, 'www.baidu.com');
-    expect(external.opened!.queryParameters['wd'], contains('xiaohongshu.com'));
+    // 外部攻略默认折叠，不在主列表直接出现。
+    expect(find.text(S.externalGuides), findsNothing);
+    expect(find.text('小红书攻略'), findsNothing);
 
     final resultsList = find.descendant(
       of: find.byType(HybridRouteSearchResults),
       matching: find.byType(Scrollable),
     );
     await tester.scrollUntilVisible(
-      find.text('六只脚线路'),
+      find.text(S.externalGuidesCollapsed),
       180,
+      scrollable: resultsList,
+    );
+    await tester.ensureVisible(find.text(S.externalGuidesCollapsed));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.externalGuidesCollapsed));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('小红书攻略'),
+      120,
+      scrollable: resultsList,
+    );
+    await tester.ensureVisible(find.text('小红书攻略'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('小红书攻略'));
+    await tester.pumpAndSettle();
+    expect(external.opened, isNotNull);
+    expect(external.opened!.host, 'www.baidu.com');
+    expect(external.opened!.queryParameters['wd'], contains('xiaohongshu.com'));
+    await tester.scrollUntilVisible(
+      find.text('六只脚线路'),
+      120,
       scrollable: resultsList,
     );
     expect(find.text('六只脚线路'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text(S.importOwnedTrack),
-      180,
-      scrollable: resultsList,
-    );
-    expect(find.text(S.importOwnedTrack), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('香山公园'),
@@ -160,8 +171,7 @@ void main() {
     );
     await tester.tap(find.text('香山公园'));
     await tester.pumpAndSettle();
-    expect(routes.calls, 1);
-    expect(find.text('香山防火道'), findsOneWidget);
+    expect(routes.calls, 0);
 
     await tester.drag(resultsList, const Offset(0, 1000));
     await tester.pumpAndSettle();
@@ -169,5 +179,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(S.viewDetail), findsOneWidget);
     expect(find.textContaining(S.hybridSearchTitle), findsNothing);
+  });
+
+  testWidgets('OSM 区域线路只能从线路列表的次要入口主动加载', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final routes = _FakeRouteSource();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          prefsProvider.overrideWithValue(preferences),
+          locationServiceProvider.overrideWithValue(_DeniedLocationService()),
+          overpassRouteSourceProvider.overrideWithValue(routes),
+          localRoutesProvider.overrideWithValue(const []),
+        ],
+        child: const MaterialApp(home: MapHomeScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(routes.calls, 0);
+    expect(find.byTooltip(S.searchThisArea), findsNothing);
+
+    await tester.tap(find.byTooltip(S.listButton));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(S.tryOsmArea));
+    await tester.pumpAndSettle();
+    expect(find.text(S.tryOsmAreaNote), findsOneWidget);
+    await tester.tap(find.text(S.tryOsmArea));
+    await tester.pumpAndSettle();
+    expect(routes.calls, 1);
+    expect(find.text('已加载 1 条 OSM 线路。'), findsOneWidget);
   });
 }

@@ -28,12 +28,34 @@ abstract final class S {
   static const directRoutes = '可直接分析的线路';
   static const placeCandidates = '地点候选';
   static const externalGuides = '外部攻略与轨迹线索';
+  // 外部攻略降级为折叠的次要入口：目前只是跳转百度 site: 限定搜索，
+  // 不能直接得到可导入的轨迹，且结果质量与可用性不受 App 控制。
+  static const externalGuidesCollapsed = '更多：外部网页搜索（次要）';
+  static const externalGuidesReason =
+      '仅在浏览器中用百度限定站点搜索，结果常常找不到可用轨迹，App 不抓取平台内容；'
+      '优先导入你有权使用的 GPX / KML。';
+  static const noDirectRoutes = '暂未找到可直接分析的线路。可导入你有权使用的轨迹文件。';
   static const importOwnedTrack = '导入你有权使用的轨迹';
   static const searchThisArea = '搜索此区域线路';
+  // “搜索此区域”降级到线路列表内的次要入口：Overpass 公共实例部署在海外，
+  // 国内网络实测大多超时/504，作为主按钮会让用户反复等待后失败。
+  static const tryOsmArea = '尝试加载此区域 OSM 线路';
+  static const tryOsmAreaNote =
+      'OpenStreetMap 线路服务部署在海外，国内网络常常无法访问或要等待较久；'
+      '更可靠的方式是导入你自己的 GPX / KML 轨迹。';
+  static const osmAreaLoading = '正在请求 OpenStreetMap 线路，可能需要较长时间…';
+  static const osmAreaEmpty = '此区域暂未加载到 OSM 线路。';
+  static const placeMovedNoRoutes = '已移动到该地点。附近暂无可直接分析的线路，可导入 GPX / KML 轨迹。';
   static const areaTooLarge = '视野范围过大，请放大后重试';
   static const locateMe = '定位到我';
   static const locating = '正在定位…';
   static const currentLocation = '当前位置天气';
+  static const lastKnownLocation = '上次已知位置天气';
+  static const myLocationChip = '当前位置';
+  static const lastKnownChip = '上次已知位置';
+  static const myLocationTapHint = '点击查看天气';
+  static const myLocationNoTemp = '气温未提供';
+  static const lastKnownFallback = '暂未取到新位置，已显示系统缓存的上次已知位置，可能与你此刻所在位置不同。';
   static const selectedPointWeather = '地图选点天气';
   static const locationDenied = '未获得定位权限。你仍可手动点选地图查询天气。';
   static const locationSettings = '打开设置';
@@ -64,6 +86,8 @@ abstract final class S {
   static const riskHints = '天气提示';
   static const officialAlerts = '官方预警';
   static const sourceTransparency = '来源与颗粒度';
+  static const routeMapFullscreen = '全屏查看线路地图';
+  static const routeMapFitAll = '显示整条线路';
   static const compareSources = '对比来源';
   static const outOfRange = '此来源暂无该日期数据';
   static const outOfRangeDetail =

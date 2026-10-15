@@ -231,3 +231,30 @@ octet-stream → 置灰不可选。另：KMZ 被当文本解码（从未支持�
 analyze ✓ / test ✓ / Web release ✓ / APK release ✓，产物 web-release、apk-release。
 **附带修复**：live-smoke.yml 在 step 级 if 引用 secrets（不被允许）→ 工作流文件校验失败，
 导致每次 push 都出现 0 秒失败记录（Round 8 起即存在）；改为 job env 中转。
+
+
+## Round 11 — 2026-10-15（真机反馈体验修复）
+
+**起因**：用户真机试用反馈：定位大多超时、定位后自动弹天气打断操作、“搜索此区域”基本不可用、
+导入的 GPX 线路在详情页不居中且无法缩放、外部攻略全部跳转百度。本轮只做不涉及产品方向取舍的修复
+（首页改版、定位转向“轨迹天气窗口”等需用户另行确认，未做）。
+
+**完成（T-103）**：
+- 定位：`lib/data/location/location_service.dart` 抽出 `GeolocatorBackend` 便于测试；Android 用
+  `AndroidSettings(forceLocationManager: true)`（无 GMS 的国产 ROM 默认 Fused 会等满超时），精度
+  medium、timeLimit 30s；先取 `getLastKnownPosition`（Web 跳过）立即居中，新位置失败时退回上次已知
+  位置并以 `LocationFix.isLastKnown` 如实标注（标签/面板标题显示“上次已知位置”+ 提示）。失败分类不变。
+- 首页定位：成功后只移动地图 + 地图上显示“当前位置 · 气温 / 来源名”小标签（主来源单点请求，
+  与点位面板同参数可命中缓存），点击才打开 `PointWeatherSheet`；不再自动请求 Overpass。
+- 线路地图：新增 `lib/ui/map/route_camera.dart`（`routeDisplayBounds`/`routeCameraFit` 纯函数，全部
+  segments、GCJ-02 先 toDisplay、单点扩展最小跨度）。详情小地图 `initialCameraFit` 自适配，保持
+  不响应手势（避免与 ListView 冲突），点击或全屏按钮进入可拖动/缩放大图（含“显示整条线路”）。
+  首页选搜索结果线路、线路列表选线路改为适配整条线路范围。
+- 无效入口：“搜索此区域”主按钮移除，降为线路列表底部“尝试加载此区域 OSM 线路”并说明国内常不可达；
+  选地点不再自动请求 Overpass；外部攻略折叠为“更多：外部网页搜索（次要）”并写明原因。底层
+  Overpass / ExternalTrailSearch 代码与测试保留。原因文案集中在 `strings.dart`。
+
+**本地验证**：flutter analyze 0 问题；flutter test 151/151 通过（新增 location_service_test 8 项、
+route_camera_test 4 项；改写首页定位与混合搜索组件测试；集成测试覆盖全屏线路地图）。
+**待真机确认**：国产 Android 定位速度与成功率；上次已知位置回退提示；当前位置标签点击；详情页
+小地图包围盒适配与全屏手势；首页选线路后的适配范围是否被搜索栏/线路卡遮挡；iOS 定位行为。

@@ -104,3 +104,11 @@
   扩展名过滤在移动端不可靠。
 - 支付：未接入商店内购与验单前 `Billing.available=false`，purchase 抛错、不授予 Pro；
   修订 D-016 中“已落地”的 Pro 权益为“开发中”。真实支付接入为需授权事项（B-008）。
+
+## D-018 定位参数与无效入口降级
+- 定位：Android 强制 LocationManager（`AndroidSettings.forceLocationManager`），精度 medium、
+  timeLimit 30s；先用上次已知位置居中，新位置失败退回上次已知位置并标注。无新增依赖（geolocator 14.1.1
+  已导出 AndroidSettings）。
+- 首页定位成功不再自动弹出天气面板、不自动请求 Overpass，改为地图上的小标签。
+- Overpass 区域搜索与外部攻略（百度 site: 搜索）国内可用性差：从主界面降级为次要入口（线路列表底部、
+  搜索结果折叠项），保留代码与测试，待产品方向确认后再决定去留。

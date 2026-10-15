@@ -102,27 +102,8 @@ class HybridRouteSearchResults extends StatelessWidget {
               if (!searching && routes.isEmpty && places.isEmpty)
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Text(
-                    '暂未找到可直接分析的线路。可从外部攻略获取线索，或导入你有权使用的轨迹文件。',
-                    style: TextStyle(fontSize: 12),
-                  ),
+                  child: Text(S.noDirectRoutes, style: TextStyle(fontSize: 12)),
                 ),
-              if (external.isNotEmpty) ...[
-                const _SectionTitle(
-                  icon: Icons.open_in_browser,
-                  title: S.externalGuides,
-                  subtitle: '在系统浏览器搜索；App 不抓取或复制平台内容',
-                ),
-                for (final target in external)
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.open_in_new, size: 19),
-                    title: Text(target.label),
-                    subtitle: Text('通过百度限定搜索 ${target.siteHost}'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => onExternalTap(target),
-                  ),
-              ],
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.public, size: 20),
@@ -146,6 +127,31 @@ class HybridRouteSearchResults extends StatelessWidget {
                 subtitle: const Text('导入 GPX / KML / GeoJSON 后即可分析沿途天气'),
                 onTap: onImportTap,
               ),
+              // 外部网页搜索降级为折叠的次要入口，原因见 S.externalGuidesReason。
+              if (external.isNotEmpty)
+                ExpansionTile(
+                  dense: true,
+                  leading: const Icon(Icons.open_in_browser, size: 20),
+                  title: const Text(
+                    S.externalGuidesCollapsed,
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  subtitle: const Text(
+                    S.externalGuidesReason,
+                    style: TextStyle(fontSize: 10),
+                  ),
+                  children: [
+                    for (final target in external)
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.open_in_new, size: 19),
+                        title: Text(target.label),
+                        subtitle: Text('通过百度限定搜索 ${target.siteHost}'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => onExternalTap(target),
+                      ),
+                  ],
+                ),
             ],
           ),
         ),

@@ -126,7 +126,9 @@ HikingRoute _demoRoute() => HikingRoute(
 
 class _DeniedLocationService implements LocationService {
   @override
-  Future<LatLng> currentPosition() async =>
+  Future<LocationFix> currentPosition({
+    void Function(LatLng)? onLastKnown,
+  }) async =>
       throw const LocationFailure(LocationFailureKind.denied, '集成测试不启用设备定位');
 
   @override
@@ -208,6 +210,16 @@ void main() {
     // 4. 详情页：事实卡 + 演示标签（ListView 懒挂载，断言前滚动到目标）
     expect(find.text('集成测试线路'), findsOneWidget);
     expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
+
+    // 线路小地图：可打开可交互的全屏大图，并能“显示整条线路”。
+    await tester.tap(find.byTooltip(S.routeMapFullscreen));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip(S.routeMapFitAll), findsOneWidget);
+    await tester.tap(find.byTooltip(S.routeMapFitAll));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip(S.routeMapFitAll), findsNothing);
 
     // 5. 滚动到天气区：节点有数据（温度文本出现）
     await tester.scrollUntilVisible(find.text(S.routeSummary), 300);

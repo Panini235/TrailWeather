@@ -18,6 +18,7 @@ import '../../data/weather/weather_repository.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 import '../map/basemap.dart';
+import '../map/route_camera.dart';
 import 'detail_state.dart';
 import 'elevation_profile.dart';
 import 'node_detail_sheet.dart';
@@ -411,63 +412,165 @@ class _RouteMiniMap extends ConsumerWidget {
   final List<NodeWxRow> rows;
   final int? selectedIndex;
 
+  void _openFullscreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => _RouteFullMapPage(
+          route: route,
+          rows: rows,
+          selectedIndex: selectedIndex,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final basemap = Basemap(ref.watch(settingsProvider).basemap);
-    final pts = route.mainSegment;
-    final (minLat, maxLat) = Geo.minMaxLat(pts);
-    final (minLon, maxLon) = Geo.minMaxLon(pts);
-    final center = LatLng((minLat + maxLat) / 2, (minLon + maxLon) / 2);
+    final fit = routeCameraFit(route, basemap);
+    // 小地图不响应拖动/缩放，避免与外层 ListView 滚动手势冲突；
+    // 点击或全屏按钮进入可交互大图。
     return SizedBox(
       height: 220,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: basemap.toDisplay(center),
-            initialZoom: 12,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.none,
-            ),
-          ),
+        child: Stack(
           children: [
-            basemap.tileLayer(),
-            PolylineLayer(
-              polylines: [
-                for (final seg in route.segments)
-                  Polyline(
-                    points: [
-                      for (final pt in Geo.simplify(seg, 15))
-                        basemap.toDisplay(pt),
-                    ],
-                    strokeWidth: 4,
-                    color: const Color(0xFF1565C0),
-                  ),
-              ],
+            FlutterMap(
+              key: ValueKey('mini-${route.id}-${basemap.source.name}'),
+              options: MapOptions(
+                initialCameraFit: fit,
+                // 无几何时的兜底；有 fit 时 initialCameraFit 优先。
+                initialCenter: const LatLng(39.99, 116.17),
+                initialZoom: 12,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.none,
+                ),
+                onTap: (_, _) => _openFullscreen(context),
+              ),
+              children: _routeMapLayers(
+                basemap: basemap,
+                route: route,
+                rows: rows,
+                selectedIndex: selectedIndex,
+              ),
             ),
-            MarkerLayer(
-              markers: [
-                for (var i = 0; i < rows.length; i++)
-                  Marker(
-                    point: basemap.toDisplay(rows[i].node.pos),
-                    width: 26,
-                    height: 26,
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: Icon(
-                        selectedIndex == i ? Icons.place : Icons.circle,
-                        size: selectedIndex == i ? 24 : 10,
-                        color: selectedIndex == i
-                            ? Colors.red
-                            : (rows[i].wx == null
-                                  ? Colors.grey
-                                  : Colors.deepOrange),
-                      ),
-                    ),
-                  ),
-              ],
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Material(
+                color: Theme.of(context).colorScheme.surface
+                    .withValues(alpha: 0.9),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: S.routeMapFullscreen,
+                  icon: const Icon(Icons.fullscreen),
+                  onPressed: () => _openFullscreen(context),
+                ),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+List<Widget> _routeMapLayers({
+  required Basemap basemap,
+  required HikingRoute route,
+  required List<NodeWxRow> rows,
+  required int? selectedIndex,
+  bool attribution = false,
+}) {
+  return [
+    basemap.tileLayer(),
+    PolylineLayer(
+      polylines: [
+        for (final seg in route.segments)
+          Polyline(
+            points: [
+              for (final pt in Geo.simplify(seg, 15)) basemap.toDisplay(pt),
+            ],
+            strokeWidth: 4,
+            color: const Color(0xFF1565C0),
+          ),
+      ],
+    ),
+    MarkerLayer(
+      markers: [
+        for (var i = 0; i < rows.length; i++)
+          Marker(
+            point: basemap.toDisplay(rows[i].node.pos),
+            width: 26,
+            height: 26,
+            child: Icon(
+              selectedIndex == i ? Icons.place : Icons.circle,
+              size: selectedIndex == i ? 24 : 10,
+              color: selectedIndex == i
+                  ? Colors.red
+                  : (rows[i].wx == null ? Colors.grey : Colors.deepOrange),
+            ),
+          ),
+      ],
+    ),
+    if (attribution) basemap.attributionWidget(),
+  ];
+}
+
+/// 可拖动/缩放的线路大图；打开时自动适配整条线路范围。
+class _RouteFullMapPage extends ConsumerStatefulWidget {
+  const _RouteFullMapPage({
+    required this.route,
+    required this.rows,
+    required this.selectedIndex,
+  });
+
+  final HikingRoute route;
+  final List<NodeWxRow> rows;
+  final int? selectedIndex;
+
+  @override
+  ConsumerState<_RouteFullMapPage> createState() => _RouteFullMapPageState();
+}
+
+class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
+  final MapController _controller = MapController();
+
+  @override
+  Widget build(BuildContext context) {
+    final basemap = Basemap(ref.watch(settingsProvider).basemap);
+    final fit = routeCameraFit(
+      widget.route,
+      basemap,
+      padding: const EdgeInsets.all(40),
+    );
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.route.name)),
+      floatingActionButton: fit == null
+          ? null
+          : FloatingActionButton.small(
+              tooltip: S.routeMapFitAll,
+              onPressed: () => _controller.fitCamera(fit),
+              child: const Icon(Icons.fit_screen),
+            ),
+      body: FlutterMap(
+        mapController: _controller,
+        options: MapOptions(
+          initialCameraFit: fit,
+          minZoom: 3,
+          maxZoom: 18,
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+          ),
+        ),
+        children: _routeMapLayers(
+          basemap: basemap,
+          route: widget.route,
+          rows: widget.rows,
+          selectedIndex: widget.selectedIndex,
+          attribution: true,
         ),
       ),
     );

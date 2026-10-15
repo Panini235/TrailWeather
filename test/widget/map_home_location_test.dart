@@ -18,11 +18,15 @@ class _FakeLocationService implements LocationService {
   int calls = 0;
 
   @override
-  Future<LatLng> currentPosition() async {
+  Future<LocationFix> currentPosition({
+    void Function(LatLng)? onLastKnown,
+  }) async {
     calls++;
-    return calls == 1
-        ? const LatLng(31.2304, 121.4737)
-        : const LatLng(30.2741, 120.1551);
+    return LocationFix(
+      calls == 1
+          ? const LatLng(31.2304, 121.4737)
+          : const LatLng(30.2741, 120.1551),
+    );
   }
 
   @override
@@ -119,7 +123,7 @@ class _FakeWeatherProvider extends WeatherProvider {
 }
 
 void main() {
-  testWidgets('首页自动定位显示天气，关闭后定位按钮可再次使用', (tester) async {
+  testWidgets('首页自动定位只显示当前位置天气标签，点击才打开面板，不自动请求 OSM', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     final location = _FakeLocationService();
@@ -139,10 +143,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(location.calls, 1);
-    expect(routes.calls, 1);
+    // 不自动弹出面板，也不自动发 Overpass 请求。
+    expect(routes.calls, 0);
+    expect(find.text(S.currentLocation), findsNothing);
+    expect(find.text('${S.myLocationChip} · 18°C'), findsOneWidget);
+    expect(find.text('测试天气'), findsOneWidget);
+    // “搜索此区域”不再是首页主按钮。
+    expect(find.byTooltip(S.searchThisArea), findsNothing);
+
+    await tester.tap(find.text('${S.myLocationChip} · 18°C'));
+    await tester.pumpAndSettle();
     expect(find.text(S.currentLocation), findsOneWidget);
+    expect(find.text(S.selectedPointWeather), findsNothing);
     expect(find.textContaining('31.23040, 121.47370'), findsOneWidget);
-    expect(find.textContaining('18'), findsWidgets);
 
     // 点击 bottom sheet 外部关闭，定位按钮应恢复为可点击状态。
     await tester.tapAt(const Offset(8, 8));
@@ -153,7 +166,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(location.calls, 2);
-    expect(routes.calls, 2);
+    expect(routes.calls, 0);
+    expect(find.text(S.currentLocation), findsNothing);
+    await tester.tap(find.text('${S.myLocationChip} · 18°C'));
+    await tester.pumpAndSettle();
     expect(find.text(S.currentLocation), findsOneWidget);
     expect(find.textContaining('30.27410, 120.15510'), findsOneWidget);
   });
