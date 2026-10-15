@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/monetization/subscription_models.dart';
 import '../../data/settings/settings_repository.dart';
 
-/// 新用户引导流（Onboarding），符合海明Dev付费转化规范：
-/// 痛点问诊 → 价值唤醒与对比 → 核心功能演示 → 权益与试用选择。
+/// 首次使用先进入真实线路体验；商业化暂缓期间不展示套餐或购买引导。
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -17,444 +15,138 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final PageController _controller = PageController();
-  int _currentPage = 0;
-  String _selectedScene = 'long'; // long: 重装长线, day: 单日登山, camp: 露营越野
+  bool _finishing = false;
 
-  void _finishOnboarding({bool openPaywall = false}) {
-    ref.read(settingsProvider.notifier).completeOnboarding();
-    if (openPaywall) {
-      unawaited(context.push('/paywall'));
-    } else {
-      context.go('/');
-    }
-  }
-
-  void _nextPage() {
-    if (_currentPage < 3) {
-      _controller.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      _finishOnboarding();
-    }
+  Future<void> _finish({bool importRoute = false}) async {
+    if (_finishing) return;
+    setState(() => _finishing = true);
+    await ref.read(settingsProvider.notifier).completeOnboarding();
+    if (!mounted) return;
+    final router = GoRouter.of(context);
+    router.go('/');
+    if (importRoute) unawaited(router.push('/import'));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
+    final colors = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        actions: [
-          TextButton(
-            onPressed: () => _finishOnboarding(),
-            child: const Text('跳过'),
-          ),
-        ],
-      ),
+      appBar: AppBar(automaticallyImplyLeading: false),
       body: SafeArea(
-        child: Column(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           children: [
-            Expanded(
-              child: PageView(
-                controller: _controller,
-                onPageChanged: (idx) => setState(() => _currentPage = idx),
-                children: [
-                  _buildSceneQuestionPage(),
-                  _buildValueAwakeningPage(),
-                  _buildFeatureShowcasePage(),
-                  _buildOfferPage(),
-                ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Icon(
+                Icons.landscape_outlined,
+                size: 56,
+                color: colors.primary,
               ),
             ),
-
-            // 底部指示器与操作栏
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // 圆点指示器
-                  Row(
-                    children: List.generate(
-                      4,
-                      (i) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentPage == i ? 20 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _currentPage == i
-                              ? primary
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // 下一步按钮
-                  FilledButton(
-                    onPressed: _nextPage,
-                    child: Text(_currentPage == 3 ? '开始探索' : '下一步'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Page 0: 痛点问诊
-  Widget _buildSceneQuestionPage() {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              '定制你的徒步天气关注点',
-              style: TextStyle(
-                fontSize: 12,
+            const SizedBox(height: 20),
+            Text(
+              '出发前，看懂沿途天气',
+              style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: primary,
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '你最常在什么场景下徒步？',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '山地气象瞬息万变，我们将根据你的偏好推荐最关键的沿途风险指标。',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          _buildSceneOption(
-            key: 'long',
-            icon: '🏔️',
-            title: '高海拔多日重装徒步',
-            subtitle: '如雨崩、TMB、乌孙、冈仁波齐等，强风寒与失温风险极高',
-          ),
-          const SizedBox(height: 12),
-          _buildSceneOption(
-            key: 'day',
-            icon: '🌲',
-            title: '单日郊野登山与周末爬山',
-            subtitle: '如北京香山、杭州九溪、深圳梧桐山，需准确降雨窗口与能见度',
-          ),
-          const SizedBox(height: 12),
-          _buildSceneOption(
-            key: 'camp',
-            icon: '⛺️',
-            title: '山地露营与越野自驾',
-            subtitle: '夜间降温幅度、山谷阵风与降水窗口',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSceneOption({
-    required String key,
-    required String icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final isSelected = _selectedScene == key;
-    final primary = Theme.of(context).colorScheme.primary;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => setState(() => _selectedScene = key),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? primary.withValues(alpha: 0.08)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? primary : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 26)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            Text(
+              '导入一条徒步线路，按出发时间查看沿途预报。\n不需要注册账号，也可以先从示例线路开始。',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.6,
               ),
             ),
-            if (isSelected) Icon(Icons.check_circle, color: primary, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Page 1: 价值唤醒（普通天气 vs 沿途微气候）
-  Widget _buildValueAwakeningPage() {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '为什么普通天气预报在山里不准？',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 24),
+            const _GuideStep(
+              icon: Icons.file_upload_outlined,
+              title: '带上你的线路',
+              description: '支持 GPX、KML、KMZ 和 GeoJSON，也可以在地图上手绘。',
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '城市天气通常对应城区位置。山里海拔差大，气温一般随海拔升高而降低（典型约每 1000 m 降 6.5℃），山脊风也常比山谷强。',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          // 对比卡片
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.red.shade200),
+            const _GuideStep(
+              icon: Icons.schedule_outlined,
+              title: '选择出发时间',
+              description: '查看同一时刻的天气，或结合配速估算沿途到达时间。',
             ),
-            child: const Row(
-              children: [
-                Text('📱', style: TextStyle(fontSize: 28)),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '普通手机天气：26℃ 晴朗微风',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        '对应城区附近，不代表山脊、垭口等沿途位置',
-                        style: TextStyle(fontSize: 12, color: Colors.black87),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            const _GuideStep(
+              icon: Icons.cloud_outlined,
+              title: '核对来源与更新时间',
+              description: '预报不是实测；缺失数据和超出预报范围的时段会明确说明。',
             ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: primary.withValues(alpha: 0.4)),
-            ),
-            child: const Row(
-              children: [
-                Text('🏔️', style: TextStyle(fontSize: 28)),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'TrailWeather 空间微气候推演',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        '沿轨迹采样节点逐点查询网格预报，按预计到达时间对齐，多来源并排对比（预报非实测）',
-                        style: TextStyle(fontSize: 12, color: Colors.black87),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Page 2: 核心功能赋能（全球神线、手绘、导入）
-  Widget _buildFeatureShowcasePage() {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '全能户外路线与气象工坊',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '无论世界顶级神线还是周末自制路线，全部一触即达。',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          _buildFeatureBullet(
-            icon: '🌍',
-            title: '徒步星球 · 44+ 条全球顶级经典神线',
-            desc: '环勃朗峰 TMB、冈仁波齐、EBC、虎跳峡，随时查看未来 7 天微气候窗口。',
-          ),
-          const SizedBox(height: 16),
-          _buildFeatureBullet(
-            icon: '✏️',
-            title: 'Trail Studio · 线路手绘规划工坊',
-            desc: '在底图上打点画线、标记营地水源、推演耗时，一键导出 GPX/KML 至奥维或手表。',
-          ),
-          const SizedBox(height: 16),
-          _buildFeatureBullet(
-            icon: '📂',
-            title: '商业级导入 · 支持奥维/两步路/KMZ/GPX',
-            desc: '突破大小与点数限制，自适应智能抽稀，保护极值海拔，绝不崩溃。',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureBullet({
-    required String icon,
-    required String title,
-    required String desc,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 26)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                desc,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Page 3: 权益与试用选择
-  Widget _buildOfferPage() {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Center(
-            child: Icon(Icons.workspace_premium, color: Colors.amber, size: 48),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'TrailWeather Pro（规划中）',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '高程气温修正、失温提示、离线气象包与等高线地形图正在开发中。当前已上线功能全部免费。',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: primary.withValues(alpha: 0.3)),
-            ),
-            child: const Column(
-              children: [
-                Text(
-                  Billing.unavailableNotice,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.black87),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
+            const SizedBox(height: 16),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
               ),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Text(
+                  '离线行程包尚未提供。出发前请另备可离线使用的地图与资料。',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ),
             ),
-            onPressed: () => _finishOnboarding(openPaywall: true),
-            child: const Text(
-              '查看 Pro 方案预览',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _finishing ? null : () => _finish(importRoute: true),
+              icon: const Icon(Icons.file_upload_outlined),
+              label: const Text('导入我的线路'),
             ),
-          ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: () => _finishOnboarding(openPaywall: false),
-            child: const Text('开始免费使用'),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _finishing ? null : _finish,
+              child: const Text('先看示例线路'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideStep extends StatelessWidget {
+  const _GuideStep({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: theme.colorScheme.primary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

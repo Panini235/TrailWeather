@@ -6,7 +6,6 @@ import 'import/import_screen.dart';
 import 'import/incoming_file_listener.dart';
 import 'map/map_home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
-import 'paywall/paywall_screen.dart';
 import 'planet/planet_screen.dart';
 import 'planner/route_planner_screen.dart';
 import 'settings/settings_screen.dart';
@@ -69,13 +68,8 @@ GoRouter buildRouter() => GoRouter(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),
     ),
-    GoRoute(
-      path: '/paywall',
-      builder: (context, state) {
-        final source = state.extra as String?;
-        return PaywallScreen(sourceFeature: source);
-      },
-    ),
+    // 暂缓商业化期间，旧链接也不能进入付费墙。
+    GoRoute(path: '/paywall', redirect: (context, state) => '/'),
   ],
 );
 

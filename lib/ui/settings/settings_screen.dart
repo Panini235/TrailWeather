@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/cache_store.dart';
 import '../../data/app_providers.dart';
-import '../../data/monetization/subscription_models.dart';
-import '../../data/monetization/subscription_repository.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
@@ -20,15 +18,12 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
     final providers = ref.watch(weatherProvidersProvider);
-    final subscription = ref.watch(subscriptionProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text(S.settings)),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _buildProBanner(context, ref, subscription),
-          const SizedBox(height: 12),
           _section(context, '单位'),
           Card(
             child: Column(
@@ -194,60 +189,18 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          _section(context, '专业微气候算法 (PRO)'),
+          _section(context, '使用帮助'),
           Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  dense: true,
-                  title: const Text(
-                    '高程气温垂直递减修正（开发中）',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  subtitle: const Text(
-                    '尚未接入天气计算：开启与否都不会修改任何温度数据。',
-                    style: TextStyle(fontSize: 11),
-                  ),
-                  value: false,
-                  // 功能未实现前禁用，避免让人以为温度已被修正。
-                  onChanged: null,
-                ),
-              ],
-            ),
-          ),
-          _section(context, '新用户与引导'),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.explore_outlined, size: 20),
-                  title: const Text('重温新手引导流程', style: TextStyle(fontSize: 13)),
-                  subtitle: const Text(
-                    '重新探索场景偏好与微气候反差演示',
-                    style: TextStyle(fontSize: 11),
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 18),
-                  onTap: () => context.push('/onboarding'),
-                ),
-                ListTile(
-                  dense: true,
-                  leading: const Icon(
-                    Icons.workspace_premium_outlined,
-                    size: 20,
-                  ),
-                  title: const Text(
-                    '会员方案与权益对比',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  subtitle: const Text(
-                    '查看月度、年度与终身买断套餐详情',
-                    style: TextStyle(fontSize: 11),
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 18),
-                  onTap: () => context.push('/paywall'),
-                ),
-              ],
+            child: ListTile(
+              dense: true,
+              leading: const Icon(Icons.explore_outlined, size: 20),
+              title: const Text('查看使用指引', style: TextStyle(fontSize: 13)),
+              subtitle: const Text(
+                '导入线路、选择出发时间、核对天气来源',
+                style: TextStyle(fontSize: 11),
+              ),
+              trailing: const Icon(Icons.chevron_right, size: 18),
+              onTap: () => context.push('/onboarding'),
             ),
           ),
           _section(context, '缓存与数据'),
@@ -432,130 +385,10 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _buildProBanner(
-    BuildContext context,
-    WidgetRef ref,
-    UserSubscription sub,
-  ) {
-    final theme = Theme.of(context);
-    final isPro = sub.isPro;
-
-    return Card(
-      elevation: isPro ? 2 : 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isPro
-              ? Colors.amber.shade600
-              : theme.colorScheme.primary.withValues(alpha: 0.4),
-          width: 1.5,
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: isPro
-                ? [const Color(0xFFFFF8E1), const Color(0xFFFFECB3)]
-                : [
-                    theme.colorScheme.primary.withValues(alpha: 0.12),
-                    theme.colorScheme.primary.withValues(alpha: 0.04),
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.workspace_premium,
-                  color: isPro
-                      ? Colors.amber.shade800
-                      : theme.colorScheme.primary,
-                  size: 26,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isPro ? 'TrailWeather Pro 尊享会员' : 'TrailWeather Pro（规划中）',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                if (isPro)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade800,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      sub.plan == SubscriptionPlan.lifetime
-                          ? '终身尊享'
-                          : (sub.isTrial ? '试用中' : '有效中'),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              isPro
-                  ? (sub.expiresAtUtc != null
-                        ? '有效期至：${sub.expiresAtUtc!.toLocal().year}-${sub.expiresAtUtc!.toLocal().month.toString().padLeft(2, '0')}-${sub.expiresAtUtc!.toLocal().day.toString().padLeft(2, '0')}'
-                        : '终身会员已永久激活，尊享所有后续专业算法与离网包升级。')
-                  : '高程气温修正、失温提示、离线气象包与等高线地形图正在开发中，支付尚未接入。当前已上线的功能全部免费可用。',
-              style: TextStyle(
-                fontSize: 12,
-                color: isPro ? Colors.amber.shade900 : Colors.grey.shade700,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (!isPro)
-                  FilledButton.icon(
-                    icon: const Icon(Icons.visibility_outlined, size: 16),
-                    label: const Text(
-                      '查看方案预览',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    onPressed: () => context.push('/paywall'),
-                  )
-                else
-                  OutlinedButton(
-                    onPressed: () => context.push('/paywall'),
-                    child: const Text('会员权益详情', style: TextStyle(fontSize: 12)),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// 和风天气密钥配置（仅存本机，不上传）。
-/// 免费订阅即可获得；2024 起新账号需使用控制台分配的专属 API Host。
+/// 使用用户在和风控制台开通的 API 服务和专属 API Host。
 class _QweatherCredentialsCard extends ConsumerStatefulWidget {
   const _QweatherCredentialsCard();
 
@@ -607,7 +440,7 @@ class _QweatherCredentialsCardState
             ),
             const SizedBox(height: 4),
             const Text(
-              '在 dev.qweather.com 免费注册订阅后，于“控制台”查看你的 API Key 与 API Host'
+              '在 dev.qweather.com 控制台查看已开通服务的 API Key 与 API Host'
               '（新账号为专属域名，形如 abc123.qweatherapi.com；旧账号可用 devapi.qweather.com）。'
               '密钥仅保存在本机。未配置时该来源会显示配置指引，其余来源不受影响。',
               style: TextStyle(fontSize: 11, height: 1.5, color: Colors.grey),
