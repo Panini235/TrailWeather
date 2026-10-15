@@ -276,4 +276,4 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓。
 
 **本地验证**：flutter analyze 0；flutter test 153/153。
 **未验证**：真机“打开方式”列表与读取（无设备）；iOS 未接入（T-122）。
-
+**CI 结果**：run 38678967686 conclusion=success（analyze / test / Web / APK，APK 步骤编译了 MainActivity.kt）。

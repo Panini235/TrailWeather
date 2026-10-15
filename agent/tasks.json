@@ -417,7 +417,7 @@
       "status": "done",
       "acceptance": "首页为我的行程（空状态引导导入/手绘、删除、示例线路与徒步星球置底）；StatefulShellRoute 三分支；地图移除已迁出的入口；路由器只创建一次；移除百度外部搜索",
       "verify": "flutter test test/widget/trips_shell_test.dart",
-      "result": "本地 analyze 0 + test 153 全绿"
+      "result": "本地 analyze 0 + test 153 全绿；CI 38678967686 全绿（含 APK 编译 MainActivity.kt）"
     },
     {
       "id": "T-121",
@@ -429,7 +429,7 @@
       "status": "done",
       "acceptance": "VIEW/SEND intent（gpx/kml/kmz/geojson/xml/octet-stream）→ MethodChannel → 内容嗅探解析 → 统一确认保存；singleTask；已消费标记防重复导入；30MB 上限后台读取",
       "verify": "trips_shell_test 外部传入用例 + CI APK 编译 MainActivity.kt；flutter create 不覆盖已验证（本地 scratch）",
-      "result": "真机待用户验证（两步路/奥维/微信 打开方式）"
+      "result": "真机待用户验证（两步路/奥维/微信 打开方式）；CI 38678967686 全绿（含 APK 编译 MainActivity.kt）"
     },
     {
       "id": "T-122",
