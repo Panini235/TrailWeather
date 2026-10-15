@@ -1,0 +1,173 @@
+00:00 +0: loading /Users/admin/Desktop/app/TrailWeather/test/unit/gcj02_test.dart
+00:00 +0: /Users/admin/Desktop/app/TrailWeather/test/unit/gcj02_test.dart: Gcj02 坐标转换 境外坐标恒等返回（不转换）
+00:00 +1: /Users/admin/Desktop/app/TrailWeather/test/unit/eta_and_sampling_test.dart: computeEtas 平地 4 km/h 无爬升无休息
+00:00 +2: /Users/admin/Desktop/app/TrailWeather/test/unit/eta_and_sampling_test.dart: computeEtas 平地 4 km/h 无爬升无休息
+00:00 +3: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +4: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +5: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +6: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +7: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +8: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +9: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +10: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 阵风超阈值触发大风提示（非官方预警）
+00:00 +11: /Users/admin/Desktop/app/TrailWeather/test/unit/eta_and_sampling_test.dart: sampleRoute 高点必含并标注
+00:00 +12: /Users/admin/Desktop/app/TrailWeather/test/unit/eta_and_sampling_test.dart: sampleRoute 高点必含并标注
+00:00 +13: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 累计降水达标触发强降水
+00:00 +14: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 累计降水达标触发强降水
+00:00 +15: /Users/admin/Desktop/app/TrailWeather/test/unit/eta_and_sampling_test.dart: sampleRoute 空保护
+00:00 +16: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 高降水概率不等于降水量（分别提示）
+00:00 +17: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 全部无数据显示信息不足（不默认安全）
+00:00 +18: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 部分节点缺数据有明确提示
+00:00 +19: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 低温与高温
+00:00 +20: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 日落提示
+00:00 +21: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: 官方预警固定为未接入表述
+00:00 +22: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: routePrecipMm（沿途降水按小时取最大再累加） 同一小时 20 个节点各 0.5 mm 不累加成 10 mm
+00:00 +23: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: routePrecipMm（沿途降水按小时取最大再累加） 跨小时取每小时最大值后累加；分钟不影响分组
+00:00 +24: /Users/admin/Desktop/app/TrailWeather/test/unit/risk_rules_test.dart: routePrecipMm（沿途降水按小时取最大再累加） 全部缺失返回 null 而不是 0
+00:00 +25: /Users/admin/Desktop/app/TrailWeather/test/unit/route_direction_waypoints_test.dart: 反向行走与环线 reversed 互换起终点，海拔整体倒序，航点不变
+00:00 +26: /Users/admin/Desktop/app/TrailWeather/test/unit/route_direction_waypoints_test.dart: 反向行走与环线 起终点 200 m 内为环线
+00:00 +27: /Users/admin/Desktop/app/TrailWeather/test/unit/route_direction_waypoints_test.dart: 分析路径：多日轨迹首尾相接的段要串联（五台山 KML 三段间隔 12 m / 34 m） 间隔很小的三段全部串联
+00:00 +28: /Users/admin/Desktop/app/TrailWeather/test/unit/route_direction_waypoints_test.dart: 分析路径：多日轨迹首尾相接的段要串联（五台山 KML 三段间隔 12 m / 34 m） 相距超过 1 km 的断开段不串联，取最长链并标记未覆盖
+00:00 +29: /Users/admin/Desktop/app/TrailWeather/test/unit/route_direction_waypoints_test.dart: 航点：吸附、采样与停留时长 航点吸附为节点并带名称；偏离超过 300 m 的不进入时间线
+00:00 +30: /Users/admin/Desktop/app/TrailWeather/test/unit/route_direction_waypoints_test.dart: 航点：吸附、采样与停留时长 休息点停留时长计入之后节点的预计到达时间
+00:00 +31: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +32: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +33: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +34: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +35: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +36: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +37: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +38: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 成功加载 44 条全球经典徒步路线
+00:00 +39: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 地貌类别与里程区间筛选功能正常
+00:00 +40: /Users/admin/Desktop/app/TrailWeather/test/unit/planet_trails_test.dart: PlanetTrailsRepository 随机探索能返回路线
+00:00 +41: /Users/admin/Desktop/app/TrailWeather/test/unit/overpass_test.dart: assembleSegments 顺序 way 直接连接
+00:00 +42: /Users/admin/Desktop/app/TrailWeather/test/unit/units_test.dart: 温度换算
+00:00 +43: /Users/admin/Desktop/app/TrailWeather/test/unit/units_test.dart: 温度换算
+00:00 +44: /Users/admin/Desktop/app/TrailWeather/test/unit/units_test.dart: 温度换算
+00:00 +45: /Users/admin/Desktop/app/TrailWeather/test/unit/units_test.dart: 温度换算
+00:00 +46: /Users/admin/Desktop/app/TrailWeather/test/unit/units_test.dart: 温度换算
+00:00 +47: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: CacheStore 写入后可读取，TTL 过期可感知
+00:00 +48: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: CacheStore 写入后可读取，TTL 过期可感知
+00:00 +49: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: CacheStore 写入后可读取，TTL 过期可感知
+00:00 +50: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: CacheStore 写入后可读取，TTL 过期可感知
+00:00 +51: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_test.dart: Geo.distanceM 同一坐标距离为 0
+00:00 +52: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_test.dart: Geo.distanceM 同一坐标距离为 0
+00:00 +53: /Users/admin/Desktop/app/TrailWeather/test/unit/overpass_test.dart: parseResponse 解析 relation（含 tags 与多 way 几何）
+00:00 +54: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: CacheStore 命名空间隔离与清除
+00:00 +55: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +56: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +57: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +58: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +59: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +60: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +61: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +62: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +63: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +64: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +65: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +66: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数少于目标上限时保持原样
+00:00 +67: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: GpxImport 解析正常轨迹（含海拔）
+00:00 +68: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: GpxImport 解析正常轨迹（含海拔）
+00:00 +69: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: GpxImport 解析正常轨迹（含海拔）
+00:00 +70: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: GpxImport 解析正常轨迹（含海拔）
+00:00 +71: /Users/admin/Desktop/app/TrailWeather/test/unit/cache_and_gpx_test.dart: GpxImport 解析正常轨迹（含海拔）
+00:00 +72: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +73: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +74: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +75: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +76: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +77: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +78: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +79: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +80: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +81: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +82: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +83: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +84: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +85: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 点数过大时抽稀至目标点数以内，且点数与高程严格 1:1
+00:00 +86: /Users/admin/Desktop/app/TrailWeather/test/unit/geo_simplify_track_test.dart: Geo.simplifyTrack 必须强制保留最高点与最低点
+00:00 +87: /Users/admin/Desktop/app/TrailWeather/test/unit/kml_import_test.dart: KmlImport 解析标准 KML LineString（含高程）
+00:00 +88: /Users/admin/Desktop/app/TrailWeather/test/unit/kml_import_test.dart: KmlImport 解析标准 KML LineString（含高程）
+00:00 +89: /Users/admin/Desktop/app/TrailWeather/test/unit/kml_import_test.dart: KmlImport 解析标准 KML LineString（含高程）
+00:00 +90: /Users/admin/Desktop/app/TrailWeather/test/unit/kml_import_test.dart: KmlImport 解析标准 KML LineString（含高程）
+00:00 +91: /Users/admin/Desktop/app/TrailWeather/test/unit/kml_import_test.dart: KmlImport 解析标准 KML LineString（含高程）
+00:00 +92: /Users/admin/Desktop/app/TrailWeather/test/unit/location_service_test.dart: GeolocatorLocationService 回退顺序 先回调上次已知位置，再返回新位置
+00:00 +93: /Users/admin/Desktop/app/TrailWeather/test/unit/location_service_test.dart: GeolocatorLocationService 回退顺序 先回调上次已知位置，再返回新位置
+00:00 +94: /Users/admin/Desktop/app/TrailWeather/test/unit/location_service_test.dart: GeolocatorLocationService 回退顺序 先回调上次已知位置，再返回新位置
+00:00 +95: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +96: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +97: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +98: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +99: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +100: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +101: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +102: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +103: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +104: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +105: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GPX（含 CRLF 与 BOM）
+00:00 +106: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 KML gx:Track，扩展名异常（"xxx.kml 2"）也能识别
+00:00 +107: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 KMZ：解压 doc.kml
+00:01 +108: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 KMZ：无 doc.kml 时取第一个 .kml
+00:01 +109: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 KMZ 内无 KML 时给出明确错误
+00:01 +110: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 GeoJSON
+00:01 +111: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 无法识别的格式与空文件
+00:01 +112: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 解析器异常统一转换为 RouteImportException
+00:01 +113: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 逐点重复告警合并计数
+00:01 +114: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: RouteFileImport 按内容识别格式 isolate 入口函数可直接调用
+00:01 +115: /Users/admin/Desktop/app/TrailWeather/test/unit/route_file_import_test.dart: GeoJSON 超长轨迹自适应抽稀而非拒绝
+00:01 +116: /Users/admin/Desktop/app/TrailWeather/test/unit/route_exporter_test.dart: RouteExporter & Roundtrip Import 导出标准 GPX 并成功往返解析
+00:01 +117: /Users/admin/Desktop/app/TrailWeather/test/unit/subscription_test.dart: Subscription & Monetization 初始未付费用户为免费版（isPro 为 false）
+00:01 +118: /Users/admin/Desktop/app/TrailWeather/test/unit/subscription_test.dart: Subscription & Monetization 初始未付费用户为免费版（isPro 为 false）
+00:01 +119: /Users/admin/Desktop/app/TrailWeather/test/unit/subscription_test.dart: Subscription & Monetization 支付未接入时购买抛错且不授予 Pro（不得本地白送会员）
+00:01 +120: /Users/admin/Desktop/app/TrailWeather/test/unit/subscription_test.dart: Subscription & Monetization 旧版本“模拟开通”遗留的本机 Pro 记录无效
+00:01 +121: /Users/admin/Desktop/app/TrailWeather/test/unit/subscription_test.dart: Subscription & Monetization 未实现的 Pro 权益必须标为不可用
+00:01 +122: /Users/admin/Desktop/app/TrailWeather/test/unit/subscription_test.dart: Subscription & Monetization UserSubscription 序列化往返（为接入真实支付保留）
+00:01 +123: /Users/admin/Desktop/app/TrailWeather/test/widget/hybrid_route_search_test.dart: 混合搜索分组展示线路与地点，不再有外部百度搜索，选地点不自动请求 OSM
+00:02 +124: /Users/admin/Desktop/app/TrailWeather/test/widget/planet_screen_test.dart: PlanetTrailsScreen 展示分类 Chip 并列出全球经典路线
+00:02 +125: /Users/admin/Desktop/app/TrailWeather/test/widget/route_planner_screen_test.dart: RoutePlannerScreen 渲染地图规划画板、模式切换与底栏状态
+00:02 +126: /Users/admin/Desktop/app/TrailWeather/test/widget/common_widgets_test.dart: MissingValueText：缺失显示“此来源未提供”，不为 0
+00:02 +127: /Users/admin/Desktop/app/TrailWeather/test/widget/common_widgets_test.dart: MissingValueText：缺失显示“此来源未提供”，不为 0
+00:02 +128: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 首页是“我的行程”；空状态引导导入与手绘
+00:02 +129: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 首页是“我的行程”；空状态引导导入与手绘
+00:02 +130: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 首页是“我的行程”；空状态引导导入与手绘
+00:02 +131: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 首页是“我的行程”；空状态引导导入与手绘
+00:02 +132: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 首页是“我的行程”；空状态引导导入与手绘
+00:02 +133: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 首页是“我的行程”；空状态引导导入与手绘
+00:03 +134: /Users/admin/Desktop/app/TrailWeather/test/widget/onboarding_screen_test.dart: 首次引导直接进入示例并记住完成状态，无付费引导
+00:03 +135: /Users/admin/Desktop/app/TrailWeather/test/widget/map_home_location_test.dart: 首页自动定位只显示当前位置天气标签，点击才打开面板，不自动请求 OSM
+00:03 +136: /Users/admin/Desktop/app/TrailWeather/test/widget/map_home_location_test.dart: 首页自动定位只显示当前位置天气标签，点击才打开面板，不自动请求 OSM
+00:03 +137: /Users/admin/Desktop/app/TrailWeather/test/widget/map_home_location_test.dart: 首页自动定位只显示当前位置天气标签，点击才打开面板，不自动请求 OSM
+00:03 +138: /Users/admin/Desktop/app/TrailWeather/test/widget/map_home_location_test.dart: 首页自动定位只显示当前位置天气标签，点击才打开面板，不自动请求 OSM
+00:03 +139: /Users/admin/Desktop/app/TrailWeather/test/widget/map_home_location_test.dart: 首页自动定位只显示当前位置天气标签，点击才打开面板，不自动请求 OSM
+00:04 +140: /Users/admin/Desktop/app/TrailWeather/test/widget/route_detail_v2_test.dart: 显示行进方向；点节点选中，再点或点详情打开节点详情
+00:04 +141: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +142: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +143: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +144: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +145: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +146: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +147: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +148: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +149: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +150: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +151: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +152: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +153: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +154: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:04 +155: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +156: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +157: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +158: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +159: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +160: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +161: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +162: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +163: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +164: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +165: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +166: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +167: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +168: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +169: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部应用传入文件：解析 → 确认 → 保存到行程
+00:05 +170: /Users/admin/Desktop/app/TrailWeather/test/widget/trips_shell_test.dart: 外部传入无法识别的文件给出明确错误，不保存
+00:06 +171: All tests passed!

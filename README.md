@@ -94,12 +94,16 @@ test/              单元 / 来源契约(fixture) / 组件 / 集成
 
 ## 当前状态
 
-**本轮 CI 全绿**：功能分支 `feat/hybrid-route-search`，run 38510507584；analyze / 99 项测试 /
-Web release / Android APK / 两项产物上传全部通过。新增地图点位天气、首页自动定位天气、
-可重复定位、混合线路搜索（本地/地点/附近 OSM/外部攻略/导入）和更广的 OSM 线路发现。
-边界与未验证项
-（真机性能/耗电、浏览器冒烟、商业授权）如实列于 `docs/acceptance.md` 与
-`agent/blockers.md`，不混称“已商品化”。
+2026-10-15：个人开发者、iOS优先、Android兼容；Web暂停作为公开发行产品，保留工程验证能力。
+当前免注册、不展示订阅。首次引导直接导入或查看示例线路，设置会员入口已移除，旧付费链接返回首页。
+
+业务提交 `a699aca`（含 `18be281` UI改动）：本地 analyze 0 issues、171项测试通过；
+CI **38699456479**（Web/APK）与 **38699460743**（iOS release --no-codesign）成功。
+iOS无签名构建不能替代真机验收或商店发布。
+
+天气缓存/离线可靠性仍按任务推进。高德接入授权和内置徒步星球目录许可未解决，
+不宣称可正式商用分发。详见 `docs/ios-first-commercialization-2026-10-15.md`、
+`agent/blockers.md`。名称/图标候选位于 `design/brand-options/2026-10-15/`。
 
 ## 本地开发
 

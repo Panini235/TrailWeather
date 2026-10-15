@@ -1,0 +1,84 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:dio/dio.dart' show CancelToken;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trailweather/core/cache_store.dart';
+import 'package:trailweather/data/routes/route_sampling.dart';
+import 'package:trailweather/data/weather/weather_models.dart';
+import 'package:trailweather/data/weather/weather_repository.dart';
+import 'package:trailweather/data/weather/eta.dart';
+import 'package:trailweather/ui/detail/detail_state.dart';
+import 'package:trailweather/ui/detail/route_detail_screen.dart';
+import 'weather/weather_repository_test.dart' as fixture;
+
+class AuditProvider extends fixture.FakeProvider {
+  AuditProvider() : super(responses: {});
+  bool fail = false;
+  @override
+  Future<List<WxPointForecast>> fetchPoints({required List<LatLng> points, required DateTime startUtc, required DateTime endUtc, CancelToken? cancelToken}) async {
+    if (fail) throw StateError('audit: network offline');
+    final result = await super.fetchPoints(points: points, startUtc: startUtc, endUtc: endUtc);
+    for (final p in result) {
+      p.hours.clear();
+      p.hours.addAll(List.generate(48, (i) => WxHourValue(validFromUtc: startUtc.add(Duration(hours:i)), values: const {WxVar.temperature: 20.0})));
+    }
+    return result;
+  }
+}
+Future<void> ageCache(SharedPreferences prefs, Duration age) async {
+  final key = prefs.getKeys().singleWhere((k) => k.startsWith('cache.weather.'));
+  final data = jsonDecode(prefs.getString(key)!) as Map<String,dynamic>;
+  final stored = DateTime.now().toUtc().subtract(age);
+  data['s'] = stored.millisecondsSinceEpoch;
+  data['e'] = stored.add(const Duration(minutes:30)).millisecondsSinceEpoch;
+  await prefs.setString(key, jsonEncode(data));
+}
+void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  final t = DateTime.utc(2026,10,15,10);
+  final nodes = [fixture.node(40,116)];
+  test('AUDIT: cached 48-hour forecast is missed when request moves forward one hour', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final p = AuditProvider();
+    final r = WeatherRepository(cache: CacheStore(prefs), providers: [p]);
+    final first = await r.getRouteWeather(providerId:p.caps.providerId,nodes:nodes,startUtc:t,endUtc:t.add(const Duration(hours:24)));
+    expect(first.points.first.hours.length,48);
+    p.fail = true;
+    await expectLater(r.getRouteWeather(providerId:p.caps.providerId,nodes:nodes,startUtc:t.add(const Duration(hours:1)),endUtc:t.add(const Duration(hours:25))),throwsStateError);
+  });
+  test('AUDIT: cache aged seven hours is returned without attempting online refresh', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final p = AuditProvider();
+    final r = WeatherRepository(cache: CacheStore(prefs), providers:[p]);
+    await r.getRouteWeather(providerId:p.caps.providerId,nodes:nodes,startUtc:t,endUtc:t.add(const Duration(hours:24)));
+    await ageCache(prefs,const Duration(hours:7));
+    final next = await r.getRouteWeather(providerId:p.caps.providerId,nodes:nodes,startUtc:t,endUtc:t.add(const Duration(hours:24)));
+    await Future<void>.delayed(const Duration(milliseconds:30));
+    expect(next.stale,true);
+    expect(p.callCount,1);
+  });
+  test('AUDIT: stale background refresh network error escapes the repository', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final p = AuditProvider();
+    final r = WeatherRepository(cache: CacheStore(prefs), providers:[p]);
+    await r.getRouteWeather(providerId:p.caps.providerId,nodes:nodes,startUtc:t,endUtc:t.add(const Duration(hours:24)));
+    await ageCache(prefs,const Duration(hours:1));
+    p.fail = true;
+    final escaped = Completer<Object>();
+    runZonedGuarded(() async {
+      final value = await r.getRouteWeather(providerId:p.caps.providerId,nodes:nodes,startUtc:t,endUtc:t.add(const Duration(hours:24)));
+      expect(value.stale,true);
+    }, (e,stack) { if (!escaped.isCompleted) escaped.complete(e); });
+    expect(await escaped.future.timeout(const Duration(seconds:2)),isA<StateError>());
+  });
+  test('AUDIT: reversed equal-length node lists collide in detail provider identity', () {
+    RouteNode n(double lat,double distance) => RouteNode(pointIndex:0,pos:LatLng(lat,116),elevationM:null,distFromStartM:distance);
+    final query = RouteWeatherQuery(routeId:'same-route',providerId:'fake:test',mode:TimeMode.fixed,startUtc:t,endUtc:t.add(const Duration(hours:1)),fixedUtc:t,pace:PaceConfig.defaults);
+    final forward = DetailFetchKey(nodes:[n(40,0),n(41,111000)],query:query);
+    final backward = DetailFetchKey(nodes:[n(41,0),n(40,111000)],query:query);
+    expect(forward,backward);
+    expect(forward.nodes.first.pos, isNot(backward.nodes.first.pos));
+  });
+}

@@ -1,6 +1,6 @@
 {
   "schema": "trailweather/tasks@1",
-  "note": "状态：todo|in_progress|done|blocked。验证命令以 CI 为准（本地无 SDK）。",
+  "note": "状态：todo|in_progress|done|blocked。本地 analyze/test 快速验证；web/apk 构建以 GitHub Actions 为准。2026-10-15 成熟度审计见 docs/maturity-audit-2026-10-15.md；历史 T-080/T-081/T-082 存在重复 ID，统计不可直接视为产品完成度。",
   "tasks": [
     {
       "id": "T-001",
@@ -190,7 +190,7 @@
       "status": "todo",
       "acceptance": "浏览器打开 web release，真实走一次闭环并记录 CORS/UA 表现",
       "verify": "人工记录于 progress.md",
-      "result": ""
+      "result": "2026-10-15 部分浏览器验证：CI 38681970611 Web 产物，390×844 暗色；示例线路 Open-Meteo 天气与高德底图可加载，离线/Pro 仍为开发中。未覆盖全部来源、导入/重启/弱网，保持 todo；截图与边界见成熟度审计。 2026-10-15产品决定：Web不作为当前公开发行目标；仍可用于界面验收。新产物38699456479已验证无订阅引导、设置入口移除和旧/paywall链接返回首页。"
     },
     {
       "id": "T-050",
@@ -214,7 +214,7 @@
       "status": "done",
       "acceptance": "手动触发 ios-build 通过",
       "verify": "Actions 历史",
-      "result": "iOS release --no-codesign 构建通过（run 38403822714，2026-10-13）"
+      "result": "2026-10-15当前代码a699aca的iOS无签名release构建通过（run38699460743）；不代表签名发布或真机验收。"
     },
     {
       "id": "T-220",
@@ -490,6 +490,150 @@
       "acceptance": "去掉 0.1° 合并抹平海拔差（或按海拔分档）；Open-Meteo elevation 参数；weather_code/snowfall/freezing_level_height；Open-Meteo Air Quality（区域级标注）",
       "verify": "",
       "result": ""
+    },
+    {
+      "id": "T-140",
+      "p": "P0",
+      "title": "修复天气缓存跨小时读取与过期刷新",
+      "deps": [
+        "T-020"
+      ],
+      "status": "todo",
+      "acceptance": "覆盖时段索引可复用已有逐时数据；7小时旧缓存在线能更新；后台错误被捕获并反馈；刷新成功通知UI。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "A-01/A-02：3项诊断探针已复现，尚未修复。"
+    },
+    {
+      "id": "T-141",
+      "p": "P0",
+      "title": "修复线路反向/节点变化后的天气查询身份",
+      "deps": [
+        "T-123"
+      ],
+      "status": "todo",
+      "acceptance": "相同节点数/总长度但坐标或顺序变化时不得复用错误bundle；按节点坐标验证正反向天气映射。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "A-03：DetailFetchKey身份碰撞已复现；并非所有路线都会触发。"
+    },
+    {
+      "id": "T-142",
+      "p": "P0",
+      "title": "当前位置天气时刻与刷新生命周期",
+      "deps": [
+        "T-103"
+      ],
+      "status": "todo",
+      "acceptance": "当前天气取打开时的当前时间；区分定位时间与天气有效时间；前后台恢复按时效刷新，离线标注旧预报。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "A-04：当前保存并复用上次定位时间，代码确认。"
+    },
+    {
+      "id": "T-143",
+      "p": "P0",
+      "title": "可验证的基础离线行程包",
+      "deps": [
+        "T-140",
+        "T-141",
+        "T-142"
+      ],
+      "status": "todo",
+      "acceptance": "持久化路线/航点/计划/完整可用预报与溯源；下载校验与重试；飞行模式冷启动、跨小时/午夜、24/48/72小时读取；不受普通LRU淘汰。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "A-05：目前按钮仅提示开发中；无需等待离线底图才能推进基础包。"
+    },
+    {
+      "id": "T-144",
+      "p": "P1",
+      "title": "天气优先的信息顺序、暗色可读性与文案整改",
+      "deps": [
+        "T-120"
+      ],
+      "status": "todo",
+      "acceptance": "首页快速查天气和行程更新/离线状态；详情首屏天气摘要；深浅色/360–430px/大字体可读；移除未实现微气候与绝不崩溃承诺。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "A-09/A-10/A-11：已用CI Web产物实测并保存截图。"
+    },
+    {
+      "id": "T-145",
+      "p": "P3",
+      "title": "真实订阅后端与服务端权益契约",
+      "deps": [
+        "T-101"
+      ],
+      "status": "blocked",
+      "acceptance": "用户/订单/渠道事件/权益与幂等；验单、续费、取消未到期、退款撤权、恢复、签名离线凭证；移除本地模拟授予路径。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "2026-10-15 用户明确决定暂缓订阅，先完成移动端体验、离线、真机与授权验收。隐藏所有当前付费入口；只有用户明确重启商业化后才恢复此任务。"
+    },
+    {
+      "id": "T-146",
+      "p": "P3",
+      "title": "选定渠道的真实支付与订阅沙盒联调",
+      "deps": [
+        "T-145"
+      ],
+      "status": "blocked",
+      "acceptance": "使用真实商店/商户配置走通购买、服务端确认、续费/退款、重装恢复；价格/试用资格由渠道确认；上线前单独验收。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "2026-10-15 用户明确决定暂缓订阅，先完成移动端体验、离线、真机与授权验收。隐藏所有当前付费入口；只有用户明确重启商业化后才恢复此任务。"
+    },
+    {
+      "id": "T-147",
+      "p": "P1",
+      "title": "多日行程持久化与徒步中天气查看",
+      "deps": [
+        "T-123",
+        "T-143"
+      ],
+      "status": "todo",
+      "acceptance": "保存出发时间/方向/配速；按营地或显式估算拆日；前台定位、沿途进度与ETA、网络/定位/天气新鲜度可区分。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "A-06/A-07：已有标记与ETA，尚无完整多日/徒步中闭环。"
+    },
+    {
+      "id": "T-148",
+      "p": "P1",
+      "title": "取得离线权利后接入离线底图包",
+      "deps": [
+        "T-143"
+      ],
+      "status": "blocked",
+      "acceptance": "提供实际离线授权证据；线路走廊范围、大小、缩放级别、缺块校验与断网显示；不下载OSM公共标准瓦片做离线包。",
+      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+      "result": "B-009：地图商用与离线权利未确认；基础轨迹/天气离线包可先推进。"
+    },
+    {
+      "id": "T-150",
+      "p": "P0",
+      "title": "暂缓商业化：隐藏订阅并直达真实线路体验",
+      "deps": [
+        "T-101",
+        "T-120"
+      ],
+      "status": "done",
+      "acceptance": "移除设置会员入口/PRO占位与首次付费引导；旧paywall链接不能打开付费墙；导入/示例入口保存引导完成状态。",
+      "verify": "flutter analyze/test；CI38699456479；iOS38699460743；390×844浏览器验收。",
+      "result": "18be281；analyze0，171/171 tests；Web/APK+iOS无签名构建成功；截图见docs/verification/no-billing-2026-10-15/。"
+    },
+    {
+      "id": "T-151",
+      "p": "P0",
+      "title": "正式分发前完成高德接入与内置线路授权整改",
+      "deps": [],
+      "status": "blocked",
+      "acceptance": "取得本项目所需地图接入/商业/离线许可；取得徒步星球作者及上游数据复制/分发权利，或移除/替换对应数据；更新许可清单。",
+      "verify": "作者/服务商可留档授权、官方SDK/API与实际配置核对。",
+      "result": "B-011/B-012；上游公开仓库license=null，已在a699aca纠正虚假MIT声明；标签纠正没有解除分发阻塞。详见iOS优先商业化报告。"
+    },
+    {
+      "id": "T-152",
+      "p": "P2",
+      "title": "移动端品牌名称与图标候选",
+      "deps": [],
+      "status": "done",
+      "acceptance": "提供可选择的名称和原创图标，含小尺寸验证；正式替换前由用户选定并核验重名。",
+      "verify": "6组SVG/1024PNG/64PNG与对照图视觉检查。",
+      "result": "design/brand-options/2026-10-15/；推荐山晴｜徒步天气+A；未替换正式品牌。"
     }
   ]
 }
