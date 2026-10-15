@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/geo.dart';
 import '../../core/units.dart';
 import '../../data/app_providers.dart';
+import '../../data/map/tianditu.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/routes/route_sampling.dart';
 import '../../data/settings/favorites_repository.dart';
@@ -666,7 +667,10 @@ class _RouteMiniMap extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final basemap = Basemap.fromSettings(ref.watch(settingsProvider));
+    final basemap = Basemap.fromSettings(
+      ref.watch(settingsProvider),
+      tiandituClient: ref.watch(tiandituTileClientProvider),
+    );
     final fit = routeCameraFit(route, basemap);
     final photos = ref
         .watch(routePhotosProvider)
@@ -721,6 +725,12 @@ class _RouteMiniMap extends ConsumerWidget {
                       onPressed: onOpenFullscreen,
                     ),
                   ),
+                ),
+                const Positioned(
+                  top: 6,
+                  left: 6,
+                  right: 58,
+                  child: TiandituErrorBanner(compact: true),
                 ),
               ],
             ),
@@ -876,7 +886,10 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final basemap = Basemap.fromSettings(settings);
+    final basemap = Basemap.fromSettings(
+      settings,
+      tiandituClient: ref.watch(tiandituTileClientProvider),
+    );
     final fit = routeCameraFit(
       widget.route,
       basemap,
@@ -934,17 +947,27 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: Material(
-                color: Theme.of(context).colorScheme.surface
-                    .withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(8),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Text(
-                    S.longPressToMark,
-                    style: TextStyle(fontSize: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Material(
+                    color: Theme.of(context).colorScheme.surface
+                        .withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Text(
+                        S.longPressToMark,
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
                   ),
-                ),
+                  const TiandituErrorBanner(margin: EdgeInsets.only(top: 6)),
+                ],
               ),
             ),
           ),

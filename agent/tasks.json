@@ -656,6 +656,18 @@
       "acceptance": "内置高德标准/卫星/注记、天地图矢量/影像/地形/注记（用户 Key）、OpenTopoMap 等高线、Esri 卫星、OSM；底图单选 + 多叠加层与透明度；坐标系不同的叠加不渲染并说明；自定义 XYZ 图源校验与持久化；旧 basemap 设置迁移；详情页节点按阈值着色+图标+图例（缺失不着绿）；节点可从相册/相机添加图片，本机保存、可备注/删除，地图显示图片标记，Web 如实提示不支持",
       "verify": "test/unit/tile_sources_test.dart、test/unit/node_wx_class_test.dart、test/unit/route_photos_test.dart、test/widget/map_layers_test.dart、test/integration/core_flow_test.dart",
       "result": "本地 analyze 0 + test 189/189；CI 38733804863 全绿（analyze/test/Web/APK）；真机瓦片可达性、天地图 Key 类型、相册/相机权限待确认；3D 地图未做（需换渲染引擎）"
+    },
+    {
+      "id": "T-155",
+      "p": "P1",
+      "title": "天地图拆分服务端/浏览器端 Key，按平台选 Key，403 错误码明确提示",
+      "deps": [
+        "T-154"
+      ],
+      "status": "done",
+      "acceptance": "设置有服务端/浏览器端两个 Key；原生用服务端、Web 用浏览器端（数据层选择，可单测）；缺对应 Key 显示未配置；旧 tiandituKey 迁移到两栏并提示两栏相同；天地图 403 按 301001/301012/301013（及 418/其他）在地图与设置卡片显示明确提示；不提交真实 Key、测试不访问网络",
+      "verify": "flutter analyze；flutter test（test/unit/tile_sources_test.dart、test/unit/tianditu_test.dart、test/widget/map_layers_test.dart、test/widget/tianditu_tiles_test.dart）",
+      "result": "本地 analyze 0 + test 207/207（新增 key 选择/迁移/错误码分类/拦截 client/提示组件与 TileLayer 端到端测试）；未 push、未跑 CI；真实 Key 真机/Web 出图待用户在 App 内填写确认（B-014）"
     }
   ]
 }

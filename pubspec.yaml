@@ -38,6 +38,10 @@ dependencies:
   image_picker: 1.2.3
   # 节点图片本地文件目录（已是传递依赖，直接声明；Web 端走条件导入不调用）
   path_provider: 2.1.6
+  # 天地图瓦片错误码识别：给 flutter_map 传自定义 http client 读取 403 响应体。
+  # 已是 flutter_map 的传递依赖（同版本），直接声明；dart-lang 官方包，三端可用。
+  # 精确锁定（1.6.0，2025-11-10 发布），见 agent/decisions.md D-023
+  http: 1.6.0
 
 dev_dependencies:
   flutter_test:

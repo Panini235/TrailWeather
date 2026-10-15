@@ -15,6 +15,7 @@ import '../../data/location/location_service.dart';
 import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/favorites_repository.dart';
+import '../../data/map/tianditu.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
 import '../detail/route_detail_screen.dart';
@@ -568,7 +569,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     ]..sort((a, b) => a.name.compareTo(b.name));
 
     final selectedId = _selected?.id;
-    final basemap = Basemap.fromSettings(ref.watch(settingsProvider));
+    final basemap = Basemap.fromSettings(
+      ref.watch(settingsProvider),
+      tiandituClient: ref.watch(tiandituTileClientProvider),
+    );
 
     return Scaffold(
       body: Stack(
@@ -704,6 +708,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                       onImportTap: () => context.push('/import'),
                       onClose: () => _clearSearch(clearSelected: false),
                     ),
+                  const TiandituErrorBanner(margin: EdgeInsets.only(top: 6)),
                 ],
               ),
             ),

@@ -19,7 +19,8 @@ class AppSettings {
     this.baseLayerId = defaultBaseLayerId,
     this.overlayLayers = const [],
     this.customTileSources = const [],
-    this.tiandituKey = '',
+    this.tiandituServerKey = '',
+    this.tiandituBrowserKey = '',
     this.qweatherApiHost = '',
     this.qweatherApiKey = '',
     this.hasCompletedOnboarding = false,
@@ -52,8 +53,14 @@ class AppSettings {
   /// 用户自定义瓦片来源。
   final List<TileSourceDef> customTileSources;
 
-  /// 天地图 Key（用户自行申请，仅保存在本机）。
-  final String tiandituKey;
+  /// 天地图“服务端”Key：Android/iOS 原生地图使用（用户自行申请，仅保存在本机）。
+  final String tiandituServerKey;
+
+  /// 天地图“浏览器端”Key：Web 与将来的 3D WebView 使用（仅保存在本机）。
+  final String tiandituBrowserKey;
+
+  TiandituKeys get tiandituKeys =>
+      TiandituKeys(server: tiandituServerKey, browser: tiandituBrowserKey);
 
   /// 和风天气 API Host（控制台专属域名，如 abc123.qweatherapi.com；
   /// 旧账号可为 devapi.qweather.com）。仅保存在本机。
@@ -84,7 +91,8 @@ class AppSettings {
     String? baseLayerId,
     List<OverlaySelection>? overlayLayers,
     List<TileSourceDef>? customTileSources,
-    String? tiandituKey,
+    String? tiandituServerKey,
+    String? tiandituBrowserKey,
     String? qweatherApiHost,
     String? qweatherApiKey,
     bool? hasCompletedOnboarding,
@@ -100,7 +108,8 @@ class AppSettings {
     baseLayerId: baseLayerId ?? this.baseLayerId,
     overlayLayers: overlayLayers ?? List.of(this.overlayLayers),
     customTileSources: customTileSources ?? List.of(this.customTileSources),
-    tiandituKey: tiandituKey ?? this.tiandituKey,
+    tiandituServerKey: tiandituServerKey ?? this.tiandituServerKey,
+    tiandituBrowserKey: tiandituBrowserKey ?? this.tiandituBrowserKey,
     qweatherApiHost: qweatherApiHost ?? this.qweatherApiHost,
     qweatherApiKey: qweatherApiKey ?? this.qweatherApiKey,
     hasCompletedOnboarding:
@@ -120,7 +129,8 @@ class AppSettings {
     'baseLayerId': baseLayerId,
     'overlayLayers': [for (final o in overlayLayers) o.toJson()],
     'customTileSources': [for (final c in customTileSources) c.toJson()],
-    'tiandituKey': tiandituKey,
+    'tiandituServerKey': tiandituServerKey,
+    'tiandituBrowserKey': tiandituBrowserKey,
     'qweatherApiHost': qweatherApiHost,
     'qweatherApiKey': qweatherApiKey,
     'hasCompletedOnboarding': hasCompletedOnboarding,
@@ -150,13 +160,25 @@ class AppSettings {
       for (final c in (m['customTileSources'] as List?) ?? const [])
         TileSourceDef.customFromJson(c as Map<String, dynamic>),
     ],
-    tiandituKey: m['tiandituKey'] as String? ?? '',
+    tiandituServerKey: _tiandituKeyFromJson(m, 'tiandituServerKey'),
+    tiandituBrowserKey: _tiandituKeyFromJson(m, 'tiandituBrowserKey'),
     qweatherApiHost: m['qweatherApiHost'] as String? ?? '',
     qweatherApiKey: m['qweatherApiKey'] as String? ?? '',
     hasCompletedOnboarding: m['hasCompletedOnboarding'] as bool? ?? false,
     elevationLapseRateCorrection:
         m['elevationLapseRateCorrection'] as bool? ?? true,
   );
+
+  /// 旧版只有一个 `tiandituKey`，无法离线判断它是服务端还是浏览器端类型
+  /// （类型只在天地图服务端可知）。迁移时两栏都填旧值：原本能出图的那一端
+  /// 不受影响；另一端会收到 301012/301013，地图上按错误码提示该换哪一栏，
+  /// Key 设置卡片也会提示“两栏相同”（见 D-023）。保存后旧字段不再写出。
+  static String _tiandituKeyFromJson(Map<String, dynamic> m, String field) {
+    final migrated =
+        !m.containsKey('tiandituServerKey') &&
+        !m.containsKey('tiandituBrowserKey');
+    return (migrated ? m['tiandituKey'] : m[field]) as String? ?? '';
+  }
 }
 
 /// 设置状态：持久化到 shared_preferences（user 命名空间，不属于缓存）。
@@ -255,8 +277,15 @@ class SettingsNotifier extends Notifier<AppSettings> {
     ),
   );
 
-  Future<void> setTiandituKey(String key) =>
-      update(state.copyWith(tiandituKey: key.trim()));
+  Future<void> setTiandituKeys({
+    required String server,
+    required String browser,
+  }) => update(
+    state.copyWith(
+      tiandituServerKey: server.trim(),
+      tiandituBrowserKey: browser.trim(),
+    ),
+  );
 }
 
 final prefsProvider = Provider<SharedPreferences>((ref) {

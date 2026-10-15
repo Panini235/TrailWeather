@@ -160,13 +160,37 @@ abstract final class S {
       '显示坐标系由底图决定。高德为 GCJ-02，其余为 WGS-84；坐标系不同的图层叠加会错位约 100–700 m，因此不可同时叠加。线路与天气计算始终使用 WGS-84。';
   static const tiandituKeyTitle = '天地图 Key';
   static const tiandituKeyHelp =
-      '在天地图开放平台（console.tianditu.gov.cn）用你自己的账号申请 Key 后填写，仅保存在本机。'
-      'App 不代为注册。填写后可使用天地图矢量、影像（卫星）、地形晕渲与注记图层。';
-  static const tiandituKeyMissing = '需先在“管理图源与天地图 Key”中填写天地图 Key';
+      '在天地图开放平台（console.tianditu.gov.cn）用你自己的账号申请 Key 后填写，仅保存在本机，App 不代为注册。'
+      '天地图按请求是否来自浏览器校验 Key 的“应用类型”，一个 Key 只能用在一端，所以需要两个：'
+      '在控制台“创建新应用”时分别选“服务端”和“浏览器端”，白名单都留空。'
+      '填写后可使用天地图矢量、影像（卫星）、地形晕渲与注记图层。';
+  static const tiandituServerKeyLabel = '服务端 Key（Android / iOS App 使用）';
+  static const tiandituServerKeyHint = '控制台应用类型选“服务端”，IP 白名单留空';
+  static const tiandituBrowserKeyLabel = '浏览器端 Key（网页版与 3D 视图使用）';
+  static const tiandituBrowserKeyHint = '控制台应用类型选“浏览器端”，域名白名单留空';
+  static const tiandituUsingServerKey = '本设备的地图使用：服务端 Key';
+  static const tiandituUsingBrowserKey = '本设备的地图使用：浏览器端 Key（网页版）';
+  static const tiandituSameKeyWarning =
+      '两栏填的是同一个 Key：天地图 Key 只有一种应用类型，必有一端无法出图（旧版单一 Key 迁移后也会这样）。'
+      '请按 Key 在控制台的实际类型只保留在对应一栏。';
+  static const tiandituServerKeyMissing = '需先在“管理图源与天地图 Key”中填写天地图服务端 Key';
+  static const tiandituBrowserKeyMissing = '需先在“管理图源与天地图 Key”中填写天地图浏览器端 Key';
+  static const tiandituKeyNotConfigured = '未配置';
+  static const tiandituErrorTitle = '天地图图层加载失败';
+  static const tiandituErrInvalidKey =
+      'Key 无效（301001 非法 key）：请到天地图控制台核对 Key 是否完整、是否已删除。';
+  static const tiandituErrBrowserKeyNotInBrowser =
+      '“服务端 Key”一栏填的是浏览器端 Key（301012）：App 原生地图需要应用类型为“服务端”的 Key；浏览器端 Key 请填到“浏览器端 Key”一栏。';
+  static const tiandituErrServerKeyInBrowser =
+      '“浏览器端 Key”一栏填的是服务端 Key（301013）：网页版需要应用类型为“浏览器端”的 Key；服务端 Key 请填到“服务端 Key”一栏。';
+  static const tiandituErrBlocked =
+      '请求被天地图拦截（HTTP 418）：实测 Key 格式不正确时会出现，请检查是否完整复制了 Key。';
+  static const tiandituErrOther = '天地图瓦片加载失败，请检查 Key 类型与有效性';
+  static const tiandituOpenKeySettings = '设置天地图 Key';
   static const customTileSources = '自定义图源';
   static const customTileSourcesHelp =
       '填写 XYZ 瓦片地址模板，例如 https://{s}.example.com/{z}/{x}/{y}.png。'
-      '支持 {x} {y} {-y} {z} {s} {r} {tk}（{tk} 使用天地图 Key）。图源的可用性与授权由你自行确认。';
+      '支持 {x} {y} {-y} {z} {s} {r} {tk}（{tk} 按平台使用天地图 Key：App 用服务端 Key，网页版用浏览器端 Key）。图源的可用性与授权由你自行确认。';
   static const addCustomTileSource = '添加自定义图源';
   static const editCustomTileSource = '编辑自定义图源';
   static const customTileOverlayOnly = '仅作叠加（透明图层，不能作底图）';
