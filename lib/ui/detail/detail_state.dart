@@ -181,5 +181,10 @@ List<RouteNode> nodesForRoute(
 
 /// 详情页风险提示输入。
 List<NodeWeatherEntry> rowsToEntries(List<NodeWxRow> rows) => [
-  for (final r in rows) NodeWeatherEntry(weather: r.wx, validUtc: r.validUtc),
+  for (final r in rows)
+    NodeWeatherEntry(
+      weather: r.wx,
+      validUtc: r.validUtc,
+      elevationM: r.node.elevationM,
+    ),
 ];

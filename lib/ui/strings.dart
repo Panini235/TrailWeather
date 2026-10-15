@@ -121,6 +121,9 @@ abstract final class S {
   // 线路详情 v2：方向、起终点、节点联动、标记（docs/redesign-v2.md 第 1 步）
   static const save = '保存';
   static const onDemandQuery = '查询此点（消耗 1 次额度）';
+  static const altitudeCardTitle = '同一地点不同海拔';
+  static const altitudeCardNote = 'Open-Meteo 按海拔统计降尺度的模型估算，非实测；▶ 为当前节点/地面海拔。';
+  static const airQualityTitle = '空气质量（雾霾）';
   static const phenomenonLabel = '天气现象';
   static const startPoint = '起点';
   static const endPoint = '终点';

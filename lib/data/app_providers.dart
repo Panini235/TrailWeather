@@ -9,6 +9,8 @@ import 'routes/route_models.dart';
 import 'routes/sample_routes.dart';
 import 'settings/favorites_repository.dart';
 import 'settings/settings_repository.dart';
+import 'weather/air_quality.dart';
+import 'weather/altitude_profile.dart';
 import 'weather/met_norway_provider.dart';
 import 'weather/meteoblue_provider.dart';
 import 'weather/meteoblue_settings.dart';
@@ -49,6 +51,14 @@ List<WeatherProvider> defaultWeatherProviders({
   // 按次计费，只在用户点击时单点查询（caps.onDemandOnly）。
   MeteoblueProvider(apiKey: meteoblueApiKey, onNetworkCall: onMeteoblueCall),
 ];
+
+final airQualityServiceProvider = Provider<AirQualityService>(
+  (ref) => AirQualityService(),
+);
+
+final altitudeProfileServiceProvider = Provider<AltitudeProfileService>(
+  (ref) => AltitudeProfileService(),
+);
 
 /// 自动请求（线路天气、首页位置天气）用的主来源：已启用、且不是按次计费的按需来源。
 String primaryProviderId(

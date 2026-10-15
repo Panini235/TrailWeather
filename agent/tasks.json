@@ -486,10 +486,10 @@
       "deps": [
         "T-123"
       ],
-      "status": "todo",
+      "status": "done",
       "acceptance": "去掉 0.1° 合并抹平海拔差（或按海拔分档）；Open-Meteo elevation 参数；weather_code/snowfall/freezing_level_height；Open-Meteo Air Quality（区域级标注）",
-      "verify": "",
-      "result": ""
+      "verify": "flutter test test/weather/altitude_weather_test.dart；接口形态 2026-10-15 实测（elevation 列表、nan 行为、AQ 多点、Elevation API）",
+      "result": "本地 analyze 0 + test 228 全绿；Open-Meteo 按节点海拔降尺度（同网格海拔差≥100 m 不合并）；weather_code/snowfall/freezing_level；雷暴/降雪/雾/0℃ 层提示；同一地点不同海拔卡片；空气质量卡片（CAMS 区域级）"
     },
     {
       "id": "T-140",

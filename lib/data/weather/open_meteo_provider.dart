@@ -35,6 +35,8 @@ class OpenMeteoProvider extends WeatherProvider {
     'cloud_cover': WxVar.cloudCover,
     'visibility': WxVar.visibility,
     'surface_pressure': WxVar.pressure,
+    'snowfall': WxVar.snowfall, // cm（前一小时新增雪深）
+    'freezing_level_height': WxVar.freezingLevel, // m
   };
 
   @override
@@ -60,6 +62,7 @@ class OpenMeteoProvider extends WeatherProvider {
     supportedVars: _hourlyVars.values.toList(),
     minRequestIntervalMs: 600,
     recommendedCacheTtl: const Duration(minutes: 30),
+    usesElevation: true,
     spatialResolutionNote: model == 'best_match'
         ? 'best_match 按区域动态选择模型，来源未随响应提供本请求的空间分辨率（分辨率未确认）'
         : '按模型名标注：$model（0.25° 级全球模型；以官方文档为准，本请求未返回网格信息）',
@@ -71,6 +74,24 @@ class OpenMeteoProvider extends WeatherProvider {
   @override
   Future<List<WxPointForecast>> fetchPoints({
     required List<LatLng> points,
+    required DateTime startUtc,
+    required DateTime endUtc,
+    CancelToken? cancelToken,
+  }) => fetchPointsAt(
+    points: points,
+    elevationsM: List.filled(points.length, null),
+    startUtc: startUtc,
+    endUtc: endUtc,
+    cancelToken: cancelToken,
+  );
+
+  /// [elevationsM]：节点轨迹海拔。一批内全部有值时传 `elevation` 参数，按该海拔统计降尺度；
+  /// 有缺失时整批不传（Open-Meteo 用 90 m 高程模型）——不能用 nan 补位，
+  /// nan 会关闭降尺度、改用网格平均高度（官方文档）。
+  @override
+  Future<List<WxPointForecast>> fetchPointsAt({
+    required List<LatLng> points,
+    required List<double?> elevationsM,
     required DateTime startUtc,
     required DateTime endUtc,
     CancelToken? cancelToken,
@@ -89,9 +110,14 @@ class OpenMeteoProvider extends WeatherProvider {
     final out = <WxPointForecast>[];
     for (var i = 0; i < points.length; i += caps.maxPointsPerRequest) {
       final batch = points.skip(i).take(caps.maxPointsPerRequest).toList();
-      final uri = _buildUri(batch, days);
+      final eles = [
+        for (var j = i; j < i + batch.length; j++)
+          j < elevationsM.length ? elevationsM[j] : null,
+      ];
+      final useEle = eles.every((e) => e != null);
+      final uri = _buildUri(batch, days, useEle ? eles.cast<double>() : null);
       final body = await fetcher(uri, cancelToken: cancelToken);
-      out.addAll(_parse(body, batch, uri));
+      out.addAll(_parse(body, batch, uri, useEle ? eles : null));
       if (i + caps.maxPointsPerRequest < points.length) {
         await Future<void>.delayed(
           Duration(milliseconds: caps.minRequestIntervalMs),
@@ -101,7 +127,7 @@ class OpenMeteoProvider extends WeatherProvider {
     return out;
   }
 
-  Uri _buildUri(List<LatLng> batch, int days) {
+  Uri _buildUri(List<LatLng> batch, int days, List<double>? elevations) {
     final lats = batch.map((p) => p.latitude.toStringAsFixed(4)).join(',');
     final lons = batch.map((p) => p.longitude.toStringAsFixed(4)).join(',');
     return Uri(
@@ -111,7 +137,9 @@ class OpenMeteoProvider extends WeatherProvider {
       queryParameters: {
         'latitude': lats,
         'longitude': lons,
-        'hourly': _hourlyVars.keys.join(','),
+        'hourly': [..._hourlyVars.keys, 'weather_code'].join(','),
+        if (elevations != null)
+          'elevation': elevations.map((e) => e.round()).join(','),
         'daily': 'sunset',
         'timezone': 'UTC',
         'forecast_days': '$days',
@@ -134,7 +162,12 @@ class OpenMeteoProvider extends WeatherProvider {
     return days.clamp(1, caps.forecastHorizonDays);
   }
 
-  List<WxPointForecast> _parse(String body, List<LatLng> requested, Uri uri) {
+  List<WxPointForecast> _parse(
+    String body,
+    List<LatLng> requested,
+    Uri uri,
+    List<double?>? requestedElevations,
+  ) {
     final decoded = jsonDecode(body);
     final List<dynamic> arr = decoded is List ? decoded : <dynamic>[decoded];
     if (arr.length != requested.length) {
@@ -148,7 +181,9 @@ class OpenMeteoProvider extends WeatherProvider {
     final results = <WxPointForecast>[];
     for (var i = 0; i < arr.length; i++) {
       final m = arr[i] as Map<String, dynamic>;
-      results.add(_parsePoint(m, requested[i], fetchedAt));
+      results.add(
+        _parsePoint(m, requested[i], fetchedAt, requestedElevations?[i]),
+      );
     }
     return results;
   }
@@ -157,6 +192,7 @@ class OpenMeteoProvider extends WeatherProvider {
     Map<String, dynamic> m,
     LatLng req,
     DateTime fetchedAt,
+    double? requestedElevation,
   ) {
     final returnedLat = (m['latitude'] as num?)?.toDouble();
     final returnedLon = (m['longitude'] as num?)?.toDouble();
@@ -170,6 +206,7 @@ class OpenMeteoProvider extends WeatherProvider {
     for (final e in _hourlyVars.entries) {
       varLists[e.value] = (hourly[e.key] as List?) ?? const [];
     }
+    final codes = (hourly['weather_code'] as List?) ?? const [];
     for (var i = 0; i < times.length; i++) {
       final t = _parseUtcHour(times[i] as String);
       if (t == null) continue;
@@ -187,7 +224,14 @@ class OpenMeteoProvider extends WeatherProvider {
           values[v] = raw;
         }
       });
-      series.add(WxHourValue(validFromUtc: t, values: values));
+      final code = i < codes.length ? (codes[i] as num?)?.toInt() : null;
+      series.add(
+        WxHourValue(
+          validFromUtc: t,
+          values: values,
+          symbols: code == null ? null : {'wmo_code': '$code'},
+        ),
+      );
     }
 
     // 保留每一天的日落；取哪一天由调用方按出发时间决定（不能默认取“今天”）。
@@ -208,7 +252,9 @@ class OpenMeteoProvider extends WeatherProvider {
       requestLon: req.longitude,
       returnedLat: returnedLat,
       returnedLon: returnedLon,
-      locationDetail: '网格预报；来源未提供网格中心标识',
+      locationDetail: requestedElevation == null
+          ? '网格预报；来源未提供网格中心标识；未指定海拔，按 90 m 高程模型降尺度'
+          : '网格预报；按请求海拔 ${requestedElevation.round()} m 统计降尺度',
       elevationUsedM: elevation,
       granularity: caps.granularity,
       spatialResolutionNote: caps.spatialResolutionNote,
@@ -219,7 +265,9 @@ class OpenMeteoProvider extends WeatherProvider {
       license: caps.license,
       attribution: caps.attribution,
       interpolationNote: '来源侧插值情况未说明；本应用未做额外空间插值',
-      elevationAdjustNote: null,
+      elevationAdjustNote: requestedElevation == null
+          ? null
+          : '来源按轨迹海拔 ${requestedElevation.round()} m 统计降尺度（Open-Meteo elevation 参数），非本应用推算',
       traceNote: 'GET api.open-meteo.com/v1/forecast 200',
     );
 

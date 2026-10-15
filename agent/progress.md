@@ -391,3 +391,20 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓（含 image_picker An
 测试只用假 Key、不访问网络。另用 curl 以假 Key 复测：32 位十六进制假值 → 403/301001（带 `Access-Control-Allow-Origin: *`），
 含非十六进制字符的假值 → 418 拦截页。
 **未做 / 待确认**：未 push、未跑 CI（等用户确认）；用户在 App 内填入两个真实 Key 后，在 Android/iOS 真机与 Web 上确认出图。
+
+## Round 19 — 2026-10-15（v2 第 2 步：天气数据补全）
+
+**合并**：PR #1（feat/robust-track-import → main）已由用户在 GitHub 合并；天地图双 Key 分支（968bb99）未推送，
+本地合并入 feat/robust-track-import（代码无冲突，agent 记录冲突保留双方，D-020/D-021 与 Round 17 重号改为 D-024/D-025、Round 18）。
+
+**完成（T-125）**：
+- 按节点海拔：Open-Meteo `elevation` 列表（缺海拔整批不传，不用 nan）；仓库 `planQueries` 对按海拔来源只合并同网格且
+  海拔差 <100 m 的节点（原先 0.1° 合并会把山脊与山谷合成一个点）。
+- 新变量：weather_code → 现象（WMO 表）、snowfall（cm）、freezing_level_height（m）；网格卡片按需显示。
+- 提示：雷暴（WMO 95–99 / meteoblue 雷暴类）、降雪（现象或 ≥0.5 cm/h）、雾/低能见度（现象或 <1 km）、
+  节点高于 0℃ 层；缺失不触发、不推测。
+- 节点详情 / 地图选点：“同一地点不同海拔”卡片（一次请求重复坐标）、空气质量卡片（CAMS 区域级、署名）。
+
+**本地验证**：flutter analyze 0；flutter test 228/228。
+**未验证**：真机展示与网络时延。
+

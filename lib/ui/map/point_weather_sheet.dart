@@ -7,6 +7,7 @@ import '../../data/routes/route_sampling.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
 import '../../data/weather/weather_repository.dart';
+import '../detail/environment_cards.dart';
 import '../detail/weather_cells.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
@@ -116,6 +117,10 @@ class PointWeatherSheet extends ConsumerWidget {
                 '这里展示的是所选坐标附近的网格预报，不是该点实测。'
                 '各来源独立显示，返回坐标、网格颗粒度和缺失项以来源说明为准。',
           ),
+          const SizedBox(height: 10),
+          AltitudeWeatherCard(point: point, atUtc: requestedAtUtc),
+          const SizedBox(height: 8),
+          AirQualityCard(point: point, atUtc: requestedAtUtc),
           const SizedBox(height: 10),
           for (final provider in providers)
             if (enabled.contains(provider.caps.providerId))

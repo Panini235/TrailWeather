@@ -23,7 +23,13 @@ enum WxVar {
   pressure('hPa'),
   // 追加在末尾：缓存按枚举下标编码，不能改变已有成员顺序。
   /// 降水中降雪所占比例（meteoblue snowfraction），不是降雪量。
-  snowFraction('%');
+  snowFraction('%'),
+
+  /// 前一小时新增降雪深度（Open-Meteo snowfall，cm；约 7 cm 雪 ≈ 10 mm 降水）。
+  snowfall('cm'),
+
+  /// 0℃ 层海拔（Open-Meteo freezing_level_height，m）。
+  freezingLevel('m');
 
   const WxVar(this.stdUnit);
   final String stdUnit;
@@ -41,6 +47,8 @@ enum WxVar {
     visibility => '能见度',
     pressure => '气压',
     snowFraction => '降雪占比',
+    snowfall => '降雪量',
+    freezingLevel => '0℃ 层高度',
   };
 }
 

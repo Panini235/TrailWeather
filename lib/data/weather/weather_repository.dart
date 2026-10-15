@@ -58,21 +58,19 @@ class WeatherRepository {
       endUtc: endUtc,
       refresh: refresh,
     );
-    final nodeQueryIndex = <int>[];
-    for (final n in nodes) {
-      final key = approxGridKey(n.pos);
-      final q = result.points.indexWhere(
-        (p) => approxGridKey(LatLng(p.lat, p.lon)) == key,
-      );
-      nodeQueryIndex.add(q >= 0 ? q : 0);
-    }
+    final usesEle = byId(providerId)?.caps.usesElevation ?? false;
+    final plan = planQueries(nodes, usesElevation: usesEle);
+    final nodeQueryIndex = [
+      for (final q in plan.nodeToQuery) q < result.points.length ? q : 0,
+    ];
     final hasShared = nodeQueryIndex.toSet().length < nodes.length;
     return RouteWeatherBundle(
       result: result,
       nodeQueryIndex: nodeQueryIndex,
       sharedGridNote: hasShared
-          ? '部分节点经近似网格（${approxGridDeg.toStringAsFixed(2)}°）合并查询，'
-                '这些节点共享同一网格预报，不存在该网格内的差异；'
+          ? '部分节点经近似网格（${approxGridDeg.toStringAsFixed(2)}°'
+                '${usesEle ? '，且海拔相差不足 ${elevationBandM.toStringAsFixed(0)} m' : ''}）合并查询，'
+                '这些节点共享同一网格预报，不存在其间的差异；'
                 '近似合并是请求策略，不代表天气数据的空间分辨率'
           : null,
     );
@@ -81,6 +79,34 @@ class WeatherRepository {
   /// 近似网格键：用于判断“哪些节点可能共享同一网格预报”。
   String approxGridKey(LatLng p) =>
       '${(p.latitude / approxGridDeg).round()}:${(p.longitude / approxGridDeg).round()}';
+
+  /// 按海拔计算的来源合并节点时的海拔档宽（米）。
+  /// 只按 0.1° 网格合并会把同一网格内的山脊与山谷合成一个点，抹平海拔差。
+  static const double elevationBandM = 100;
+
+  /// 请求规划：哪些节点合并成同一个查询点。
+  /// 按海拔计算的来源（caps.usesElevation）要求同网格且同海拔档才合并。
+  QueryPlan planQueries(List<RouteNode> nodes, {required bool usesElevation}) {
+    final keys = <String>[];
+    final points = <LatLng>[];
+    final elevations = <double?>[];
+    final nodeToQuery = <int>[];
+    for (final n in nodes) {
+      var k = approxGridKey(n.pos);
+      if (usesElevation && n.elevationM != null) {
+        k = '$k|${(n.elevationM! / elevationBandM).round()}';
+      }
+      var idx = keys.indexOf(k);
+      if (idx < 0) {
+        idx = keys.length;
+        keys.add(k);
+        points.add(n.pos);
+        elevations.add(n.elevationM);
+      }
+      nodeToQuery.add(idx);
+    }
+    return QueryPlan(points, elevations, nodeToQuery);
+  }
 
   Future<WxSourceResult> getRouteWeather({
     required String providerId,
@@ -95,18 +121,10 @@ class WeatherRepository {
       throw StateError('未知来源 $providerId');
     }
 
-    // 请求点去重（近似网格策略）。
-    final gridKeys = <String>[];
-    final queryPoints = <LatLng>[];
-    final queryElevations = <double?>[];
-    for (var i = 0; i < nodes.length; i++) {
-      final k = approxGridKey(nodes[i].pos);
-      if (!gridKeys.contains(k)) {
-        gridKeys.add(k);
-        queryPoints.add(nodes[i].pos);
-        queryElevations.add(nodes[i].elevationM);
-      }
-    }
+    // 请求点去重（近似网格策略；按海拔计算的来源再分海拔档）。
+    final plan = planQueries(nodes, usesElevation: provider.caps.usesElevation);
+    final queryPoints = plan.points;
+    final queryElevations = plan.elevations;
 
     final cacheKey = _cacheKey(
       providerId,
@@ -372,4 +390,12 @@ class RouteWeatherBundle {
 
   /// 存在节点合并时的“共享网格”说明（诚实标注，不制造虚假差异）。
   final String? sharedGridNote;
+}
+
+/// 请求规划结果：查询点、对应海拔、每个节点所用查询点下标。
+class QueryPlan {
+  const QueryPlan(this.points, this.elevations, this.nodeToQuery);
+  final List<LatLng> points;
+  final List<double?> elevations;
+  final List<int> nodeToQuery;
 }

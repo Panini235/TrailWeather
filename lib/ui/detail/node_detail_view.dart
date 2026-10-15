@@ -7,6 +7,7 @@ import '../../data/weather/weather_models.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 import 'detail_state.dart';
+import 'environment_cards.dart';
 import 'node_detail_sheet.dart';
 import 'node_photos.dart';
 import 'weather_cells.dart';
@@ -122,6 +123,26 @@ class _NodeDetailViewState extends State<NodeDetailView> {
           const GranularityNotice(text: '此来源在该时刻没有数据（超出预报范围或来源未提供）。')
         else
           WxVarGrid(wx: wx, settings: widget.settings),
+        if (_freezingNote(wx, node.elevationM) case final note?)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(note, style: const TextStyle(fontSize: 12)),
+          ),
+        const SizedBox(height: 10),
+        AltitudeWeatherCard(
+          key: ValueKey('alt-$_idx-${row.validUtc}'),
+          point: node.pos,
+          atUtc: row.validUtc,
+          nodeElevationM: node.elevationM,
+          routeMinM: _routeMinMax().$1,
+          routeMaxM: _routeMinMax().$2,
+        ),
+        const SizedBox(height: 8),
+        AirQualityCard(
+          key: ValueKey('aq-$_idx'),
+          point: node.pos,
+          atUtc: row.validUtc,
+        ),
         const SizedBox(height: 10),
         Text(S.next12h, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
@@ -200,6 +221,27 @@ class _NodeDetailViewState extends State<NodeDetailView> {
         ),
       ],
     );
+  }
+
+  /// 线路（采样节点）海拔范围；无海拔时为 (null, null)。
+  (double?, double?) _routeMinMax() {
+    final eles = widget.rows
+        .map((r) => r.node.elevationM)
+        .whereType<double>()
+        .toList();
+    if (eles.isEmpty) return (null, null);
+    eles.sort();
+    return (eles.first, eles.last);
+  }
+
+  /// 节点海拔与来源 0℃ 层高度的关系（来源提供时才给出）。
+  static String? _freezingNote(WxHourValue? wx, double? nodeEle) {
+    final fz = wx?.values[WxVar.freezingLevel];
+    if (fz == null || nodeEle == null) return null;
+    final diff = nodeEle - fz;
+    return diff >= 0
+        ? '本节点（${nodeEle.toStringAsFixed(0)} m）高于 0℃ 层约 ${diff.toStringAsFixed(0)} m：可能结冰或降雪（0℃ 层为模型估计）。'
+        : '本节点（${nodeEle.toStringAsFixed(0)} m）低于 0℃ 层约 ${(-diff).toStringAsFixed(0)} m（0℃ 层为模型估计）。';
   }
 
   static String _fmtLocal(DateTime utc) {

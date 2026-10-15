@@ -86,6 +86,23 @@
 | 署名 | “天气数据：和风天气 qweather.com” |
 | 真实联网验证 | **未验证**（无 key）；域名直连可达已实测。fixture 契约测试覆盖解析；待用户配置 key 后用 Live Smoke 验证 |
 
+### 1b. Open-Meteo 补充（2026-10-15 核验：官方文档 + 实测）
+
+- **按节点海拔降尺度**：`elevation` 参数可为逗号列表（每坐标一个）；默认 90 m 高程模型；`elevation=nan`
+  会**关闭**降尺度改用网格平均高度——所以节点缺海拔时整批不传 `elevation`，不用 nan 补位。
+- **新增变量**：`weather_code`（WMO 表：45/48 雾、56/57/66/67 冻雨、71–77/85/86 雪、95–99 雷暴；96/99 仅部分模式）、
+  `snowfall`（cm，前一小时新增雪深，约 7 cm ≈ 10 mm 降水）、`freezing_level_height`（m，0℃ 层海拔）。
+- **同一地点不同海拔**：同一坐标重复 N 次、配 N 个 elevation，一次请求得到垂直剖面（实测五台山北台附近同一时次
+  1500 / 2500 / 3058 m 为 14.8 / 8.2 / 4.6 ℃）；地面海拔用 Elevation API `/v1/elevation`（90 m 高程模型）。
+- **合并策略**：按海拔计算的来源只合并“同 0.1° 网格且海拔差 <100 m”的节点，避免山脊与山谷合成一个点。
+
+### 1c. Open-Meteo Air Quality（CAMS）
+
+- `air-quality-api.open-meteo.com/v1/air-quality`，`hourly=pm2_5,pm10,us_aqi`；中国区域为 CAMS 全球预报，
+  **约 0.4°（≈45 km）网格**，每 12 小时更新、5 天预报；PM2.5 为近地面（约 10 m）浓度。
+- 展示为“区域级数值”，并说明山脊在逆温层之上时实际空气可能更好；必须署名 CAMS（哥白尼大气监测服务）与 Open-Meteo。
+- 授权同 Open-Meteo（免费 API 非商用；商用需订阅）。
+
 ### 4. meteoblue Forecast API（basic-1h，按需单点）
 
 核验：2026-10-15，用户自有 Free key 实测 1 次 + 官方页面（business.meteoblue.com 免费版对比表、

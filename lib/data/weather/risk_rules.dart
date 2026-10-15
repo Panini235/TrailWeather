@@ -1,4 +1,5 @@
 import 'weather_models.dart';
+import 'weather_phenomena.dart';
 
 /// 自行计算的天气提示（透明、可测试的规则）。
 ///
@@ -28,7 +29,14 @@ class WxHint {
 }
 
 class NodeWeatherEntry {
-  const NodeWeatherEntry({required this.weather, required this.validUtc});
+  const NodeWeatherEntry({
+    required this.weather,
+    required this.validUtc,
+    this.elevationM,
+  });
+
+  /// 节点轨迹海拔（用于与 0℃ 层高度比较）；缺失时不参与该判断。
+  final double? elevationM;
 
   /// 可为 null（该节点该时次无数据：超范围/缺失）。
   final WxHourValue? weather;
@@ -156,6 +164,83 @@ List<WxHint> computeHints({required List<NodeWeatherEntry> entries}) {
       ),
     );
   }
+  // ---- 天气现象 / 降雪 / 雾 / 0℃ 层（来源提供时才判断，缺失不默认安全）----
+  var thunderNodes = 0;
+  var snowNodes = 0;
+  var fogNodes = 0;
+  var aboveFreezing = 0;
+  double? maxSnowCm;
+  double? minVis;
+  for (final e in withData) {
+    final w = e.weather!;
+    final ph = phenomenonOf(w);
+    if (ph?.kind == WxPhenomenonKind.thunder) thunderNodes++;
+    final sn = w.values[WxVar.snowfall];
+    if (sn != null && (maxSnowCm == null || sn > maxSnowCm)) maxSnowCm = sn;
+    if (ph?.kind == WxPhenomenonKind.snow ||
+        ph?.kind == WxPhenomenonKind.mixed ||
+        (sn != null && sn >= 0.5)) {
+      snowNodes++;
+    }
+    final vis = w.values[WxVar.visibility];
+    if (vis != null && (minVis == null || vis < minVis)) minVis = vis;
+    if (ph?.kind == WxPhenomenonKind.fog || (vis != null && vis < 1000)) {
+      fogNodes++;
+    }
+    final fz = w.values[WxVar.freezingLevel];
+    if (fz != null && e.elevationM != null && e.elevationM! >= fz) {
+      aboveFreezing++;
+    }
+  }
+  if (thunderNodes > 0) {
+    hints.add(
+      WxHint(
+        id: 'thunder',
+        title: '雷暴提示',
+        detail: '$thunderNodes 个节点在到达时段预报有雷暴或可能出现雷暴云；山脊、山顶与开阔地避免停留。',
+        basis: '依据：来源天气现象编码（Open-Meteo WMO 95–99 / meteoblue 雷暴类）。自行计算，非官方预警。',
+        level: HintLevel.warning,
+      ),
+    );
+  }
+  if (snowNodes > 0) {
+    hints.add(
+      WxHint(
+        id: 'snow',
+        title: '降雪提示',
+        detail:
+            '$snowNodes 个节点在到达时段预报降雪或雨夹雪'
+            '${maxSnowCm == null ? '' : '，单小时最大新增积雪约 ${maxSnowCm.toStringAsFixed(1)} cm'}；注意路面湿滑与保暖。',
+        basis: '阈值：现象为雪/雨夹雪，或单小时新增积雪 ≥ 0.5 cm。自行计算，非官方预警。',
+        level: HintLevel.caution,
+      ),
+    );
+  }
+  if (fogNodes > 0) {
+    hints.add(
+      WxHint(
+        id: 'fog',
+        title: '雾 / 低能见度提示',
+        detail:
+            '$fogNodes 个节点在到达时段预报有雾或能见度低于 1 km'
+            '${minVis == null ? '' : '（最低约 ${(minVis / 1000).toStringAsFixed(1)} km）'}；注意辨认路线。',
+        basis: '阈值：现象为雾，或能见度 < 1000 m。自行计算，非官方预警。',
+        level: HintLevel.caution,
+      ),
+    );
+  }
+  if (aboveFreezing > 0) {
+    hints.add(
+      WxHint(
+        id: 'freezing',
+        title: '部分路段在 0℃ 层以上',
+        detail: '$aboveFreezing 个节点的轨迹海拔高于来源预报的 0℃ 层高度，可能结冰或降雪；注意防滑与保暖。',
+        basis: '比较：节点轨迹海拔 vs 来源 0℃ 层高度（freezing_level_height）。0℃ 层为模型估计。',
+        level: HintLevel.caution,
+      ),
+    );
+  }
+
   if (missingNodes > 0) {
     hints.add(
       WxHint(

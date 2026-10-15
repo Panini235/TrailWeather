@@ -136,6 +136,18 @@ class WxVarGrid extends StatelessWidget {
           formatter: (x) => '${x.toStringAsFixed(0)} hPa',
         ),
         // 只有提供该变量的来源才显示（目前为 meteoblue），避免每个来源都多一格“未提供”。
+        if (v[WxVar.snowfall] != null)
+          WxVarTile(
+            label: WxVar.snowfall.label,
+            value: v[WxVar.snowfall],
+            formatter: (x) => '${x.toStringAsFixed(1)} cm/h',
+          ),
+        if (v[WxVar.freezingLevel] != null)
+          WxVarTile(
+            label: WxVar.freezingLevel.label,
+            value: v[WxVar.freezingLevel],
+            formatter: (x) => '${x.toStringAsFixed(0)} m',
+          ),
         if (v[WxVar.snowFraction] != null)
           WxVarTile(
             label: WxVar.snowFraction.label,
