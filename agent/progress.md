@@ -258,3 +258,5 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓，产物 web-release�
 route_camera_test 4 项；改写首页定位与混合搜索组件测试；集成测试覆盖全屏线路地图）。
 **待真机确认**：国产 Android 定位速度与成功率；上次已知位置回退提示；当前位置标签点击；详情页
 小地图包围盒适配与全屏手势；首页选线路后的适配范围是否被搜索栏/线路卡遮挡；iOS 定位行为。
+**CI 结果**：run 38677552384（workflow_dispatch，分支 feat/robust-track-import）conclusion=success，
+analyze ✓ / test ✓ / Web release ✓ / APK release ✓。

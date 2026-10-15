@@ -402,10 +402,10 @@
       "deps": [
         "T-100"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "Android 定位强制 LocationManager + medium 精度 + 上次已知位置先居中/超时回退并标注；定位成功只移动地图并显示当前位置天气小标签，点击才开面板，不自动请求 Overpass；详情小地图按全部 segments 包围盒（GCJ-02 先 toDisplay）自适配并可进入可交互全屏大图，首页选线路适配整条线路；“搜索此区域”降为线路列表次要入口、外部攻略折叠为次要入口并写明原因（底层代码与测试保留）",
       "verify": "test/unit/location_service_test.dart、test/unit/route_camera_test.dart、test/widget/map_home_location_test.dart、test/widget/hybrid_route_search_test.dart、test/integration/core_flow_test.dart",
-      "result": "本地 analyze 0 + test 151/151 全绿；真机定位/手势待用户确认"
+      "result": "本地 analyze 0 + test 151/151 全绿；CI 38677552384 全绿（analyze/test/Web/APK）；真机定位/手势待用户确认"
     }
   ]
 }
