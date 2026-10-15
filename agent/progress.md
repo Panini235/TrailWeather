@@ -369,4 +369,4 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓（含 image_picker An
 - 修复：地图选点卡片“重试”与新按钮的 setState 回调返回 Future（debug 下点击即断言失败）。
 
 **本地验证**：flutter analyze 0；flutter test 199/199；key 未写入任何仓库文件（git grep 无结果）。
-
+**CI 结果**：run 38740383191 conclusion=success（commit 053373c；analyze / test / Web / APK）。
