@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "haiming-app-monetization": {
+      "source": "HammingDev/haiming-app-monetization",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "26737671eb3fe71b95cc71f7e29f1012d48e5f94ed5c17c487069f81d1041af8"
+    }
+  }
+}
