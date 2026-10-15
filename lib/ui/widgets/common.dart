@@ -20,7 +20,10 @@ class DemoBadge extends StatelessWidget {
       child: const Text(
         S.demoLabel,
         style: TextStyle(
-            fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w700),
+          fontSize: 10,
+          color: Colors.orange,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -42,7 +45,9 @@ class SourceBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        compact ? caps.displayName : '${caps.displayName} · ${caps.modelOrNetwork}',
+        compact
+            ? caps.displayName
+            : '${caps.displayName} · ${caps.modelOrNetwork}',
         style: TextStyle(
           fontSize: 11,
           color: Theme.of(context).colorScheme.onSecondaryContainer,
@@ -92,12 +97,17 @@ class GranularityNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon ?? Icons.info_outline,
-              size: 16, color: Theme.of(context).colorScheme.primary),
+          Icon(
+            icon ?? Icons.info_outline,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text,
-                style: const TextStyle(fontSize: 12, height: 1.4)),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12, height: 1.4),
+            ),
           ),
         ],
       ),
@@ -148,7 +158,9 @@ class RouteSourceLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
-        fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant);
+      fontSize: 11,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     return Wrap(
       spacing: 6,
       runSpacing: 2,
@@ -187,13 +199,22 @@ class ErrorCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Icon(Icons.error_outline,
-                  size: 18, color: Theme.of(context).colorScheme.error),
-              const SizedBox(width: 6),
-              Expanded(child: Text(title,
-                  style: const TextStyle(fontWeight: FontWeight.w600))),
-            ]),
+            Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(detail, style: const TextStyle(fontSize: 12, height: 1.4)),
             if (onRetry != null) ...[
@@ -225,10 +246,80 @@ class DataKindChip extends StatelessWidget {
         border: Border.all(color: Theme.of(context).colorScheme.outline),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        wxDataKindLabel(kind),
-        style: const TextStyle(fontSize: 10),
+      child: Text(wxDataKindLabel(kind), style: const TextStyle(fontSize: 10)),
+    );
+  }
+}
+
+/// 航点类型的图标与颜色（规划工坊、线路详情、地图共用）。
+(IconData, Color) waypointStyle(WaypointType type) => switch (type) {
+  WaypointType.camp => (Icons.cabin, Colors.amber.shade800),
+  WaypointType.water => (Icons.water_drop, Colors.blue),
+  WaypointType.danger => (Icons.warning, Colors.red),
+  WaypointType.pass => (Icons.landscape, Colors.deepPurple),
+  WaypointType.exit => (Icons.exit_to_app, Colors.teal),
+  WaypointType.poi => (Icons.place, Colors.orange),
+  WaypointType.rest => (Icons.coffee, Colors.brown),
+  WaypointType.supply => (Icons.storefront, Colors.green.shade700),
+};
+
+/// 地图上的航点圆形标记。
+class WaypointMarker extends StatelessWidget {
+  const WaypointMarker({super.key, required this.type, this.size = 20});
+
+  final WaypointType type;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, col) = waypointStyle(type);
+    return Container(
+      decoration: BoxDecoration(
+        color: col,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+        ],
       ),
+      padding: const EdgeInsets.all(3),
+      child: Icon(icon, color: Colors.white, size: size * 0.8),
+    );
+  }
+}
+
+/// 按次计费来源（如 meteoblue）的查询入口：不自动请求，点击后才查询并消耗额度。
+class OnDemandQueryPrompt extends StatelessWidget {
+  const OnDemandQueryPrompt({
+    super.key,
+    required this.caps,
+    required this.onQuery,
+  });
+
+  final ProviderCapabilities caps;
+  final VoidCallback onQuery;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (caps.quotaNote != null)
+          Text(
+            caps.quotaNote!,
+            style: TextStyle(
+              fontSize: 11,
+              height: 1.4,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        const SizedBox(height: 6),
+        FilledButton.tonalIcon(
+          onPressed: onQuery,
+          icon: const Icon(Icons.cloud_download_outlined, size: 18),
+          label: const Text(S.onDemandQuery),
+        ),
+      ],
     );
   }
 }

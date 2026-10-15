@@ -1,40 +1,81 @@
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
 
+import '../../core/geo.dart';
 import 'route_models.dart';
 
 /// GPX 导入结果。
 class GpxParseResult {
-  const GpxParseResult({required this.segments, required this.elevations, required this.warnings});
+  const GpxParseResult({
+    required this.segments,
+    required this.elevations,
+    required this.warnings,
+    this.extractedName,
+    this.waypoints = const [],
+  });
 
   final List<List<LatLng>> segments;
   final List<double?> elevations;
   final List<String> warnings;
+  final String? extractedName;
+
+  /// 有名称的 `<wpt>`（有轨迹时才作为航点；无轨迹时 wpt 已被合成为路线）。
+  final List<RouteWaypoint> waypoints;
 }
 
 class GpxImport {
-  static const maxInputBytes = 2 * 1024 * 1024; // 2 MB
-  static const maxPoints = 5000;
+  static const maxInputBytes = 30 * 1024 * 1024; // 30 MB
+  static const autoSimplifyThreshold = 3000; // 点数超过此阈值触发自适应抽稀
 
   /// 解析 GPX（XML）。
   ///
-  /// 安全说明：使用纯 Dart xml 包，不启用 DTD 处理与外部实体解析
-  /// （XmlDocument.parse 默认不解析外部实体），防 XXE。
-  /// 校验：根元素、坐标范围、点数、输入大小；时间字段仅校验格式。
-  static GpxParseResult parse(String input, {List<String> warnings = const []}) {
+  /// 安全与容错说明：
+  /// - 纯 Dart XML 解析器，防 XXE；
+  /// - 自动过滤 UTF-8 BOM 字符；
+  /// - 忽略 XML 命名空间前缀，兼容各家设备自定标签；
+  /// - 坐标合法性校验（纬度 [-90,90]，经度 [-180,180]）；
+  /// - 异常海拔不拒绝文件，置为 null 并提示（符合真实性红线）；
+  /// - 大点数自动进行 Douglas-Peucker 自适应抽稀，保留峰顶、山谷及关键转向；
+  /// - 支持 `<trk>`、`<rte>`，并在缺少连续轨迹时自动将 `<wpt>` 航点集合成为航线。
+  static GpxParseResult parse(
+    String input, {
+    List<String> warnings = const [],
+  }) {
     final warns = List<String>.of(warnings);
     if (input.length > maxInputBytes) {
-      throw const GpxImportException('文件超过 2 MB 限制');
+      throw const GpxImportException('文件超过 30 MB 大小限制');
     }
+
+    // 剔除前导空白与 UTF-8 BOM 头
+    var cleanInput = input.trimLeft();
+    if (cleanInput.startsWith('\uFEFF')) {
+      cleanInput = cleanInput.substring(1).trimLeft();
+    }
+
     final XmlDocument doc;
     try {
-      doc = XmlDocument.parse(input);
+      doc = XmlDocument.parse(cleanInput);
     } on XmlException catch (e) {
       throw GpxImportException('XML 解析失败：${e.message}');
     }
+
     final root = doc.rootElement;
-    if (root.name.local != 'gpx') {
+    if (root.name.local.toLowerCase() != 'gpx') {
       throw GpxImportException('不是 GPX 文件（根元素为 ${root.name.local}）');
+    }
+
+    // 提取全局线路名称
+    String? trackName;
+    for (final child in root.children.whereType<XmlElement>()) {
+      if (child.name.local == 'metadata') {
+        final nameEl = child.children
+            .whereType<XmlElement>()
+            .where((e) => e.name.local == 'name')
+            .firstOrNull;
+        if (nameEl != null && nameEl.innerText.trim().isNotEmpty) {
+          trackName = nameEl.innerText.trim();
+        }
+      }
     }
 
     final segments = <List<LatLng>>[];
@@ -44,68 +85,198 @@ class GpxImport {
       final seg = <LatLng>[];
       final segEle = <double?>[];
       for (final p in pts) {
-        if (p.name.local != 'trkpt' && p.name.local != 'rtept') continue;
+        final local = p.name.local.toLowerCase();
+        if (local != 'trkpt' && local != 'rtept' && local != 'wpt') continue;
         final lat = double.tryParse(p.getAttribute('lat') ?? '');
         final lon = double.tryParse(p.getAttribute('lon') ?? '');
         if (lat == null || lon == null) continue;
         if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-          throw const GpxImportException('存在超出范围的坐标（纬度需在 [-90,90]，经度 [-180,180]）');
+          warns.add('已跳过超出合法范围的坐标点 ($lat, $lon)');
+          continue;
         }
-        final eleChild = p.findElements('ele').firstOrNull;
-        final ele = eleChild == null ? null : double.tryParse(eleChild.innerText);
+
+        final eleChild = p.children
+            .whereType<XmlElement>()
+            .where((e) => e.name.local.toLowerCase() == 'ele')
+            .firstOrNull;
+        final ele = eleChild == null
+            ? null
+            : double.tryParse(eleChild.innerText.trim());
         if (ele != null && (ele < -500 || ele > 10000)) {
-          throw const GpxImportException('存在异常海拔值（需在 -500..10000 m）');
+          warns.add('发现异常海拔数据 (${ele.toStringAsFixed(1)}m)，已自动过滤置空');
+          segEle.add(null);
+        } else {
+          segEle.add(ele);
         }
-        final timeChild = p.findElements('time').firstOrNull;
-        if (timeChild != null && DateTime.tryParse(timeChild.innerText) == null) {
+
+        final timeChild = p.children
+            .whereType<XmlElement>()
+            .where((e) => e.name.local.toLowerCase() == 'time')
+            .firstOrNull;
+        if (timeChild != null &&
+            DateTime.tryParse(timeChild.innerText.trim()) == null) {
           warns.add('存在无法解析的时间字段，已忽略');
         }
+
         seg.add(LatLng(lat, lon));
-        segEle.add(ele);
       }
+
       if (seg.length >= 2) {
         segments.add(seg);
         elevations.addAll(segEle);
       }
     }
 
-    for (final trk in root.findElements('trk')) {
-      for (final seg in trk.findElements('trkseg')) {
-        takePoints(seg.findElements('trkpt'));
+    // 1. 尝试读取 <trk><trkseg><trkpt>
+    for (final trk in root.children.whereType<XmlElement>().where(
+      (e) => e.name.local == 'trk',
+    )) {
+      if (trackName == null) {
+        final nameEl = trk.children
+            .whereType<XmlElement>()
+            .where((e) => e.name.local == 'name')
+            .firstOrNull;
+        if (nameEl != null && nameEl.innerText.trim().isNotEmpty) {
+          trackName = nameEl.innerText.trim();
+        }
+      }
+      for (final seg in trk.children.whereType<XmlElement>().where(
+        (e) => e.name.local == 'trkseg',
+      )) {
+        takePoints(seg.children.whereType<XmlElement>());
       }
     }
-    final rteList = root.findElements('rte').toList();
-    for (final rte in rteList) {
-      takePoints(rte.findElements('rtept'));
+
+    // 2. 尝试读取 <rte><rtept>
+    if (segments.isEmpty) {
+      for (final rte in root.children.whereType<XmlElement>().where(
+        (e) => e.name.local == 'rte',
+      )) {
+        if (trackName == null) {
+          final nameEl = rte.children
+              .whereType<XmlElement>()
+              .where((e) => e.name.local == 'name')
+              .firstOrNull;
+          if (nameEl != null && nameEl.innerText.trim().isNotEmpty) {
+            trackName = nameEl.innerText.trim();
+          }
+        }
+        takePoints(rte.children.whereType<XmlElement>());
+      }
     }
 
-    final totalPoints =
-        segments.fold<int>(0, (a, s) => a + s.length);
+    // 3. 有轨迹时：有名称的 <wpt> 作为航点（营地/水源等），无名称的（多为照片点）跳过。
+    final namedWaypoints = <RouteWaypoint>[];
+    if (segments.isNotEmpty) {
+      for (final w in root.children.whereType<XmlElement>().where(
+        (e) => e.name.local == 'wpt',
+      )) {
+        final lat = double.tryParse(w.getAttribute('lat') ?? '');
+        final lon = double.tryParse(w.getAttribute('lon') ?? '');
+        if (lat == null || lon == null || lat.abs() > 90 || lon.abs() > 180) {
+          continue;
+        }
+        String? child(String local) => w.children
+            .whereType<XmlElement>()
+            .where((e) => e.name.local.toLowerCase() == local)
+            .firstOrNull
+            ?.innerText;
+        final ele = double.tryParse(child('ele')?.trim() ?? '');
+        final wp = importedWaypoint(
+          name: child('name'),
+          point: LatLng(lat, lon),
+          elevationM: ele != null && ele >= -500 && ele <= 10000 ? ele : null,
+          routeName: trackName,
+        );
+        if (wp != null && namedWaypoints.length < maxImportedWaypoints) {
+          namedWaypoints.add(wp);
+        }
+      }
+    }
+
+    // 4. 容错尝试读取分散的 <wpt>
+    if (segments.isEmpty) {
+      final wpts = root.children
+          .whereType<XmlElement>()
+          .where((e) => e.name.local == 'wpt')
+          .toList();
+      if (wpts.length >= 2) {
+        takePoints(wpts);
+        if (segments.isNotEmpty) {
+          warns.add('文件中未发现轨迹段，已将 ${wpts.length} 个航点 (wpt) 合成为路线');
+        }
+      }
+    }
+
+    var totalPoints = segments.fold<int>(0, (a, s) => a + s.length);
     if (segments.isEmpty || totalPoints < 2) {
-      throw const GpxImportException('未找到有效轨迹点（trkpt/rtept 至少 2 个）');
+      throw const GpxImportException('未找到有效轨迹点（trkpt/rtept/wpt 至少需要 2 个有效点）');
     }
-    if (totalPoints > maxPoints) {
-      throw GpxImportException('轨迹点数 $totalPoints 超过上限 $maxPoints');
+
+    // 4. 自适应抽稀（若点数超大，自动优化以保障渲染流畅与气象推演）
+    var finalSegments = segments;
+    var finalElevations = elevations;
+    if (totalPoints > autoSimplifyThreshold) {
+      final newSegs = <List<LatLng>>[];
+      final newEles = <double?>[];
+      var eleOffset = 0;
+      for (final seg in segments) {
+        final segElevations = elevations.sublist(
+          eleOffset,
+          eleOffset + seg.length,
+        );
+        eleOffset += seg.length;
+        if (seg.length > 500) {
+          final targetPts = (seg.length / totalPoints * autoSimplifyThreshold)
+              .round()
+              .clamp(300, 3000);
+          final (simpPts, simpEles) = Geo.simplifyTrack(
+            seg,
+            segElevations,
+            targetMaxPoints: targetPts,
+          );
+          newSegs.add(simpPts);
+          newEles.addAll(simpEles);
+        } else {
+          newSegs.add(seg);
+          newEles.addAll(segElevations);
+        }
+      }
+      final newTotal = newSegs.fold<int>(0, (a, s) => a + s.length);
+      warns.add(
+        '原始轨迹含 $totalPoints 个点，已自适应优化至 $newTotal 点（保留峰顶与关键转折），保障流畅显示与气象推演',
+      );
+      finalSegments = newSegs;
+      finalElevations = newEles;
     }
-    return GpxParseResult(segments: segments, elevations: elevations, warnings: warns);
+
+    return GpxParseResult(
+      segments: finalSegments,
+      elevations: finalElevations,
+      warnings: warns,
+      extractedName: trackName,
+      waypoints: namedWaypoints,
+    );
   }
 
   /// 从解析结果构造 HikingRoute（用户导入）。
   static HikingRoute toRoute(GpxParseResult r, {required String fileName}) {
     return HikingRoute(
       id: 'import-${DateTime.now().millisecondsSinceEpoch}',
-      name: _guessName(fileName),
+      name: r.extractedName ?? _guessName(fileName),
       origin: RouteOrigin.import,
       segments: r.segments,
       elevationsM: r.elevations,
       sourceName: '用户导入 GPX：$fileName',
       importedAtUtc: DateTime.now().toUtc(),
+      waypoints: r.waypoints,
     );
   }
 
   static String _guessName(String fileName) {
-    final base = fileName.split('/').last;
-    final noExt = base.endsWith('.gpx') ? base.substring(0, base.length - 4) : base;
+    final base = fileName.split('/').last.split(r'\').last;
+    final dotIdx = base.lastIndexOf('.');
+    final noExt = dotIdx > 0 ? base.substring(0, dotIdx) : base;
     return noExt.isEmpty ? '导入线路' : noExt;
   }
 }

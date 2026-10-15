@@ -117,11 +117,17 @@ void main() {
     );
     expect(
       () => p.fetchPoints(
-          points: [const LatLng(39.9, 116.2)],
-          startUtc: DateTime.now().toUtc(),
-          endUtc: DateTime.now().toUtc().add(const Duration(hours: 2))),
-      throwsA(isA<SourceHttpException>()
-          .having((e) => e.message, 'message', contains('免费额度'))),
+        points: [const LatLng(39.9, 116.2)],
+        startUtc: DateTime.now().toUtc(),
+        endUtc: DateTime.now().toUtc().add(const Duration(hours: 2)),
+      ),
+      throwsA(
+        isA<SourceHttpException>().having(
+          (e) => e.message,
+          'message',
+          contains('免费额度'),
+        ),
+      ),
     );
   });
 
@@ -129,9 +135,10 @@ void main() {
     final p = QWeatherProvider(apiHost: '', apiKey: '');
     expect(
       () => p.fetchPoints(
-          points: [const LatLng(39.9, 116.2)],
-          startUtc: DateTime.now().toUtc(),
-          endUtc: DateTime.now().toUtc().add(const Duration(hours: 2))),
+        points: [const LatLng(39.9, 116.2)],
+        startUtc: DateTime.now().toUtc(),
+        endUtc: DateTime.now().toUtc().add(const Duration(hours: 2)),
+      ),
       throwsA(isA<QWeatherConfigurationException>()),
     );
   });
@@ -140,9 +147,10 @@ void main() {
     final p = QWeatherProvider(apiHost: 'h', apiKey: 'k');
     expect(
       () => p.fetchPoints(
-          points: [const LatLng(39.9, 116.2)],
-          startUtc: DateTime.now().toUtc().add(const Duration(days: 3)),
-          endUtc: DateTime.now().toUtc().add(const Duration(days: 3, hours: 2))),
+        points: [const LatLng(39.9, 116.2)],
+        startUtc: DateTime.now().toUtc().add(const Duration(days: 3)),
+        endUtc: DateTime.now().toUtc().add(const Duration(days: 3, hours: 2)),
+      ),
       throwsA(isA<WxOutOfRange>()),
     );
   });

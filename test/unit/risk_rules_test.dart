@@ -7,22 +7,26 @@ WxHourValue _hour({
   double? precip,
   double? precipProb,
   double? temp,
-}) =>
-    WxHourValue(
-      validFromUtc: DateTime.utc(2026, 10, 13, 10),
-      values: {
-        WxVar.windGust: gust,
-        WxVar.precip: precip,
-        WxVar.precipProb: precipProb,
-        WxVar.temperature: temp,
-      },
-    );
+}) => WxHourValue(
+  validFromUtc: DateTime.utc(2026, 10, 13, 10),
+  values: {
+    WxVar.windGust: gust,
+    WxVar.precip: precip,
+    WxVar.precipProb: precipProb,
+    WxVar.temperature: temp,
+  },
+);
 
 void main() {
   test('阵风超阈值触发大风提示（非官方预警）', () {
-    final hints = computeHints(entries: [
-      NodeWeatherEntry(weather: _hour(gust: 18.0), validUtc: DateTime.utc(2026, 10, 13, 10)),
-    ]);
+    final hints = computeHints(
+      entries: [
+        NodeWeatherEntry(
+          weather: _hour(gust: 18.0),
+          validUtc: DateTime.utc(2026, 10, 13, 10),
+        ),
+      ],
+    );
     final gust = hints.where((h) => h.id == 'gust').toList();
     expect(gust, hasLength(1));
     expect(gust.first.level, HintLevel.warning);
@@ -30,24 +34,39 @@ void main() {
   });
 
   test('阵风缺失不触发', () {
-    final hints = computeHints(entries: [
-      NodeWeatherEntry(weather: _hour(), validUtc: DateTime.utc(2026, 10, 13, 10)),
-    ]);
+    final hints = computeHints(
+      entries: [
+        NodeWeatherEntry(
+          weather: _hour(),
+          validUtc: DateTime.utc(2026, 10, 13, 10),
+        ),
+      ],
+    );
     expect(hints.where((h) => h.id == 'gust'), isEmpty);
   });
 
   test('累计降水达标触发强降水', () {
-    final hints = computeHints(entries: [
-      for (var i = 0; i < 3; i++)
-        NodeWeatherEntry(weather: _hour(precip: 3.0), validUtc: DateTime.utc(2026, 10, 13, 10 + i)),
-    ]);
+    final hints = computeHints(
+      entries: [
+        for (var i = 0; i < 3; i++)
+          NodeWeatherEntry(
+            weather: _hour(precip: 3.0),
+            validUtc: DateTime.utc(2026, 10, 13, 10 + i),
+          ),
+      ],
+    );
     expect(hints.any((h) => h.id == 'precip'), isTrue);
   });
 
   test('高降水概率不等于降水量（分别提示）', () {
-    final hints = computeHints(entries: [
-      NodeWeatherEntry(weather: _hour(precipProb: 80, precip: 0.0), validUtc: DateTime.utc(2026, 10, 13)),
-    ]);
+    final hints = computeHints(
+      entries: [
+        NodeWeatherEntry(
+          weather: _hour(precipProb: 80, precip: 0.0),
+          validUtc: DateTime.utc(2026, 10, 13),
+        ),
+      ],
+    );
     final prob = hints.where((h) => h.id == 'precip_prob').toList();
     expect(prob, hasLength(1));
     expect(prob.first.detail, contains('降水概率不等于降水量'));
@@ -55,30 +74,53 @@ void main() {
   });
 
   test('全部无数据显示信息不足（不默认安全）', () {
-    final hints = computeHints(entries: [
-      NodeWeatherEntry(weather: null, validUtc: DateTime.utc(2026, 10, 13)),
-      NodeWeatherEntry(weather: null, validUtc: DateTime.utc(2026, 10, 13, 1)),
-    ]);
+    final hints = computeHints(
+      entries: [
+        NodeWeatherEntry(weather: null, validUtc: DateTime.utc(2026, 10, 13)),
+        NodeWeatherEntry(
+          weather: null,
+          validUtc: DateTime.utc(2026, 10, 13, 1),
+        ),
+      ],
+    );
     expect(hints, hasLength(1));
     expect(hints.first.id, 'insufficient');
   });
 
   test('部分节点缺数据有明确提示', () {
-    final hints = computeHints(entries: [
-      NodeWeatherEntry(weather: _hour(temp: 20), validUtc: DateTime.utc(2026, 10, 13)),
-      NodeWeatherEntry(weather: null, validUtc: DateTime.utc(2026, 10, 13, 1)),
-    ]);
+    final hints = computeHints(
+      entries: [
+        NodeWeatherEntry(
+          weather: _hour(temp: 20),
+          validUtc: DateTime.utc(2026, 10, 13),
+        ),
+        NodeWeatherEntry(
+          weather: null,
+          validUtc: DateTime.utc(2026, 10, 13, 1),
+        ),
+      ],
+    );
     expect(hints.any((h) => h.id == 'partial'), isTrue);
   });
 
   test('低温与高温', () {
-    final cold = computeHints(entries: [
-      NodeWeatherEntry(weather: _hour(temp: -12), validUtc: DateTime.utc(2026, 1, 1)),
-    ]);
+    final cold = computeHints(
+      entries: [
+        NodeWeatherEntry(
+          weather: _hour(temp: -12),
+          validUtc: DateTime.utc(2026, 1, 1),
+        ),
+      ],
+    );
     expect(cold.any((h) => h.id == 'cold'), isTrue);
-    final hot = computeHints(entries: [
-      NodeWeatherEntry(weather: _hour(temp: 37), validUtc: DateTime.utc(2026, 7, 1)),
-    ]);
+    final hot = computeHints(
+      entries: [
+        NodeWeatherEntry(
+          weather: _hour(temp: 37),
+          validUtc: DateTime.utc(2026, 7, 1),
+        ),
+      ],
+    );
     expect(hot.any((h) => h.id == 'heat'), isTrue);
   });
 
@@ -99,5 +141,35 @@ void main() {
   test('官方预警固定为未接入表述', () {
     expect(officialAlertsNotAvailable, contains('未接入'));
     expect(officialAlertsNotAvailable, contains('不能替代'));
+  });
+
+  group('routePrecipMm（沿途降水按小时取最大再累加）', () {
+    test('同一小时 20 个节点各 0.5 mm 不累加成 10 mm', () {
+      final t = DateTime.utc(2026, 10, 13, 10);
+      expect(routePrecipMm([for (var i = 0; i < 20; i++) (t, 0.5)]), 0.5);
+      final hints = computeHints(
+        entries: [
+          for (var i = 0; i < 20; i++)
+            NodeWeatherEntry(weather: _hour(precip: 0.5), validUtc: t),
+        ],
+      );
+      expect(hints.any((h) => h.id == 'precip'), isFalse);
+    });
+
+    test('跨小时取每小时最大值后累加；分钟不影响分组', () {
+      expect(
+        routePrecipMm([
+          (DateTime.utc(2026, 10, 13, 10, 5), 1.0),
+          (DateTime.utc(2026, 10, 13, 10, 40), 2.0),
+          (DateTime.utc(2026, 10, 13, 11), 3.0),
+          (DateTime.utc(2026, 10, 13, 12), null),
+        ]),
+        5.0,
+      );
+    });
+
+    test('全部缺失返回 null 而不是 0', () {
+      expect(routePrecipMm([(DateTime.utc(2026), null)]), isNull);
+    });
   });
 }

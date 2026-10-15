@@ -31,40 +31,40 @@ class QWeatherProvider extends WeatherProvider {
 
   @override
   ProviderCapabilities get caps => ProviderCapabilities(
-        providerId: 'qweather:grid-24h',
-        vendor: '和风天气',
-        displayName: '和风天气（格点 24h）',
-        modelOrNetwork: '和风天气数值模式（响应未标注具体模型，按未知处理）',
-        coverage: '全球（中国区域数据质量更好）',
-        forecastHorizonDays: 1, // 格点逐时仅 24 小时
-        intervalHours: 1,
-        batchCoordinates: false,
-        maxPointsPerRequest: 1,
-        granularity: WxGranularity.grid,
-        dataKind: WxDataKind.forecast,
-        requiresApiKey: true,
-        browserCorsOk: true,
-        browserNotes: '浏览器可用（API Key 方式认证，CORS 开放）',
-        license: '和风天气开发者服务条款（免费订阅限额内使用；商用需商业订阅）',
-        attribution: '天气数据：和风天气 qweather.com',
-        supportedVars: const [
-          WxVar.temperature,
-          WxVar.precip,
-          WxVar.precipProb,
-          WxVar.windSpeed,
-          WxVar.windDir,
-          WxVar.humidity,
-          WxVar.cloudCover,
-          WxVar.visibility,
-          WxVar.pressure,
-        ],
-        minRequestIntervalMs: 150,
-        recommendedCacheTtl: const Duration(minutes: 20),
-        spatialResolutionNote: '来源文档声明格点空间分辨率约 3–5 km（响应不携带网格信息）',
-        modelOverlapNote:
-            '注意：和风中国区域融合中国气象局等机构数据，与其他来源可能存在底层模型重叠；'
-            '未逐点识别，按未知处理',
-      );
+    providerId: 'qweather:grid-24h',
+    vendor: '和风天气',
+    displayName: '和风天气（格点 24h）',
+    modelOrNetwork: '和风天气数值模式（响应未标注具体模型，按未知处理）',
+    coverage: '全球（中国区域数据质量更好）',
+    forecastHorizonDays: 1, // 格点逐时仅 24 小时
+    intervalHours: 1,
+    batchCoordinates: false,
+    maxPointsPerRequest: 1,
+    granularity: WxGranularity.grid,
+    dataKind: WxDataKind.forecast,
+    requiresApiKey: true,
+    browserCorsOk: true,
+    browserNotes: '浏览器可用（API Key 方式认证，CORS 开放）',
+    license: '和风天气开发者服务条款（免费订阅限额内使用；商用需商业订阅）',
+    attribution: '天气数据：和风天气 qweather.com',
+    supportedVars: const [
+      WxVar.temperature,
+      WxVar.precip,
+      WxVar.precipProb,
+      WxVar.windSpeed,
+      WxVar.windDir,
+      WxVar.humidity,
+      WxVar.cloudCover,
+      WxVar.visibility,
+      WxVar.pressure,
+    ],
+    minRequestIntervalMs: 150,
+    recommendedCacheTtl: const Duration(minutes: 20),
+    spatialResolutionNote: '来源文档声明格点空间分辨率约 3–5 km（响应不携带网格信息）',
+    modelOverlapNote:
+        '注意：和风中国区域融合中国气象局等机构数据，与其他来源可能存在底层模型重叠；'
+        '未逐点识别，按未知处理',
+  );
 
   @override
   Future<List<WxPointForecast>> fetchPoints({
@@ -75,7 +75,8 @@ class QWeatherProvider extends WeatherProvider {
   }) async {
     if (apiHost.trim().isEmpty || apiKey.trim().isEmpty) {
       throw const QWeatherConfigurationException(
-          '和风天气未配置：请在 设置 → 数据源密钥 填入 API Host 与 API Key（免费订阅）');
+        '和风天气未配置：请在 设置 → 数据源密钥 填入 API Host 与 API Key（免费订阅）',
+      );
     }
     final now = DateTime.now().toUtc();
     final horizonEnd = now.add(const Duration(hours: 24));
@@ -95,13 +96,16 @@ class QWeatherProvider extends WeatherProvider {
         path: '/v7/grid-weather/24h',
         queryParameters: {'location': loc, 'lang': 'zh', 'unit': 'm'},
       );
-      final body = await fetcher(uri,
-          headers: {'X-QW-Api-Key': apiKey.trim()},
-          cancelToken: cancelToken);
+      final body = await fetcher(
+        uri,
+        headers: {'X-QW-Api-Key': apiKey.trim()},
+        cancelToken: cancelToken,
+      );
       results.add(_parse(body, p));
       if (i < points.length - 1) {
         await Future<void>.delayed(
-            Duration(milliseconds: caps.minRequestIntervalMs));
+          Duration(milliseconds: caps.minRequestIntervalMs),
+        );
       }
     }
     return results;
@@ -116,22 +120,18 @@ class QWeatherProvider extends WeatherProvider {
     }
     final code = m['code'] as String? ?? '';
     if (code != '200') {
-      throw SourceHttpException(
-        int.tryParse(code),
-        switch (code) {
-          '401' => '认证失败（检查 API Key）',
-          '402' => '超出免费额度',
-          '403' => '无权限（检查订阅与 API Host）',
-          '404' => '查询位置无数据',
-          '429' => '请求过快（限流）',
-          _ => '和风返回错误码 $code',
-        },
-        apiHost,
-      );
+      throw SourceHttpException(int.tryParse(code), switch (code) {
+        '401' => '认证失败（检查 API Key）',
+        '402' => '超出免费额度',
+        '403' => '无权限（检查订阅与 API Host）',
+        '404' => '查询位置无数据',
+        '429' => '请求过快（限流）',
+        _ => '和风返回错误码 $code',
+      }, apiHost);
     }
     final fetchedAt = DateTime.now().toUtc();
-    final updateTime =
-        DateTime.tryParse(m['updateTime'] as String? ?? '')?.toUtc();
+    final updateTime = DateTime.tryParse(m['updateTime'] as String? ?? '')
+        ?.toUtc();
     final hourly = (m['hourly'] as List? ?? const [])
         .cast<Map<String, dynamic>>();
 
@@ -153,11 +153,18 @@ class QWeatherProvider extends WeatherProvider {
         // 本来源未提供：apparentTemp / windGust（仅有风力等级文本）→ 保持 null。
       };
       final icon = h['icon'] as String?;
-      hours.add(WxHourValue(
-        validFromUtc: t,
-        values: values,
-        symbols: icon == null ? null : {'qweather_icon': icon, 'qweather_text': (h['text'] as String? ?? '')},
-      ));
+      hours.add(
+        WxHourValue(
+          validFromUtc: t,
+          values: values,
+          symbols: icon == null
+              ? null
+              : {
+                  'qweather_icon': icon,
+                  'qweather_text': (h['text'] as String? ?? ''),
+                },
+        ),
+      );
     }
     hours.sort((a, b) => a.validFromUtc.compareTo(b.validFromUtc));
 
@@ -170,7 +177,8 @@ class QWeatherProvider extends WeatherProvider {
       requestLon: req.longitude,
       returnedLat: null,
       returnedLon: null,
-      locationDetail: '格点预报；location 按“经度,纬度”保留 2 位小数请求，'
+      locationDetail:
+          '格点预报；location 按“经度,纬度”保留 2 位小数请求，'
           '来源未返回实际网格中心（响应坐标为请求坐标）',
       elevationUsedM: null,
       granularity: caps.granularity,

@@ -14,7 +14,12 @@ void main() {
     test('写入后可读取，TTL 过期可感知', () async {
       final prefs = await SharedPreferences.getInstance();
       final cache = CacheStore(prefs);
-      await cache.write(CacheNs.weather, 'k', 'v1', const Duration(minutes: 30));
+      await cache.write(
+        CacheNs.weather,
+        'k',
+        'v1',
+        const Duration(minutes: 30),
+      );
       final hit = await cache.read(CacheNs.weather, 'k');
       expect(hit, isNotNull);
       expect(hit!.payload, 'v1');
@@ -42,7 +47,12 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final cache = CacheStore(prefs, maxEntriesPerNamespace: 3);
       for (var i = 0; i < 5; i++) {
-        await cache.write(CacheNs.weather, 'k$i', 'v$i', const Duration(hours: 1));
+        await cache.write(
+          CacheNs.weather,
+          'k$i',
+          'v$i',
+          const Duration(hours: 1),
+        );
       }
       expect(await cache.entryCount(CacheNs.weather), lessThanOrEqualTo(3));
     });
@@ -93,13 +103,17 @@ void main() {
     });
 
     test('拒绝非 GPX 根元素', () {
-      expect(() => GpxImport.parse('<foo><bar/></foo>'),
-          throwsA(isA<GpxImportException>()));
+      expect(
+        () => GpxImport.parse('<foo><bar/></foo>'),
+        throwsA(isA<GpxImportException>()),
+      );
     });
 
     test('拒绝损坏 XML', () {
-      expect(() => GpxImport.parse('<gpx><unclosed>'),
-          throwsA(isA<GpxImportException>()));
+      expect(
+        () => GpxImport.parse('<gpx><unclosed>'),
+        throwsA(isA<GpxImportException>()),
+      );
     });
 
     test('拒绝超范围坐标', () {
@@ -111,23 +125,31 @@ void main() {
       expect(() => GpxImport.parse(gpx), throwsA(isA<GpxImportException>()));
     });
 
-    test('拒绝异常海拔', () {
+    test('异常海拔自动置空且给出警告，不崩溃整条轨迹', () {
       const gpx = '''
 <gpx><trk><trkseg>
-<trkpt lat="30" lon="120"><ele>12000</ele></trkpt><trkpt lat="30.1" lon="120"/>
+<trkpt lat="30" lon="120"><ele>12000</ele></trkpt><trkpt lat="30.1" lon="120"><ele>1200</ele></trkpt>
 </trkseg></trk></gpx>
 ''';
-      expect(() => GpxImport.parse(gpx), throwsA(isA<GpxImportException>()));
+      final r = GpxImport.parse(gpx);
+      expect(r.segments.first, hasLength(2));
+      expect(r.elevations[0], isNull); // 异常 12000 置空
+      expect(r.elevations[1], 1200);
+      expect(r.warnings.any((w) => w.contains('异常海拔')), isTrue);
     });
 
-    test('超过点数上限拒绝', () {
+    test('超过阈值点数触发自适应抽稀，成功导入', () {
       final buf = StringBuffer('<gpx><trk><trkseg>');
-      for (var i = 0; i < 5001; i++) {
-        buf.write('<trkpt lat="30" lon="120"/>');
+      for (var i = 0; i < 3500; i++) {
+        buf.write(
+          '<trkpt lat="${30 + i * 0.0001}" lon="${120 + i * 0.0001}"><ele>${100 + i % 50}</ele></trkpt>',
+        );
       }
       buf.write('</trkseg></trk></gpx>');
-      expect(() => GpxImport.parse(buf.toString()),
-          throwsA(isA<GpxImportException>()));
+      final r = GpxImport.parse(buf.toString());
+      final total = r.segments.fold<int>(0, (a, s) => a + s.length);
+      expect(total, lessThanOrEqualTo(3000));
+      expect(r.warnings.any((w) => w.contains('自适应优化')), isTrue);
     });
 
     test('无海拔则 elevations 全 null', () {
@@ -171,20 +193,26 @@ void main() {
     });
 
     test('拒绝损坏 JSON', () {
-      expect(() => GeoJsonImport.parse('{broken'),
-          throwsA(isA<GeoJsonImportException>()));
+      expect(
+        () => GeoJsonImport.parse('{broken'),
+        throwsA(isA<GeoJsonImportException>()),
+      );
     });
 
     test('拒绝超范围坐标', () {
       const json = '{"type":"LineString","coordinates":[[200,30],[1,1]]}';
-      expect(() => GeoJsonImport.parse(json),
-          throwsA(isA<GeoJsonImportException>()));
+      expect(
+        () => GeoJsonImport.parse(json),
+        throwsA(isA<GeoJsonImportException>()),
+      );
     });
 
     test('不含线几何时拒绝', () {
       const json = '{"type":"Point","coordinates":[1,2]}';
-      expect(() => GeoJsonImport.parse(json),
-          throwsA(isA<GeoJsonImportException>()));
+      expect(
+        () => GeoJsonImport.parse(json),
+        throwsA(isA<GeoJsonImportException>()),
+      );
     });
   });
 }

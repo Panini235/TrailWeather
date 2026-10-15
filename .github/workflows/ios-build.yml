@@ -5,6 +5,10 @@ name: iOS Build (manual)
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ios:
     runs-on: macos-latest
@@ -21,11 +25,17 @@ jobs:
       - name: 生成 iOS 平台目录
         run: flutter create --platforms=ios --org dev.trailweather --project-name trailweather .
 
+      - name: 应用山晴名称与图标（平台生成后）
+        run: python3 tool/apply_branding.py --platforms ios
+
       - name: 依赖
         run: flutter pub get
 
       - name: iOS 构建（无签名，仅验证可编译）
         run: flutter build ios --release --no-codesign
+
+      - name: 验证 iOS 名称与图标资源
+        run: python3 tool/verify_build_branding.py --ios-app build/ios/iphoneos/Runner.app
 
       - name: 上传产物
         uses: actions/upload-artifact@v4

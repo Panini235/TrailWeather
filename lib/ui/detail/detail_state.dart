@@ -44,17 +44,17 @@ class RouteWeatherQuery {
 
   @override
   int get hashCode => Object.hash(
-        routeId,
-        providerId,
-        mode,
-        startUtc,
-        endUtc,
-        fixedUtc,
-        pace.speedKmh,
-        pace.ascentMinPer100m,
-        pace.descentMinPer100m,
-        pace.restMinutesTotal,
-      );
+    routeId,
+    providerId,
+    mode,
+    startUtc,
+    endUtc,
+    fixedUtc,
+    pace.speedKmh,
+    pace.ascentMinPer100m,
+    pace.descentMinPer100m,
+    pace.restMinutesTotal,
+  );
 }
 
 /// 节点 + 该节点对应时刻的天气。
@@ -96,9 +96,10 @@ List<NodeWxRow> buildNodeRows({
         point: bundle == null
             ? null
             : (bundle.nodeQueryIndex[i] < bundle.result.points.length
-                ? bundle.result.points[bundle.nodeQueryIndex[i]]
-                : null),
-        sharedWithPrev: i > 0 &&
+                  ? bundle.result.points[bundle.nodeQueryIndex[i]]
+                  : null),
+        sharedWithPrev:
+            i > 0 &&
             bundle != null &&
             bundle.nodeQueryIndex[i] == bundle.nodeQueryIndex[i - 1],
       ),
@@ -120,6 +121,8 @@ class RouteWxSummary {
   final double? minTempC;
   final double? maxTempC;
   final double? maxGustMs;
+
+  /// 见 [routePrecipMm]：按小时取沿途最大值后累加（估算），非逐节点求和。
   final double? totalPrecipMm;
   final int precipNodeCount;
   final int nodesWithData;
@@ -129,10 +132,10 @@ class RouteWxSummary {
 }
 
 RouteWxSummary summarizeRows(List<NodeWxRow> rows) {
-  double? minT, maxT, maxG, totalP;
+  double? minT, maxT, maxG;
   var precipNodes = 0;
   var withData = 0;
-  var precipSeen = false;
+  final precipSamples = <(DateTime, double?)>[];
   for (final r in rows) {
     final w = r.wx;
     if (w == null) continue;
@@ -145,35 +148,38 @@ RouteWxSummary summarizeRows(List<NodeWxRow> rows) {
     final g = w.values[WxVar.windGust];
     if (g != null && (maxG == null || g > maxG)) maxG = g;
     final p = w.values[WxVar.precip];
-    if (p != null) {
-      precipSeen = true;
-      if (p > 0.1) precipNodes++;
-      totalP = (totalP ?? 0) + p;
-    }
+    if (p != null && p > 0.1) precipNodes++;
+    precipSamples.add((r.validUtc, p));
   }
   return RouteWxSummary(
     minTempC: minT,
     maxTempC: maxT,
     maxGustMs: maxG,
-    totalPrecipMm: precipSeen ? totalP : null,
+    totalPrecipMm: routePrecipMm(precipSamples),
     precipNodeCount: precipNodes,
     nodesWithData: withData,
     totalNodes: rows.length,
   );
 }
 
-/// 采样 + ETA（行程模式）使用的节点序列：基于最长连续段。
-List<RouteNode> nodesForRoute(HikingRoute route,
-    {required double spacingKm, required int maxNodes}) {
+/// 采样 + ETA（行程模式）使用的节点序列：基于分析路径（首尾相接的段已串联），
+/// 航点吸附后必为节点。
+List<RouteNode> nodesForRoute(
+  HikingRoute route, {
+  required double spacingKm,
+  required int maxNodes,
+}) {
+  final path = route.analysisPath;
   return sampleRoute(
-    points: route.mainSegment,
-    elevations: route.mainSegmentElevations,
+    points: path.points,
+    elevations: path.elevations,
     spacingM: spacingKm * 1000,
     maxNodes: maxNodes,
+    waypointsAt: snapWaypoints(path.points, route.waypoints),
   );
 }
 
 /// 详情页风险提示输入。
 List<NodeWeatherEntry> rowsToEntries(List<NodeWxRow> rows) => [
-      for (final r in rows) NodeWeatherEntry(weather: r.wx, validUtc: r.validUtc),
-    ];
+  for (final r in rows) NodeWeatherEntry(weather: r.wx, validUtc: r.validUtc),
+];

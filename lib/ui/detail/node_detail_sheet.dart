@@ -48,54 +48,61 @@ class _NodeComparePanelState extends ConsumerState<NodeComparePanel> {
     final row = widget.rows[_idx];
     final wantUtc = widget.fixedUtc ?? row.validUtc;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Text(S.nodeDetail, style: Theme.of(context).textTheme.titleMedium),
-        const Spacer(),
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: _idx > 0 ? () => setState(() => _idx--) : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(S.nodeDetail, style: Theme.of(context).textTheme.titleMedium),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: _idx > 0 ? () => setState(() => _idx--) : null,
+            ),
+            Text('${_idx + 1}/${widget.rows.length}'),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: _idx < widget.rows.length - 1
+                  ? () => setState(() => _idx++)
+                  : null,
+            ),
+          ],
         ),
-        Text('${_idx + 1}/${widget.rows.length}'),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: _idx < widget.rows.length - 1
-              ? () => setState(() => _idx++)
-              : null,
+        Text(
+          '${row.node.label ?? '节点'} · ${S.distFromStart} ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km'
+          '${row.node.elevationM == null ? '' : ' · ${S.elevationLabel} ${row.node.elevationM!.toStringAsFixed(0)} m'}',
+          style: const TextStyle(fontSize: 13),
         ),
-      ]),
-      Text(
-        '${row.node.label ?? '节点'} · ${S.distFromStart} ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km'
-        '${row.node.elevationM == null ? '' : ' · ${S.elevationLabel} ${row.node.elevationM!.toStringAsFixed(0)} m'}',
-        style: const TextStyle(fontSize: 13),
-      ),
-      const SizedBox(height: 2),
-      Text(
-        '${S.validTime}：${_fmt(wantUtc)} UTC（${_fmtLocal(wantUtc)} 本地）'
-        '${widget.fixedUtc != null ? '' : '（行程模式：${S.eta}，估算）'}',
-        style: const TextStyle(fontSize: 11, color: Colors.grey),
-      ),
-      const SizedBox(height: 8),
-      GranularityNotice(text: S.timeAlignmentNote),
-      const SizedBox(height: 8),
-      for (final p in providers)
-        if (enabled.contains(p.caps.providerId))
-          _SourceNodeCard(
-            providerId: p.caps.providerId,
-            node: row.node,
-            wantUtc: wantUtc,
-            settings: settings,
-          ),
-    ]);
+        const SizedBox(height: 2),
+        Text(
+          '${S.validTime}：${_fmt(wantUtc)} UTC（${_fmtLocal(wantUtc)} 本地）'
+          '${widget.fixedUtc != null ? '' : '（行程模式：${S.eta}，估算）'}',
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        GranularityNotice(text: S.timeAlignmentNote),
+        const SizedBox(height: 8),
+        for (final p in providers)
+          if (enabled.contains(p.caps.providerId))
+            _SourceNodeCard(
+              providerId: p.caps.providerId,
+              node: row.node,
+              wantUtc: wantUtc,
+              settings: settings,
+            ),
+      ],
+    );
   }
 
   String _fmt(DateTime t) =>
       '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:00';
-  String _fmtLocal(DateTime t) =>
-      '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  String _fmtLocal(DateTime utc) {
+    final t = utc.toLocal();
+    return '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  }
 }
 
-class _SourceNodeCard extends ConsumerWidget {
+class _SourceNodeCard extends ConsumerStatefulWidget {
   const _SourceNodeCard({
     required this.providerId,
     required this.node,
@@ -108,7 +115,38 @@ class _SourceNodeCard extends ConsumerWidget {
   final DateTime wantUtc;
   final AppSettings settings;
 
-  Future<RouteWeatherBundle> _fetch(WidgetRef ref) async {
+  @override
+  ConsumerState<_SourceNodeCard> createState() => _SourceNodeCardState();
+}
+
+/// 请求 Future 保存在 State 中：仅当来源/节点/时刻变化才重新请求，
+/// 避免每次重建（如切换节点、设置变化）都重复发起网络请求。
+class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
+  /// 按次计费来源（caps.onDemandOnly）不自动请求：null 表示等待用户点击查询。
+  late Future<RouteWeatherBundle>? _future = _onDemand ? null : _fetch();
+
+  bool get _onDemand => ref
+      .read(weatherProvidersProvider)
+      .firstWhere((p) => p.caps.providerId == providerId)
+      .caps
+      .onDemandOnly;
+
+  @override
+  void didUpdateWidget(covariant _SourceNodeCard old) {
+    super.didUpdateWidget(old);
+    if (old.providerId != widget.providerId ||
+        old.node.pos != widget.node.pos ||
+        old.wantUtc != widget.wantUtc) {
+      _future = _onDemand ? null : _fetch();
+    }
+  }
+
+  String get providerId => widget.providerId;
+  RouteNode get node => widget.node;
+  DateTime get wantUtc => widget.wantUtc;
+  AppSettings get settings => widget.settings;
+
+  Future<RouteWeatherBundle> _fetch() async {
     final repo = ref.read(weatherRepositoryProvider);
     return repo.getRouteWeatherBundle(
       providerId: providerId,
@@ -119,34 +157,58 @@ class _SourceNodeCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final caps =
-        ref.watch(weatherProvidersProvider).firstWhere((p) => p.caps.providerId == providerId).caps;
+  Widget build(BuildContext context) {
+    final caps = ref
+        .watch(weatherProvidersProvider)
+        .firstWhere((p) => p.caps.providerId == providerId)
+        .caps;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: FutureBuilder<RouteWeatherBundle>(
-          future: _fetch(ref),
+          future: _future,
           builder: (context, snap) {
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Wrap(spacing: 6, runSpacing: 4, children: [
-                SourceBadge(caps: caps),
-                DataKindChip(kind: caps.dataKind),
-              ]),
-              const SizedBox(height: 8),
-              if (snap.connectionState == ConnectionState.waiting && !snap.hasData)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
-                )
-              else if (snap.hasError)
-                Text(
-                  '该来源请求失败：${snap.error}',
-                  style: const TextStyle(fontSize: 12, color: Colors.red),
-                )
-              else ..._dataWidgets(context, snap.data!),
-            ]);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    SourceBadge(caps: caps),
+                    DataKindChip(kind: caps.dataKind),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_future == null)
+                  OnDemandQueryPrompt(
+                    caps: caps,
+                    onQuery: () => setState(() {
+                      _future = _fetch();
+                    }),
+                  )
+                else if (snap.connectionState == ConnectionState.waiting &&
+                    !snap.hasData)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else if (snap.hasError)
+                  Text(
+                    '该来源请求失败：${snap.error}',
+                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                  )
+                else
+                  ..._dataWidgets(context, snap.data!),
+              ],
+            );
           },
         ),
       ),
@@ -161,14 +223,18 @@ class _SourceNodeCard extends ConsumerWidget {
     final nearest = _nearestHour(point, wantUtc);
     if (nearest == null) {
       return [
-        Text(S.outOfRange, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(
+          S.outOfRange,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 4),
-        Text('该来源的时间范围：${_range(point)}。${S.outOfRangeDetail}',
-            style: const TextStyle(fontSize: 11, height: 1.4, color: Colors.grey)),
+        Text(
+          '该来源的时间范围：${_range(point)}。${S.outOfRangeDetail}',
+          style: const TextStyle(fontSize: 11, height: 1.4, color: Colors.grey),
+        ),
       ];
     }
-    final diffMin =
-        nearest.validFromUtc.difference(wantUtc).inMinutes.abs();
+    final diffMin = nearest.validFromUtc.difference(wantUtc).inMinutes.abs();
     final prov = point.provenance;
     return [
       if (diffMin > 0)

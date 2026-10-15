@@ -11,8 +11,9 @@ typedef StringFetcher = Future<String> Function(
   CancelToken? cancelToken,
 });
 
-StringFetcher defaultFetcher() => (uri, {headers, cancelToken}) =>
-    WxHttp().getText(uri, headers: headers, cancelToken: cancelToken);
+StringFetcher defaultFetcher() =>
+    (uri, {headers, cancelToken}) =>
+        WxHttp().getText(uri, headers: headers, cancelToken: cancelToken);
 
 /// 天气来源抽象。每个实现必须：
 /// 1. 如实声明能力（ProviderCapabilities）；
@@ -20,7 +21,8 @@ StringFetcher defaultFetcher() => (uri, {headers, cancelToken}) =>
 /// 3. 不虚构缺失字段（保持 null）；
 /// 4. 不在日志/异常中携带坐标。
 abstract class WeatherProvider {
-  WeatherProvider({StringFetcher? fetcher}) : fetcher = fetcher ?? defaultFetcher();
+  WeatherProvider({StringFetcher? fetcher})
+    : fetcher = fetcher ?? defaultFetcher();
 
   final StringFetcher fetcher;
 
@@ -34,6 +36,21 @@ abstract class WeatherProvider {
     required DateTime endUtc,
     CancelToken? cancelToken,
   });
+
+  /// 带请求点海拔的抓取（[elevationsM] 与 [points] 一一对应，可含 null）。
+  /// 默认忽略海拔；支持按海拔计算的来源（[ProviderCapabilities.usesElevation]）覆盖此方法。
+  Future<List<WxPointForecast>> fetchPointsAt({
+    required List<LatLng> points,
+    required List<double?> elevationsM,
+    required DateTime startUtc,
+    required DateTime endUtc,
+    CancelToken? cancelToken,
+  }) => fetchPoints(
+    points: points,
+    startUtc: startUtc,
+    endUtc: endUtc,
+    cancelToken: cancelToken,
+  );
 }
 
 /// 范围外结果：请求时间超出来源真实支持的时间范围。

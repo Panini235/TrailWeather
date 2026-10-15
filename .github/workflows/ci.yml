@@ -41,6 +41,9 @@ jobs:
       - name: 生成平台目录（按当前 Flutter 版本模板，仓库仅保留定制文件）
         run: flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .
 
+      - name: 应用山晴名称与图标（平台生成后）
+        run: python3 tool/apply_branding.py --platforms android web
+
       - name: 依赖
         run: flutter pub get
 
@@ -55,6 +58,9 @@ jobs:
 
       - name: Android APK 构建（release，模板 debug 签名）
         run: flutter build apk --release
+
+      - name: 验证安装包名称与图标资源
+        run: python3 tool/verify_build_branding.py --apk build/app/outputs/flutter-apk/app-release.apk --web build/web
 
       - name: 上传 Web 产物
         uses: actions/upload-artifact@v4

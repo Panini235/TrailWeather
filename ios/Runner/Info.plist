@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh_CN</string>
 	<key>CFBundleDisplayName</key>
-	<string>徒步天气</string>
+	<string>山晴</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>TrailWeather</string>
+	<string>山晴</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,11 +45,46 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于选择要添加到线路节点的图片。图片只保存在本机。</string>
+	<key>NSCameraUsageDescription</key>
+	<string>用于拍摄要添加到线路节点的图片。图片只保存在本机。</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>仅在你主动点击“定位到我”时使用位置，用于把地图移动到你附近。我们不上传你的位置，拒绝授权后仍可完整浏览地图与线路。</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>徒步天气不会在后台持续定位。如果你以后启用轨迹记录功能才会用到后台定位，当前版本不使用。</string>
+	<string>山晴不会在后台持续定位。如果你以后启用轨迹记录功能才会用到后台定位，当前版本不使用。</string>
 	<key>IOSSegmentControlHasThumb</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>GPS Exchange Format (GPX)</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.topografix.gpx</string>
+				<string>public.xml</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Keyhole Markup Language (KML)</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.google.earth.kml</string>
+				<string>public.xml</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

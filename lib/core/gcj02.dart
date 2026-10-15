@@ -35,8 +35,10 @@ class Gcj02 {
     var wgs = LatLng(p.latitude - d0.$1, p.longitude - d0.$2);
     for (var i = 0; i < 3; i++) {
       final g = wgs84ToGcj02(wgs);
-      wgs = LatLng(wgs.latitude + (p.latitude - g.latitude),
-          wgs.longitude + (p.longitude - g.longitude));
+      wgs = LatLng(
+        wgs.latitude + (p.latitude - g.latitude),
+        wgs.longitude + (p.longitude - g.longitude),
+      );
     }
     return wgs;
   }
@@ -54,30 +56,52 @@ class Gcj02 {
   }
 
   static double _transformLat(double x, double y) {
-    var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y +
+    var ret =
+        -100.0 +
+        2.0 * x +
+        3.0 * y +
+        0.2 * y * y +
+        0.1 * x * y +
         0.2 * math.sqrt(x.abs());
-    ret += (20.0 * math.sin(6.0 * x * math.pi) +
+    ret +=
+        (20.0 * math.sin(6.0 * x * math.pi) +
             20.0 * math.sin(2.0 * x * math.pi)) *
-        2.0 / 3.0;
-    ret += (20.0 * math.sin(y * math.pi) + 40.0 * math.sin(y / 3.0 * math.pi)) *
-        2.0 / 3.0;
-    ret += (160.0 * math.sin(y / 12.0 * math.pi) +
+        2.0 /
+        3.0;
+    ret +=
+        (20.0 * math.sin(y * math.pi) + 40.0 * math.sin(y / 3.0 * math.pi)) *
+        2.0 /
+        3.0;
+    ret +=
+        (160.0 * math.sin(y / 12.0 * math.pi) +
             320 * math.sin(y * math.pi / 30.0)) *
-        2.0 / 3.0;
+        2.0 /
+        3.0;
     return ret;
   }
 
   static double _transformLon(double x, double y) {
-    var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y +
+    var ret =
+        300.0 +
+        x +
+        2.0 * y +
+        0.1 * x * x +
+        0.1 * x * y +
         0.1 * math.sqrt(x.abs());
-    ret += (20.0 * math.sin(6.0 * x * math.pi) +
+    ret +=
+        (20.0 * math.sin(6.0 * x * math.pi) +
             20.0 * math.sin(2.0 * x * math.pi)) *
-        2.0 / 3.0;
-    ret += (20.0 * math.sin(x * math.pi) + 40.0 * math.sin(x / 3.0 * math.pi)) *
-        2.0 / 3.0;
-    ret += (150.0 * math.sin(x / 12.0 * math.pi) +
+        2.0 /
+        3.0;
+    ret +=
+        (20.0 * math.sin(x * math.pi) + 40.0 * math.sin(x / 3.0 * math.pi)) *
+        2.0 /
+        3.0;
+    ret +=
+        (150.0 * math.sin(x / 12.0 * math.pi) +
             300.0 * math.sin(x / 30.0 * math.pi)) *
-        2.0 / 3.0;
+        2.0 /
+        3.0;
     return ret;
   }
 }

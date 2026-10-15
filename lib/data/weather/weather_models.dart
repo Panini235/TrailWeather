@@ -20,46 +20,50 @@ enum WxVar {
   humidity('%'),
   cloudCover('%'),
   visibility('m'),
-  pressure('hPa');
+  pressure('hPa'),
+  // 追加在末尾：缓存按枚举下标编码，不能改变已有成员顺序。
+  /// 降水中降雪所占比例（meteoblue snowfraction），不是降雪量。
+  snowFraction('%');
 
   const WxVar(this.stdUnit);
   final String stdUnit;
 
   String get label => switch (this) {
-        temperature => '温度',
-        apparentTemp => '体感温度',
-        precip => '降水量',
-        precipProb => '降水概率',
-        windSpeed => '持续风速',
-        windGust => '阵风',
-        windDir => '风向',
-        humidity => '湿度',
-        cloudCover => '云量',
-        visibility => '能见度',
-        pressure => '气压',
-      };
+    temperature => '温度',
+    apparentTemp => '体感温度',
+    precip => '降水量',
+    precipProb => '降水概率',
+    windSpeed => '持续风速',
+    windGust => '阵风',
+    windDir => '风向',
+    humidity => '湿度',
+    cloudCover => '云量',
+    visibility => '能见度',
+    pressure => '气压',
+    snowFraction => '降雪占比',
+  };
 }
 
 /// 数据类型：观测 / 模型分析 / 预报 / 远期趋势。
 enum WxDataKind { observation, modelAnalysis, forecast, trend }
 
 String wxDataKindLabel(WxDataKind k) => switch (k) {
-      WxDataKind.observation => '站点观测',
-      WxDataKind.modelAnalysis => '模型估计（分析）',
-      WxDataKind.forecast => '短期预报',
-      WxDataKind.trend => '远期趋势',
-    };
+  WxDataKind.observation => '站点观测',
+  WxDataKind.modelAnalysis => '模型估计（分析）',
+  WxDataKind.forecast => '短期预报',
+  WxDataKind.trend => '远期趋势',
+};
 
 /// 位置颗粒度：网格 / 站点 / 区域 / 城市 / 未知。
 enum WxGranularity { grid, station, area, city, unknown }
 
 String wxGranularityLabel(WxGranularity g) => switch (g) {
-      WxGranularity.grid => '网格预报',
-      WxGranularity.station => '站点观测',
-      WxGranularity.area => '区域级',
-      WxGranularity.city => '城市级',
-      WxGranularity.unknown => '未知颗粒度',
-    };
+  WxGranularity.grid => '网格预报',
+  WxGranularity.station => '站点观测',
+  WxGranularity.area => '区域级',
+  WxGranularity.city => '城市级',
+  WxGranularity.unknown => '未知颗粒度',
+};
 
 /// 来源能力声明。接入任何新来源前必须如实填写并在 docs/data-sources.md 登记。
 class ProviderCapabilities {
@@ -85,6 +89,9 @@ class ProviderCapabilities {
     required this.recommendedCacheTtl,
     this.spatialResolutionNote,
     this.modelOverlapNote,
+    this.onDemandOnly = false,
+    this.usesElevation = false,
+    this.quotaNote,
   });
 
   final String providerId; // 如 'open-meteo:best_match'
@@ -113,6 +120,15 @@ class ProviderCapabilities {
 
   /// 与其他来源可能共享底层模型的说明。
   final String? modelOverlapNote;
+
+  /// 按次计费/额度很少的来源：只在用户点击时单点查询，不参与线路自动请求。
+  final bool onDemandOnly;
+
+  /// 是否使用请求点海拔（如 meteoblue asl）；为真时缓存键包含海拔。
+  final bool usesElevation;
+
+  /// 额度说明（展示给用户）。
+  final String? quotaNote;
 
   bool supports(WxVar v) => supportedVars.contains(v);
 }
@@ -206,31 +222,39 @@ class WxProvenance {
   }
 
   Map<String, dynamic> toDisplayMap() => {
-        'API 服务商': vendor,
-        '模型/原始机构': modelKnown ? modelOrNetwork : '未知（$modelOrNetwork）',
-        '数据类型': wxDataKindLabel(dataKind),
-        '请求坐标': '${requestLat.toStringAsFixed(4)}, ${requestLon.toStringAsFixed(4)}',
-        '来源返回坐标': returnedLat == null
-            ? '未提供（返回坐标为请求原样）'
-            : '${returnedLat!.toStringAsFixed(4)}, ${returnedLon!.toStringAsFixed(4)}',
-        '位置详情': locationDetail ?? '未提供',
-        '来源使用海拔': elevationUsedM == null ? '未提供' : '${elevationUsedM!.toStringAsFixed(0)} m（模型地形）',
-        '位置颗粒度': wxGranularityLabel(granularity),
-        '空间分辨率': spatialResolutionNote ?? '来源未提供',
-        '数据有效时间': '见各时段标注（UTC）',
-        '获取时间': fetchedAtUtc.toIso8601String(),
-        '起报/发布时间': modelRunUtc == null ? '未提供' : modelRunUtc!.toIso8601String(),
-        '来源时区偏移': 'UTC${utcOffsetSeconds >= 0 ? '+' : ''}${(utcOffsetSeconds / 3600).toStringAsFixed(1)}',
-        '插值说明': interpolationNote ?? '未插值',
-        '海拔修正': elevationAdjustNote ?? '未修正',
-        '数据授权': license,
-        '署名要求': attribution,
-      };
+    'API 服务商': vendor,
+    '模型/原始机构': modelKnown ? modelOrNetwork : '未知（$modelOrNetwork）',
+    '数据类型': wxDataKindLabel(dataKind),
+    '请求坐标':
+        '${requestLat.toStringAsFixed(4)}, ${requestLon.toStringAsFixed(4)}',
+    '来源返回坐标': returnedLat == null
+        ? '未提供（返回坐标为请求原样）'
+        : '${returnedLat!.toStringAsFixed(4)}, ${returnedLon!.toStringAsFixed(4)}',
+    '位置详情': locationDetail ?? '未提供',
+    '来源使用海拔': elevationUsedM == null
+        ? '未提供'
+        : '${elevationUsedM!.toStringAsFixed(0)} m（模型地形）',
+    '位置颗粒度': wxGranularityLabel(granularity),
+    '空间分辨率': spatialResolutionNote ?? '来源未提供',
+    '数据有效时间': '见各时段标注（UTC）',
+    '获取时间': fetchedAtUtc.toIso8601String(),
+    '起报/发布时间': modelRunUtc == null ? '未提供' : modelRunUtc!.toIso8601String(),
+    '来源时区偏移':
+        'UTC${utcOffsetSeconds >= 0 ? '+' : ''}${(utcOffsetSeconds / 3600).toStringAsFixed(1)}',
+    '插值说明': interpolationNote ?? '未插值',
+    '海拔修正': elevationAdjustNote ?? '未修正',
+    '数据授权': license,
+    '署名要求': attribution,
+  };
 }
 
 /// 一个有效时刻的一组变量值。缺失为 null，绝不用 0 冒充。
 class WxHourValue {
-  const WxHourValue({required this.validFromUtc, required this.values, this.symbols});
+  const WxHourValue({
+    required this.validFromUtc,
+    required this.values,
+    this.symbols,
+  });
 
   /// 该小时起有效（UTC 整点）。
   final DateTime validFromUtc;
@@ -250,7 +274,7 @@ class WxPointForecast {
     required this.lon,
     required this.hours,
     required this.provenance,
-    this.dailySunsetUtc,
+    this.dailySunsetsUtc = const [],
   });
 
   final double lat;
@@ -258,13 +282,22 @@ class WxPointForecast {
   final List<WxHourValue> hours;
   final WxProvenance provenance;
 
-  /// 当日日落（如来源提供；Open-Meteo daily sunset，MET 未提供）。
-  final DateTime? dailySunsetUtc;
+  /// 逐日日落（UTC，升序；Open-Meteo daily sunset，MET 未提供 → 空）。
+  final List<DateTime> dailySunsetsUtc;
+
+  /// [utc] 之后的第一次日落（如出发后的当天日落）；来源未提供则 null。
+  DateTime? nextSunsetAfter(DateTime utc) {
+    for (final s in dailySunsetsUtc) {
+      if (s.isAfter(utc)) return s;
+    }
+    return null;
+  }
 
   DateTime? get firstValidUtc =>
       hours.isEmpty ? null : hours.first.validFromUtc;
-  DateTime? get lastValidUtc =>
-      hours.isEmpty ? null : hours.last.validFromUtc.add(const Duration(hours: 1));
+  DateTime? get lastValidUtc => hours.isEmpty
+      ? null
+      : hours.last.validFromUtc.add(const Duration(hours: 1));
 
   /// 取某个 UTC 时刻所在小时的值；越界返回 null。
   /// 注意：不做任何时间插值，避免制造虚假精度。

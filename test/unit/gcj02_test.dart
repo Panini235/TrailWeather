@@ -7,7 +7,8 @@ import 'package:trailweather/core/gcj02.dart';
 double _distMLatLng(LatLng a, LatLng b) {
   final midLat = (a.latitude + b.latitude) / 2;
   final dLat = (a.latitude - b.latitude) * 111320;
-  final dLon = (a.longitude - b.longitude) * 111320 * math.cos(midLat * math.pi / 180);
+  final dLon =
+      (a.longitude - b.longitude) * 111320 * math.cos(midLat * math.pi / 180);
   return math.sqrt(dLat * dLat + dLon * dLon);
 }
 
@@ -40,8 +41,7 @@ void main() {
       ]) {
         final back = Gcj02.gcj02ToWgs84(Gcj02.wgs84ToGcj02(wgs));
         final dist = _distMLatLng(wgs, back);
-        expect(dist, lessThan(2),
-            reason: 'wgs=$wgs back=$back 往返偏差 $dist m');
+        expect(dist, lessThan(2), reason: 'wgs=$wgs back=$back 往返偏差 $dist m');
       }
     });
 

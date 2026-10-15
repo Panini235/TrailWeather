@@ -6,12 +6,8 @@ class AppTheme {
 
   static ThemeData light() => _base(ColorScheme.fromSeed(seedColor: seed));
 
-  static ThemeData dark() => _base(
-        ColorScheme.fromSeed(
-          seedColor: seed,
-          brightness: Brightness.dark,
-        ),
-      );
+  static ThemeData dark() =>
+      _base(ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark));
 
   static ThemeData _base(ColorScheme scheme) {
     final t = ThemeData(colorScheme: scheme);

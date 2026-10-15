@@ -11,7 +11,8 @@ import 'weather_provider.dart';
 /// 天气仓库：编排采样节点 → 去重 → 缓存 → 请求。
 ///
 /// 职责：
-/// - 缓存键包含来源、时间窗、网格化坐标与参数版本；
+/// - 缓存键包含来源、时间窗、请求坐标（4 位小数）与参数版本；
+/// - 近似网格仅用于同一次线路查询的节点去重，不用于跨请求缓存身份，避免相邻山谷误复用；
 /// - TTL 按来源配置；支持 stale-while-revalidate（过期数据标记“旧数据”后
 ///   立即返回，同时后台刷新，绝不把旧数据当刚更新的数据）；
 /// - 网格去重：来源无稳定网格标识时使用“坐标近似网格”策略并明确说明
@@ -61,7 +62,8 @@ class WeatherRepository {
     for (final n in nodes) {
       final key = approxGridKey(n.pos);
       final q = result.points.indexWhere(
-          (p) => approxGridKey(LatLng(p.lat, p.lon)) == key);
+        (p) => approxGridKey(LatLng(p.lat, p.lon)) == key,
+      );
       nodeQueryIndex.add(q >= 0 ? q : 0);
     }
     final hasShared = nodeQueryIndex.toSet().length < nodes.length;
@@ -70,8 +72,8 @@ class WeatherRepository {
       nodeQueryIndex: nodeQueryIndex,
       sharedGridNote: hasShared
           ? '部分节点经近似网格（${approxGridDeg.toStringAsFixed(2)}°）合并查询，'
-              '这些节点共享同一网格预报，不存在该网格内的差异；'
-              '近似合并是请求策略，不代表天气数据的空间分辨率'
+                '这些节点共享同一网格预报，不存在该网格内的差异；'
+                '近似合并是请求策略，不代表天气数据的空间分辨率'
           : null,
     );
   }
@@ -96,15 +98,23 @@ class WeatherRepository {
     // 请求点去重（近似网格策略）。
     final gridKeys = <String>[];
     final queryPoints = <LatLng>[];
+    final queryElevations = <double?>[];
     for (var i = 0; i < nodes.length; i++) {
       final k = approxGridKey(nodes[i].pos);
       if (!gridKeys.contains(k)) {
         gridKeys.add(k);
         queryPoints.add(nodes[i].pos);
+        queryElevations.add(nodes[i].elevationM);
       }
     }
 
-    final cacheKey = _cacheKey(providerId, queryPoints, startUtc, endUtc);
+    final cacheKey = _cacheKey(
+      providerId,
+      queryPoints,
+      startUtc,
+      endUtc,
+      elevations: provider.caps.usesElevation ? queryElevations : null,
+    );
 
     if (!refresh) {
       final hit = await cache.read(CacheNs.weather, cacheKey);
@@ -121,30 +131,50 @@ class WeatherRepository {
             fetchedAtUtc: restored.fetchedAtUtc,
           );
           if (expired &&
-              DateTime.now().toUtc().isBefore(hit.storedAtUtc.add(staleWindow))) {
+              DateTime.now().toUtc().isBefore(
+                hit.storedAtUtc.add(staleWindow),
+              )) {
             // stale-while-revalidate：返回旧数据（已标记），后台刷新。
-            unawaited(_fetchAndStore(provider, queryPoints, startUtc, endUtc,
-                cacheKey, onBackgroundRefresh));
+            unawaited(
+              _fetchAndStore(
+                provider,
+                queryPoints,
+                queryElevations,
+                startUtc,
+                endUtc,
+                cacheKey,
+                onBackgroundRefresh,
+              ),
+            );
           }
           return result;
         }
       }
     }
 
-    return _fetchAndStore(provider, queryPoints, startUtc, endUtc, cacheKey,
-        onBackgroundRefresh);
+    return _fetchAndStore(
+      provider,
+      queryPoints,
+      queryElevations,
+      startUtc,
+      endUtc,
+      cacheKey,
+      onBackgroundRefresh,
+    );
   }
 
   Future<WxSourceResult> _fetchAndStore(
     WeatherProvider provider,
     List<LatLng> queryPoints,
+    List<double?> queryElevations,
     DateTime startUtc,
     DateTime endUtc,
     String cacheKey,
     Future<void> Function()? onBackgroundRefresh,
   ) async {
-    final points = await provider.fetchPoints(
+    final points = await provider.fetchPointsAt(
       points: queryPoints,
+      elevationsM: queryElevations,
       startUtc: startUtc,
       endUtc: endUtc,
     );
@@ -157,20 +187,38 @@ class WeatherRepository {
       cachedAtUtc: null,
       fetchedAtUtc: now,
     );
-    await cache.write(CacheNs.weather, cacheKey, _encode(result),
-        provider.caps.recommendedCacheTtl);
+    await cache.write(
+      CacheNs.weather,
+      cacheKey,
+      _encode(result),
+      provider.caps.recommendedCacheTtl,
+    );
     if (onBackgroundRefresh != null) unawaited(onBackgroundRefresh());
     return result;
   }
 
-  /// 缓存键包含：来源、坐标集合（网格化）、时间窗、参数版本。
-  /// 影响 weather 输出的任何参数变化都必须进入键。
-  String _cacheKey(String providerId, List<LatLng> pts, DateTime startUtc,
-      DateTime endUtc) {
-    final coords = pts.map(approxGridKey).join('|');
+  /// 缓存键包含：来源、实际请求坐标集合、时间窗、参数版本。
+  /// 坐标保留 4 位小数（约 11 m）；近似网格只负责同次请求去重，不能跨请求复用。
+  String _cacheKey(
+    String providerId,
+    List<LatLng> pts,
+    DateTime startUtc,
+    DateTime endUtc, {
+    List<double?>? elevations,
+  }) {
+    final coords = pts
+        .map(
+          (p) =>
+              '${p.latitude.toStringAsFixed(4)},${p.longitude.toStringAsFixed(4)}',
+        )
+        .join('|');
     final s = startUtc.toIso8601String().substring(0, 13); // 小时粒度
     final e = endUtc.toIso8601String().substring(0, 13);
-    return 'v1|$providerId|$coords|$s|$e';
+    // 按海拔计算的来源：海拔（10 m 取整）进入缓存键，避免不同海拔误用同一缓存。
+    final ele = elevations == null
+        ? ''
+        : '|ele:${elevations.map((x) => x == null ? '-' : (x / 10).round() * 10).join(',')}';
+    return 'v3|$providerId|$coords|$s|$e$ele';
   }
 
   String _encode(WxSourceResult r) {
@@ -191,7 +239,7 @@ class WeatherRepository {
       points.add({
         'lat': p.lat,
         'lon': p.lon,
-        'sunset': p.dailySunsetUtc?.toIso8601String(),
+        'sunsets': [for (final t in p.dailySunsetsUtc) t.toIso8601String()],
         'hours': hours,
         'prov': _provToJson(p.provenance),
       });
@@ -225,21 +273,27 @@ class WeatherRepository {
           for (final var_ in WxVar.values) {
             vals.putIfAbsent(var_, () => null);
           }
-          hours.add(WxHourValue(
-            validFromUtc: DateTime.parse(h['t'] as String),
-            values: vals,
-            symbols: (h['s'] as Map<String, dynamic>?)?.cast<String, String>(),
-          ));
+          hours.add(
+            WxHourValue(
+              validFromUtc: DateTime.parse(h['t'] as String),
+              values: vals,
+              symbols: (h['s'] as Map<String, dynamic>?)
+                  ?.cast<String, String>(),
+            ),
+          );
         }
-        points.add(WxPointForecast(
-          lat: p['lat'] as double,
-          lon: p['lon'] as double,
-          hours: hours,
-          provenance: _provFromJson((p['prov'] as Map<String, dynamic>)),
-          dailySunsetUtc: p['sunset'] == null
-              ? null
-              : DateTime.parse(p['sunset'] as String),
-        ));
+        points.add(
+          WxPointForecast(
+            lat: p['lat'] as double,
+            lon: p['lon'] as double,
+            hours: hours,
+            provenance: _provFromJson((p['prov'] as Map<String, dynamic>)),
+            dailySunsetsUtc: [
+              for (final t in (p['sunsets'] as List?) ?? const [])
+                DateTime.parse(t as String),
+            ],
+          ),
+        );
       }
       return WxSourceResult(
         providerId: m['providerId'] as String,
@@ -256,52 +310,52 @@ class WeatherRepository {
 }
 
 Map<String, dynamic> _provToJson(WxProvenance p) => {
-      'providerId': p.providerId,
-      'vendor': p.vendor,
-      'model': p.modelOrNetwork,
-      'modelKnown': p.modelKnown,
-      'rlat': p.requestLat,
-      'rlon': p.requestLon,
-      'lat': p.returnedLat,
-      'lon': p.returnedLon,
-      'loc': p.locationDetail,
-      'ele': p.elevationUsedM,
-      'g': p.granularity.index,
-      'res': p.spatialResolutionNote,
-      'k': p.dataKind.index,
-      'f': p.fetchedAtUtc.toIso8601String(),
-      'm': p.modelRunUtc?.toIso8601String(),
-      'off': p.utcOffsetSeconds,
-      'lic': p.license,
-      'attr': p.attribution,
-      'interp': p.interpolationNote,
-      'elevAdj': p.elevationAdjustNote,
-      'trace': p.traceNote,
-    };
+  'providerId': p.providerId,
+  'vendor': p.vendor,
+  'model': p.modelOrNetwork,
+  'modelKnown': p.modelKnown,
+  'rlat': p.requestLat,
+  'rlon': p.requestLon,
+  'lat': p.returnedLat,
+  'lon': p.returnedLon,
+  'loc': p.locationDetail,
+  'ele': p.elevationUsedM,
+  'g': p.granularity.index,
+  'res': p.spatialResolutionNote,
+  'k': p.dataKind.index,
+  'f': p.fetchedAtUtc.toIso8601String(),
+  'm': p.modelRunUtc?.toIso8601String(),
+  'off': p.utcOffsetSeconds,
+  'lic': p.license,
+  'attr': p.attribution,
+  'interp': p.interpolationNote,
+  'elevAdj': p.elevationAdjustNote,
+  'trace': p.traceNote,
+};
 
 WxProvenance _provFromJson(Map<String, dynamic> m) => WxProvenance(
-      providerId: m['providerId'] as String,
-      vendor: m['vendor'] as String,
-      modelOrNetwork: m['model'] as String,
-      modelKnown: m['modelKnown'] as bool? ?? false,
-      requestLat: m['rlat'] as double,
-      requestLon: m['rlon'] as double,
-      returnedLat: m['lat'] as double?,
-      returnedLon: m['lon'] as double?,
-      locationDetail: m['loc'] as String?,
-      elevationUsedM: m['ele'] as double?,
-      granularity: WxGranularity.values[m['g'] as int],
-      spatialResolutionNote: m['res'] as String?,
-      dataKind: WxDataKind.values[m['k'] as int],
-      fetchedAtUtc: DateTime.parse(m['f'] as String),
-      modelRunUtc: m['m'] == null ? null : DateTime.parse(m['m'] as String),
-      utcOffsetSeconds: m['off'] as int? ?? 0,
-      license: m['lic'] as String,
-      attribution: m['attr'] as String,
-      interpolationNote: m['interp'] as String?,
-      elevationAdjustNote: m['elevAdj'] as String?,
-      traceNote: m['trace'] as String?,
-    );
+  providerId: m['providerId'] as String,
+  vendor: m['vendor'] as String,
+  modelOrNetwork: m['model'] as String,
+  modelKnown: m['modelKnown'] as bool? ?? false,
+  requestLat: m['rlat'] as double,
+  requestLon: m['rlon'] as double,
+  returnedLat: m['lat'] as double?,
+  returnedLon: m['lon'] as double?,
+  locationDetail: m['loc'] as String?,
+  elevationUsedM: m['ele'] as double?,
+  granularity: WxGranularity.values[m['g'] as int],
+  spatialResolutionNote: m['res'] as String?,
+  dataKind: WxDataKind.values[m['k'] as int],
+  fetchedAtUtc: DateTime.parse(m['f'] as String),
+  modelRunUtc: m['m'] == null ? null : DateTime.parse(m['m'] as String),
+  utcOffsetSeconds: m['off'] as int? ?? 0,
+  license: m['lic'] as String,
+  attribution: m['attr'] as String,
+  interpolationNote: m['interp'] as String?,
+  elevationAdjustNote: m['elevAdj'] as String?,
+  traceNote: m['trace'] as String?,
+);
 
 /// 线路天气查询结果包。
 class RouteWeatherBundle {

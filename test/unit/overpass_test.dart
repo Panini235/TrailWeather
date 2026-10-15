@@ -16,7 +16,7 @@ void main() {
     test('乱序 way 贪心连接（含反转）', () {
       final segs = OverpassRouteSource.assembleSegments([
         [const LatLng(0, 0.001), const LatLng(0, 0.002)], // 在前
-        [const LatLng(0, 0.001), const LatLng(0, 0.0)],   // 需反转接前段
+        [const LatLng(0, 0.001), const LatLng(0, 0.0)], // 需反转接前段
       ]);
       expect(segs, hasLength(1));
       expect(segs.first, hasLength(3)); // 连成一整段
@@ -94,7 +94,33 @@ void main() {
       expect(r.sourceName, contains('OpenStreetMap'));
     });
 
-    test('非 relation 元素跳过', () {
+    test('解析具名 way 为路径段而非完整徒步路线', () {
+      const body = '''
+{
+  "elements": [
+    {
+      "type": "way",
+      "id": 67890,
+      "tags": {"name": "龙脊步道", "highway": "path"},
+      "geometry": [
+        {"lat": 30.10, "lon": 120.10},
+        {"lat": 30.11, "lon": 120.11}
+      ]
+    }
+  ]
+}
+''';
+      final routes = OverpassRouteSource().parseResponse(body);
+      expect(routes, hasLength(1));
+      final route = routes.single;
+      expect(route.id, 'osm-w67890');
+      expect(route.origin.name, 'osmPath');
+      expect(route.sourceName, contains('不是完整规划路线'));
+      expect(route.sourceUrl, 'https://www.openstreetmap.org/way/67890');
+      expect(route.elevationsM.every((e) => e == null), isTrue);
+    });
+
+    test('非 relation/way 元素跳过', () {
       const body = '''
 {"elements": [{"type": "node", "id": 1, "lat": 1, "lon": 1}]}
 ''';
@@ -102,8 +128,10 @@ void main() {
     });
 
     test('损坏响应抛 OverpassException', () {
-      expect(() => OverpassRouteSource().parseResponse('<html>504</html>'),
-          throwsA(isA<OverpassException>()));
+      expect(
+        () => OverpassRouteSource().parseResponse('<html>504</html>'),
+        throwsA(isA<OverpassException>()),
+      );
     });
   });
 }

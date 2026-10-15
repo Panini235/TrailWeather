@@ -1,5 +1,5 @@
 name: trailweather
-description: "TrailWeather 徒步天气：地图找徒步线路、查看沿途天气、比较多来源预报"
+description: "山晴：行前规划，沿途看天气"
 publish_to: "none"
 version: 0.1.0+1
 
@@ -26,8 +26,18 @@ dependencies:
   intl: ^0.20.3
   # 文件导入（GPX/GeoJSON）
   file_selector: ^1.1.0
-  # 定位（仅用户主动请求时）
+  # KMZ（zip 包装的 KML）解压；纯 Dart、Web 可用。已是 flutter_map 的传递依赖，
+  # 精确锁定发布超过 2 周的版本（见 agent/decisions.md）
+  archive: 4.3.0
+  # 定位（首页一次性前台定位；之后仅用户主动请求）
   geolocator: ^14.1.1
+  # 用户主动打开外部攻略网页（Android/iOS/Web）
+  url_launcher: 6.3.3
+  # 节点图片：系统相册/相机选择（flutter.dev 官方包）。精确锁定发布超过 2 周的
+  # 版本（1.2.3，2026-06-30；1.2.4 发布不足 2 周），见 agent/decisions.md D-022
+  image_picker: 1.2.3
+  # 节点图片本地文件目录（已是传递依赖，直接声明；Web 端走条件导入不调用）
+  path_provider: 2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -38,3 +48,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/routes/
+    - assets/branding/app-icon.png

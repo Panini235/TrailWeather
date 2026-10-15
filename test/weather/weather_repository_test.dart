@@ -17,26 +17,26 @@ class FakeProvider extends WeatherProvider {
 
   @override
   ProviderCapabilities get caps => ProviderCapabilities(
-        providerId: 'fake:test',
-        vendor: 'FakeVendor',
-        displayName: 'Fake（测试）',
-        modelOrNetwork: 'fake-model',
-        coverage: '测试',
-        forecastHorizonDays: 3,
-        intervalHours: 1,
-        batchCoordinates: true,
-        maxPointsPerRequest: 10,
-        granularity: WxGranularity.grid,
-        dataKind: WxDataKind.forecast,
-        requiresApiKey: false,
-        browserCorsOk: true,
-        browserNotes: '',
-        license: 'test',
-        attribution: 'test',
-        supportedVars: const [WxVar.temperature],
-        minRequestIntervalMs: 0,
-        recommendedCacheTtl: const Duration(minutes: 30),
-      );
+    providerId: 'fake:test',
+    vendor: 'FakeVendor',
+    displayName: 'Fake（测试）',
+    modelOrNetwork: 'fake-model',
+    coverage: '测试',
+    forecastHorizonDays: 3,
+    intervalHours: 1,
+    batchCoordinates: true,
+    maxPointsPerRequest: 10,
+    granularity: WxGranularity.grid,
+    dataKind: WxDataKind.forecast,
+    requiresApiKey: false,
+    browserCorsOk: true,
+    browserNotes: '',
+    license: 'test',
+    attribution: 'test',
+    supportedVars: const [WxVar.temperature],
+    minRequestIntervalMs: 0,
+    recommendedCacheTtl: const Duration(minutes: 30),
+  );
 
   @override
   Future<List<WxPointForecast>> fetchPoints({
@@ -86,11 +86,11 @@ class FakeProvider extends WeatherProvider {
 }
 
 RouteNode node(double lat, double lon) => RouteNode(
-      pointIndex: 0,
-      pos: LatLng(lat, lon),
-      elevationM: null,
-      distFromStartM: 0,
-    );
+  pointIndex: 0,
+  pos: LatLng(lat, lon),
+  elevationM: null,
+  distFromStartM: 0,
+);
 
 void main() {
   setUp(() {
@@ -101,7 +101,10 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final fake = FakeProvider(responses: {});
     final repo = WeatherRepository(
-        cache: CacheStore(prefs), providers: [fake], approxGridDeg: 0.1);
+      cache: CacheStore(prefs),
+      providers: [fake],
+      approxGridDeg: 0.1,
+    );
     final nodes = [
       node(40.000, 116.000),
       node(40.001, 116.001), // 同一 0.1° 近似网格
@@ -120,6 +123,32 @@ void main() {
     expect(fake.callCount, 1);
   });
 
+  test('相近但不同请求坐标不共享跨请求缓存', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final fake = FakeProvider(responses: {});
+    final repo = WeatherRepository(
+      cache: CacheStore(prefs),
+      providers: [fake],
+      approxGridDeg: 0.1,
+    );
+    final t0 = DateTime.utc(2026, 10, 13, 10);
+
+    await repo.getRouteWeather(
+      providerId: 'fake:test',
+      nodes: [node(40.0000, 116.0000)],
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
+    await repo.getRouteWeather(
+      providerId: 'fake:test',
+      nodes: [node(40.0100, 116.0100)],
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
+
+    expect(fake.callCount, 2, reason: '近似网格只用于单次请求去重，不能让独立点位复用缓存');
+  });
+
   test('缓存命中：相同键不重复请求', () async {
     final prefs = await SharedPreferences.getInstance();
     final fake = FakeProvider(responses: {});
@@ -128,26 +157,39 @@ void main() {
     final t0 = DateTime.utc(2026, 10, 13, 10);
 
     final r1 = await repo.getRouteWeather(
-        providerId: 'fake:test', nodes: nodes, startUtc: t0, endUtc: t0.add(const Duration(hours: 1)));
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
     expect(r1.fromCache, isFalse);
     final r2 = await repo.getRouteWeather(
-        providerId: 'fake:test', nodes: nodes, startUtc: t0, endUtc: t0.add(const Duration(hours: 1)));
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
     expect(r2.fromCache, isTrue);
     expect(r2.stale, isFalse);
     expect(fake.callCount, 1);
 
     // 不同时间窗 → 不同缓存键 → 重新请求
     await repo.getRouteWeather(
-        providerId: 'fake:test', nodes: nodes, startUtc: t0.add(const Duration(hours: 1)), endUtc: t0.add(const Duration(hours: 2)));
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0.add(const Duration(hours: 1)),
+      endUtc: t0.add(const Duration(hours: 2)),
+    );
     expect(fake.callCount, 2);
 
     // refresh=true 强制刷新
     await repo.getRouteWeather(
-        providerId: 'fake:test',
-        nodes: nodes,
-        startUtc: t0,
-        endUtc: t0.add(const Duration(hours: 1)),
-        refresh: true);
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+      refresh: true,
+    );
     expect(fake.callCount, 3);
   });
 
@@ -159,18 +201,25 @@ void main() {
     final t0 = DateTime.utc(2026, 10, 13, 10);
 
     await repo.getRouteWeather(
-        providerId: 'fake:test', nodes: nodes, startUtc: t0, endUtc: t0.add(const Duration(hours: 1)));
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
     // 手动把缓存改为已过期
     final cache = CacheStore(prefs);
     await cache.write(
-        CacheNs.weather,
-        repo.approxGridKey(const LatLng(40.0, 116.0)).isEmpty
-            ? 'v1|fake:test|${repo.approxGridKey(const LatLng(40.0, 116.0))}|2026-10-13T10|2026-10-13T11'
-            : 'v1|fake:test|${repo.approxGridKey(const LatLng(40.0, 116.0))}|2026-10-13T10|2026-10-13T11',
-        '{"providerId":"fake:test","fetchedAt":"2026-10-13T09:00:00Z","points":[]}',
-        Duration.zero);
+      CacheNs.weather,
+      'v3|fake:test|40.0000,116.0000|2026-10-13T10|2026-10-13T11',
+      '{"providerId":"fake:test","fetchedAt":"2026-10-13T09:00:00Z","points":[]}',
+      Duration.zero,
+    );
     final r = await repo.getRouteWeather(
-        providerId: 'fake:test', nodes: nodes, startUtc: t0, endUtc: t0.add(const Duration(hours: 1)));
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
     // 空点数缓存不匹配 → 回落到网络
     expect(fake.callCount, 2);
     expect(r.fromCache, isFalse);
@@ -183,9 +232,17 @@ void main() {
     final nodes = [node(40.0, 116.0)];
     final t0 = DateTime.utc(2026, 10, 13, 10);
     await repo.getRouteWeather(
-        providerId: 'fake:test', nodes: nodes, startUtc: t0, endUtc: t0.add(const Duration(hours: 1)));
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
     final r2 = await repo.getRouteWeather(
-        providerId: 'fake:test', nodes: nodes, startUtc: t0, endUtc: t0.add(const Duration(hours: 1)));
+      providerId: 'fake:test',
+      nodes: nodes,
+      startUtc: t0,
+      endUtc: t0.add(const Duration(hours: 1)),
+    );
     final h = r2.points.first.hourAt(DateTime.utc(2026, 10, 13, 10));
     expect(h, isNotNull);
     expect(h!.values[WxVar.temperature], 20.0);
@@ -195,13 +252,16 @@ void main() {
   test('未知来源抛 StateError', () async {
     final prefs = await SharedPreferences.getInstance();
     final repo = WeatherRepository(
-        cache: CacheStore(prefs), providers: [FakeProvider(responses: {})]);
+      cache: CacheStore(prefs),
+      providers: [FakeProvider(responses: {})],
+    );
     expect(
       () => repo.getRouteWeather(
-          providerId: 'nope',
-          nodes: [node(1, 1)],
-          startUtc: DateTime.utc(2026),
-          endUtc: DateTime.utc(2026)),
+        providerId: 'nope',
+        nodes: [node(1, 1)],
+        startUtc: DateTime.utc(2026),
+        endUtc: DateTime.utc(2026),
+      ),
       throwsStateError,
     );
   });

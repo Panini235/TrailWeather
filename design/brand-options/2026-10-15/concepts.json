@@ -1,0 +1,50 @@
+[
+  {
+    "id": "a-shanqing",
+    "letter": "A",
+    "name": "山晴",
+    "subtitle": "徒步天气 · 推荐",
+    "bg": "#123F36",
+    "accent": "#FFC75E"
+  },
+  {
+    "id": "b-shanxing",
+    "letter": "B",
+    "name": "山行天气",
+    "subtitle": "直白清晰 · 天气入口",
+    "bg": "#246AE3",
+    "accent": "#FFDB76"
+  },
+  {
+    "id": "c-qingtu",
+    "letter": "C",
+    "name": "晴途",
+    "subtitle": "沿途天气 · 路线感",
+    "bg": "#DFF0E6",
+    "accent": "#F8B650"
+  },
+  {
+    "id": "d-guanshan",
+    "letter": "D",
+    "name": "观山天气",
+    "subtitle": "山地观察 · 温暖户外",
+    "bg": "#F3EAD8",
+    "accent": "#E39441"
+  },
+  {
+    "id": "e-shanhou",
+    "letter": "E",
+    "name": "山候",
+    "subtitle": "山地气象 · 简洁标识",
+    "bg": "#25324B",
+    "accent": "#F0B78E"
+  },
+  {
+    "id": "f-yantu",
+    "letter": "F",
+    "name": "沿途天气",
+    "subtitle": "日常到山野 · 轻快",
+    "bg": "#0F8393",
+    "accent": "#FFD175"
+  }
+]

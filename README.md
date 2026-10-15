@@ -1,4 +1,4 @@
-# TrailWeather 徒步天气
+# 山晴
 
 面向徒步爱好者的天气 App：在地图上发现徒步线路 → 查看线路沿途天气 →
 按出发时间分析各路段天气 → 比较多个天气来源。
@@ -28,12 +28,14 @@
 - `web/`（中文标题、manifest）
 
 其余平台文件在构建前由 `flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .`
-生成（CI 已内置此步骤；本地构建同样先执行一次该命令）。
+生成（CI 已内置此步骤）。生成后运行 `python3 tool/apply_branding.py --platforms android web`
+应用正式名称与图标；iOS工作流对应使用 `--platforms ios`。详见 `docs/branding.md`。
 
 ## 运行
 
 ```bash
 flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .
+python3 tool/apply_branding.py --platforms android web
 flutter pub get
 flutter run            # 选择设备/浏览器
 ```
@@ -61,7 +63,7 @@ iOS 构建为手动工作流（节省 runner 分钟）。
 
 ## 配置
 
-无密钥需求（全部公开数据源）。预留网关等变量见 `.env.example`。
+默认来源无需密钥；和风天气为可选来源，需要用户自己的 API Host 与 Key（仅存本机）。预留网关等变量见 `.env.example`。
 
 ## 故障排查
 
@@ -72,7 +74,7 @@ iOS 构建为手动工作流（节省 runner 分钟）。
 | 和风天气显示“未配置” | 在 设置→数据源密钥 填入和风 API Host 与 Key（dev.qweather.com 免费注册） |
 | MET Norway 在 Web 失败 | 浏览器禁止自定义 User-Agent（服务条款要求标识），已在来源能力中标注 |
 | “搜索此区域”失败 | Overpass 公共镜像过载（504）常见；稍后重试，App 内置镜像轮换 |
-| Android 定位无权限 | 拒绝授权后仍可完整浏览；仅“定位到我”需要权限 |
+| Android 定位无权限 | 首页会请求一次前台定位；拒绝后仍可点选地图查天气。永久拒绝可点“打开设置”；定位按钮每次请求结束后恢复可用 |
 
 ## 目录导览
 
@@ -94,9 +96,16 @@ test/              单元 / 来源契约(fixture) / 组件 / 集成
 
 ## 当前状态
 
-**核心功能已验证**：CI 全绿（analyze / 83 项测试 / Web release / Android APK，产物见
-Actions Artifacts）。iOS 构建为手动工作流。边界与未验证项（真机性能/耗电、浏览器冒烟、
-商业授权）如实列于 `docs/acceptance.md` 与 `agent/blockers.md`，不混称“已商品化”。
+2026-10-15：个人开发者、iOS优先、Android兼容；Web暂停作为公开发行产品，保留工程验证能力。
+当前免注册、不展示订阅。首次引导直接导入或查看示例线路，设置会员入口已移除，旧付费链接返回首页。
+
+业务提交 `2816d9d`：正式名称“山晴”＋第四个D图标；本地 analyze 0 issues、171项测试通过；
+CI **38706513896**（Web/APK）与 **38706518000**（iOS release --no-codesign）成功，包含实际产物的名称与图标资源校验。
+iOS无签名构建不能替代真机验收或商店发布。
+
+天气缓存/离线可靠性仍按任务推进。高德接入授权和内置徒步星球目录许可未解决，
+不宣称可正式商用分发。详见 `docs/ios-first-commercialization-2026-10-15.md`、
+`agent/blockers.md`。正式名称已选定“山晴”、图标为第四个D方案，资源与构建说明见 `docs/branding.md`；历史候选保留在 `design/brand-options/2026-10-15/`。
 
 ## 本地开发
 

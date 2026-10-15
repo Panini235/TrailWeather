@@ -101,6 +101,16 @@ const metNorwayFixture = '''
 }
 ''';
 
+/// 单点、日期为今天的最小响应（用于“今天已过去的小时”用例）。
+String openMeteoSinglePointToday() {
+  final now = DateTime.now().toUtc();
+  final d =
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  return '[{"latitude":40.0,"longitude":116.0,"utc_offset_seconds":0,'
+      '"elevation":100.0,"hourly":{"time":["${d}T00:00","${d}T01:00"],'
+      '"temperature_2m":[10.0,11.0]},"daily":{"time":["$d"],"sunset":["${d}T09:58"]}}]';
+}
+
 void main() {
   group('OpenMeteoProvider 契约', () {
     test('多坐标批量：解析数组、溯源字段完整', () async {
@@ -115,10 +125,12 @@ void main() {
         },
       );
       final pts = [const LatLng(40.0, 116.18), const LatLng(40.06, 116.31)];
+      final now = DateTime.now().toUtc();
       final out = await p.fetchPoints(
-          points: pts,
-          startUtc: DateTime.utc(2026, 10, 13),
-          endUtc: DateTime.utc(2026, 10, 14));
+        points: pts,
+        startUtc: now,
+        endUtc: now.add(const Duration(days: 1)),
+      );
       expect(out, hasLength(2));
 
       final first = out.first;
@@ -126,11 +138,23 @@ void main() {
       // 时间解析为 UTC（无后缀 + timezone=UTC）
       expect(first.hours.first.validFromUtc, DateTime.utc(2026, 10, 13, 0));
       // 单位换算：来源 wind km/h -> 内部 m/s
-      expect(first.hours.first.values[WxVar.windSpeed], closeTo(8.6 / 3.6, 0.01));
-      expect(first.hours.first.values[WxVar.windGust], closeTo(20.2 / 3.6, 0.01));
+      expect(
+        first.hours.first.values[WxVar.windSpeed],
+        closeTo(8.6 / 3.6, 0.01),
+      );
+      expect(
+        first.hours.first.values[WxVar.windGust],
+        closeTo(20.2 / 3.6, 0.01),
+      );
       expect(first.hours.first.values[WxVar.temperature], 12.5);
       expect(first.hours.first.values[WxVar.precipProb], 10);
-      expect(first.dailySunsetUtc, DateTime.utc(2026, 10, 13, 9, 58));
+      expect(first.dailySunsetsUtc, [DateTime.utc(2026, 10, 13, 9, 58)]);
+      // 取“出发后的第一次日落”，而不是固定取第一天
+      expect(
+        first.nextSunsetAfter(DateTime.utc(2026, 10, 13, 1)),
+        DateTime.utc(2026, 10, 13, 9, 58),
+      );
+      expect(first.nextSunsetAfter(DateTime.utc(2026, 10, 13, 12)), isNull);
 
       // 溯源：请求坐标 vs 返回坐标分开保存
       final prov = first.provenance;
@@ -152,12 +176,14 @@ void main() {
     test('缺失字段 fixture：全部保持 null，绝不为 0', () async {
       final p = OpenMeteoProvider(
         model: 'ecmwf_ifs025',
-        fetcher: (uri, {headers, cancelToken}) async => openMeteoMissingFieldsFixture,
+        fetcher: (uri, {headers, cancelToken}) async =>
+            openMeteoMissingFieldsFixture,
       );
       final out = await p.fetchPoints(
-          points: [const LatLng(40, 116.2)],
-          startUtc: DateTime.now().toUtc(),
-          endUtc: DateTime.now().toUtc().add(const Duration(days: 1)));
+        points: [const LatLng(40, 116.2)],
+        startUtc: DateTime.now().toUtc(),
+        endUtc: DateTime.now().toUtc().add(const Duration(days: 1)),
+      );
       expect(out, hasLength(1));
       final h = out.first.hours.first;
       expect(h.values[WxVar.precip], isNull);
@@ -173,27 +199,75 @@ void main() {
     test('响应点数不符抛异常', () async {
       final p = OpenMeteoProvider(
         model: 'best_match',
-        fetcher: (uri, {headers, cancelToken}) async => openMeteoMultiPointFixture,
+        fetcher: (uri, {headers, cancelToken}) async =>
+            openMeteoMultiPointFixture,
       );
+      final now = DateTime.now().toUtc();
       expect(
         () => p.fetchPoints(
-            points: [const LatLng(40, 116)],
-            startUtc: DateTime.utc(2026, 10, 13),
-            endUtc: DateTime.utc(2026, 10, 14)),
+          points: [const LatLng(40, 116)],
+          startUtc: now,
+          endUtc: now.add(const Duration(days: 1)),
+        ),
         throwsA(isA<SourceHttpException>()),
+      );
+    });
+
+    test('今天已过去的小时仍可请求（预报从当天 00:00 UTC 起）', () async {
+      Uri? requested;
+      final p = OpenMeteoProvider(
+        model: 'best_match',
+        fetcher: (uri, {headers, cancelToken}) async {
+          requested = uri;
+          return openMeteoSinglePointToday();
+        },
+      );
+      final now = DateTime.now().toUtc();
+      final today = DateTime.utc(now.year, now.month, now.day);
+      await p.fetchPoints(
+        points: [const LatLng(40, 116)],
+        startUtc: today,
+        endUtc: today.add(const Duration(hours: 1)),
+      );
+      expect(requested!.queryParameters['forecast_days'], '1');
+    });
+
+    test('早于今天的时段抛 WxOutOfRange（不再误报“超过 16 天”）', () async {
+      final p = OpenMeteoProvider(
+        model: 'best_match',
+        fetcher: (uri, {headers, cancelToken}) async =>
+            openMeteoMultiPointFixture,
+      );
+      final now = DateTime.now().toUtc();
+      final yesterday = DateTime.utc(now.year, now.month, now.day - 1, 10);
+      expect(
+        () => p.fetchPoints(
+          points: [const LatLng(40, 116)],
+          startUtc: yesterday,
+          endUtc: yesterday.add(const Duration(hours: 1)),
+        ),
+        throwsA(
+          isA<WxOutOfRange>().having(
+            (e) => e.message,
+            'message',
+            contains('早于今天'),
+          ),
+        ),
       );
     });
 
     test('超 16 天窗口抛 WxOutOfRange', () async {
       final p = OpenMeteoProvider(
         model: 'best_match',
-        fetcher: (uri, {headers, cancelToken}) async => openMeteoMultiPointFixture,
+        fetcher: (uri, {headers, cancelToken}) async =>
+            openMeteoMultiPointFixture,
       );
       expect(
         () => p.fetchPoints(
-            points: [const LatLng(40, 116)],
-            startUtc: DateTime.now().toUtc().add(const Duration(days: 20)),
-            endUtc: DateTime.now().toUtc().add(const Duration(days: 21))),
+          points: [const LatLng(40, 116)],
+          startUtc: DateTime.now().toUtc().add(const Duration(days: 20)),
+          endUtc: DateTime.now().toUtc().add(const Duration(days: 21)),
+        ),
         throwsA(isA<WxOutOfRange>()),
       );
     });
@@ -220,9 +294,10 @@ void main() {
         },
       );
       final out = await p.fetchPoints(
-          points: [const LatLng(39.99, 116.19)],
-          startUtc: DateTime.utc(2026, 10, 13),
-          endUtc: DateTime.utc(2026, 10, 14));
+        points: [const LatLng(39.99, 116.19)],
+        startUtc: DateTime.utc(2026, 10, 13),
+        endUtc: DateTime.utc(2026, 10, 14),
+      );
       expect(out, hasLength(1));
 
       // 非浏览器环境必须携带 User-Agent（服务条款要求）
@@ -259,9 +334,10 @@ void main() {
             '{"properties":{"meta":{},"timeseries":[]}}',
       );
       final out = await p.fetchPoints(
-          points: [const LatLng(39.99, 116.19)],
-          startUtc: DateTime.utc(2026, 10, 13),
-          endUtc: DateTime.utc(2026, 10, 14));
+        points: [const LatLng(39.99, 116.19)],
+        startUtc: DateTime.utc(2026, 10, 13),
+        endUtc: DateTime.utc(2026, 10, 14),
+      );
       expect(out.first.hours, isEmpty);
     });
 
@@ -281,9 +357,10 @@ void main() {
       );
       expect(
         () => p.fetchPoints(
-            points: [const LatLng(39.99, 116.19)],
-            startUtc: DateTime.utc(2026, 10, 13),
-            endUtc: DateTime.utc(2026, 10, 14)),
+          points: [const LatLng(39.99, 116.19)],
+          startUtc: DateTime.utc(2026, 10, 13),
+          endUtc: DateTime.utc(2026, 10, 14),
+        ),
         throwsA(isA<FormatException>()),
       );
     });

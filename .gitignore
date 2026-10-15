@@ -26,6 +26,8 @@ android/app/src/*
 !android/app/src/main/
 android/app/src/main/*
 !android/app/src/main/AndroidManifest.xml
+# 接收外部传入文件的 MainActivity（flutter create 不覆盖已存在文件）
+!android/app/src/main/kotlin/
 ios/*
 !ios/Runner/
 ios/Runner/*
@@ -39,3 +41,10 @@ ios/Runner/*
 # 杂项
 .DS_Store
 *.log
+# Widget Preview related
+.widget_preview/
+.kiro/
+devtools_options.yaml
+
+# 用户本地示例轨迹（真实位置/时间，不入库）
+example/

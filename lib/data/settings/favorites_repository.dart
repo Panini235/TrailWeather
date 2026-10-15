@@ -17,8 +17,7 @@ class FavoritesNotifier extends Notifier<List<HikingRoute>> {
     try {
       final list = jsonDecode(raw) as List;
       return [
-        for (final e in list)
-          HikingRoute.fromJson(e as Map<String, dynamic>),
+        for (final e in list) HikingRoute.fromJson(e as Map<String, dynamic>),
       ];
     } catch (_) {
       return const [];
@@ -28,16 +27,15 @@ class FavoritesNotifier extends Notifier<List<HikingRoute>> {
   Future<void> _persist() async {
     final prefs = ref.read(prefsProvider);
     await prefs.setString(
-        _key, jsonEncode([for (final r in state) r.toJson()]));
+      _key,
+      jsonEncode([for (final r in state) r.toJson()]),
+    );
   }
 
   bool isFavorite(String id) => state.any((r) => r.id == id);
 
   Future<void> add(HikingRoute route) async {
-    state = [
-      ...state.where((r) => r.id != route.id),
-      route,
-    ];
+    state = [...state.where((r) => r.id != route.id), route];
     await _persist();
   }
 
@@ -56,9 +54,11 @@ class FavoritesNotifier extends Notifier<List<HikingRoute>> {
 
   /// 导出用户自有数据（收藏+导入线路）为 JSON 文本。
   String exportJson() =>
-      const JsonEncoder.withIndent('  ').convert([for (final r in state) r.toJson()]);
+      const JsonEncoder.withIndent('  ')
+          .convert([for (final r in state) r.toJson()]);
 }
 
 final favoritesProvider =
     NotifierProvider<FavoritesNotifier, List<HikingRoute>>(
-        FavoritesNotifier.new);
+      FavoritesNotifier.new,
+    );

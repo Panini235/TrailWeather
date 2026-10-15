@@ -53,10 +53,14 @@ class CacheStore {
       }
       return CachedRead(
         payload: entry.payload,
-        storedAtUtc:
-            DateTime.fromMillisecondsSinceEpoch(entry.storedAtMs, isUtc: true),
-        expiresAtUtc:
-            DateTime.fromMillisecondsSinceEpoch(entry.expiresAtMs, isUtc: true),
+        storedAtUtc: DateTime.fromMillisecondsSinceEpoch(
+          entry.storedAtMs,
+          isUtc: true,
+        ),
+        expiresAtUtc: DateTime.fromMillisecondsSinceEpoch(
+          entry.expiresAtMs,
+          isUtc: true,
+        ),
       );
     } catch (_) {
       await _prefs.remove(_key(ns, key));
@@ -64,7 +68,12 @@ class CacheStore {
     }
   }
 
-  Future<void> write(String ns, String key, String payload, Duration ttl) async {
+  Future<void> write(
+    String ns,
+    String key,
+    String payload,
+    Duration ttl,
+  ) async {
     final now = DateTime.now().toUtc();
     final entry = _Entry(
       payload: payload,
@@ -149,16 +158,16 @@ class _Entry {
   int lastAccessMs;
 
   Map<String, dynamic> toJson() => {
-        'p': payload,
-        's': storedAtMs,
-        'e': expiresAtMs,
-        'l': lastAccessMs,
-      };
+    'p': payload,
+    's': storedAtMs,
+    'e': expiresAtMs,
+    'l': lastAccessMs,
+  };
 
   factory _Entry.fromJson(Map<String, dynamic> map) => _Entry(
-        payload: map['p'] as String,
-        storedAtMs: map['s'] as int,
-        expiresAtMs: map['e'] as int,
-        lastAccessMs: map['l'] as int,
-      );
+    payload: map['p'] as String,
+    storedAtMs: map['s'] as int,
+    expiresAtMs: map['e'] as int,
+    lastAccessMs: map['l'] as int,
+  );
 }

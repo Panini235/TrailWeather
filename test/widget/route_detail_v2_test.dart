@@ -1,0 +1,116 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trailweather/data/app_providers.dart';
+import 'package:trailweather/data/routes/route_models.dart';
+import 'package:trailweather/data/settings/favorites_repository.dart';
+import 'package:trailweather/data/settings/settings_repository.dart';
+import 'package:trailweather/ui/detail/route_detail_screen.dart';
+import 'package:trailweather/ui/strings.dart';
+
+import '../integration/core_flow_test.dart' show IntegrationFakeProvider;
+
+HikingRoute _route() => HikingRoute(
+  id: 'v2-detail',
+  name: '详情 v2 测试线路',
+  origin: RouteOrigin.import,
+  segments: [
+    [
+      for (var i = 0; i < 40; i++)
+        LatLng(39.99 + i * 0.001, 116.18 + i * 0.001),
+    ],
+  ],
+  elevationsM: [for (var i = 0; i < 40; i++) i * 20.0],
+  sourceName: '测试',
+);
+
+Future<ProviderContainer> _pump(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(900, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        prefsProvider.overrideWithValue(prefs),
+        weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
+      ],
+      child: MaterialApp(
+        home: RouteDetailScreen(args: RouteDetailArgs(route: _route())),
+      ),
+    ),
+  );
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await tester.pumpAndSettle();
+  return ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
+}
+
+Finder _tileTitle(String text) => find.textContaining(text);
+
+void main() {
+  testWidgets('显示行进方向；点节点选中，再点或点详情打开节点详情', (tester) async {
+    await _pump(tester);
+
+    expect(
+      find.textContaining('${S.startPoint}（绿）→ ${S.endPoint}（红）'),
+      findsOneWidget,
+    );
+    expect(find.text(S.reverseRoute), findsOneWidget);
+
+    await tester.scrollUntilVisible(_tileTitle('起点 · 0.0 km'), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(_tileTitle('起点 · 0.0 km'));
+    await tester.pumpAndSettle();
+    expect(find.text(S.tapAgainForDetail), findsOneWidget);
+
+    await tester.tap(_tileTitle('起点 · 0.0 km'));
+    await tester.pumpAndSettle();
+    expect(find.text(S.markAs), findsOneWidget);
+    expect(find.text(S.next12h), findsOneWidget);
+    expect(find.text(S.multiSourceCompare), findsOneWidget);
+  });
+
+  testWidgets('把节点标为营地：保存到我的行程并出现在时间线', (tester) async {
+    final container = await _pump(tester);
+
+    final detailButtons = find.byTooltip(S.nodeDetail2);
+    await tester.scrollUntilVisible(detailButtons.at(1), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(detailButtons.at(1));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ActionChip, '营地'));
+    await tester.pumpAndSettle();
+    expect(find.text(S.markName), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, S.save));
+    await tester.pumpAndSettle();
+
+    expect(find.text(S.markSavedNew), findsOneWidget);
+    final saved = container.read(favoritesProvider).single;
+    expect(saved.waypoints.single.type, WaypointType.camp);
+    expect(_tileTitle('营地 · '), findsOneWidget);
+  });
+
+  testWidgets('反向行走：起点海拔变为原终点海拔', (tester) async {
+    await _pump(tester);
+    await tester.scrollUntilVisible(_tileTitle('起点 · 0.0 km · 0 m'), 300);
+    expect(_tileTitle('起点 · 0.0 km · 0 m'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView).first, const Offset(0, 3000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.reverseRoute));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.text(S.reversedNote), findsOneWidget);
+    await tester.scrollUntilVisible(_tileTitle('起点 · 0.0 km · 780 m'), 300);
+    expect(_tileTitle('起点 · 0.0 km · 780 m'), findsOneWidget);
+  });
+}

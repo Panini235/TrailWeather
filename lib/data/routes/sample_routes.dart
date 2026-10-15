@@ -22,15 +22,17 @@ class SampleRoutes {
         final parsed = GpxImport.parse(raw);
         final route = GpxImport.toRoute(parsed, fileName: assets[i]);
         final descName = _demoName(i);
-        out.add(HikingRoute(
-          id: 'demo-$i',
-          name: descName,
-          origin: RouteOrigin.demo,
-          segments: route.segments,
-          elevationsM: route.elevationsM,
-          sourceName: '内置示例（演示数据，非实测线路）',
-          isDemo: true,
-        ));
+        out.add(
+          HikingRoute(
+            id: 'demo-$i',
+            name: descName,
+            origin: RouteOrigin.demo,
+            segments: route.segments,
+            elevationsM: route.elevationsM,
+            sourceName: '内置示例（演示数据，非实测线路）',
+            isDemo: true,
+          ),
+        );
       } catch (_) {
         // 单个演示资源损坏不影响其余加载。
       }
@@ -39,9 +41,9 @@ class SampleRoutes {
   }
 
   String _demoName(int i) => switch (i) {
-        0 => '香山—八大处穿越（示例）',
-        1 => '西湖群山环线（示例）',
-        2 => '大鹏半岛海岸线（示例）',
-        _ => '示例线路 $i',
-      };
+    0 => '香山—八大处穿越（示例）',
+    1 => '西湖群山环线（示例）',
+    2 => '大鹏半岛海岸线（示例）',
+    _ => '示例线路 $i',
+  };
 }

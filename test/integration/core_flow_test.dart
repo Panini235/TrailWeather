@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trailweather/data/app_providers.dart';
+import 'package:trailweather/data/location/location_service.dart';
 import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
@@ -12,40 +13,41 @@ import 'package:trailweather/data/weather/weather_provider.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
 import 'package:trailweather/ui/map/map_home_screen.dart';
 import 'package:trailweather/ui/widgets/common.dart';
+import 'package:trailweather/ui/detail/node_wx_style.dart';
 import 'package:trailweather/ui/strings.dart';
 
 /// 集成假来源：返回固定但结构完整的逐时数据（不联网）。
 class IntegrationFakeProvider extends WeatherProvider {
   @override
   ProviderCapabilities get caps => ProviderCapabilities(
-        providerId: 'fake:integration',
-        vendor: 'FakeVendor',
-        displayName: 'Fake（集成测试）',
-        modelOrNetwork: 'fake-model',
-        coverage: '测试',
-        forecastHorizonDays: 7,
-        intervalHours: 1,
-        batchCoordinates: true,
-        maxPointsPerRequest: 10,
-        granularity: WxGranularity.grid,
-        dataKind: WxDataKind.forecast,
-        requiresApiKey: false,
-        browserCorsOk: true,
-        browserNotes: '',
-        license: 'test',
-        attribution: 'test',
-        supportedVars: const [
-          WxVar.temperature,
-          WxVar.apparentTemp,
-          WxVar.precip,
-          WxVar.precipProb,
-          WxVar.windSpeed,
-          WxVar.windGust,
-        ],
-        minRequestIntervalMs: 0,
-        recommendedCacheTtl: const Duration(minutes: 30),
-        spatialResolutionNote: '测试：约 10 km 网格',
-      );
+    providerId: 'fake:integration',
+    vendor: 'FakeVendor',
+    displayName: 'Fake（集成测试）',
+    modelOrNetwork: 'fake-model',
+    coverage: '测试',
+    forecastHorizonDays: 7,
+    intervalHours: 1,
+    batchCoordinates: true,
+    maxPointsPerRequest: 10,
+    granularity: WxGranularity.grid,
+    dataKind: WxDataKind.forecast,
+    requiresApiKey: false,
+    browserCorsOk: true,
+    browserNotes: '',
+    license: 'test',
+    attribution: 'test',
+    supportedVars: const [
+      WxVar.temperature,
+      WxVar.apparentTemp,
+      WxVar.precip,
+      WxVar.precipProb,
+      WxVar.windSpeed,
+      WxVar.windGust,
+    ],
+    minRequestIntervalMs: 0,
+    recommendedCacheTtl: const Duration(minutes: 30),
+    spatialResolutionNote: '测试：约 10 km 网格',
+  );
 
   @override
   Future<List<WxPointForecast>> fetchPoints({
@@ -55,13 +57,17 @@ class IntegrationFakeProvider extends WeatherProvider {
     CancelToken? cancelToken,
   }) async {
     final now = DateTime.now().toUtc();
-    final start = DateTime.utc(now.year, now.month, now.day).subtract(const Duration(hours: 2));
+    final start = DateTime.utc(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(hours: 2));
     return [
       for (final p in points)
         WxPointForecast(
           lat: p.latitude,
           lon: p.longitude,
-          dailySunsetUtc: DateTime.utc(now.year, now.month, now.day, 11),
+          dailySunsetsUtc: [DateTime.utc(now.year, now.month, now.day, 11)],
           hours: [
             for (var i = 0; i < 72; i++)
               WxHourValue(
@@ -105,18 +111,30 @@ class IntegrationFakeProvider extends WeatherProvider {
 }
 
 HikingRoute _demoRoute() => HikingRoute(
-      id: 'demo-int',
-      name: '集成测试线路',
-      origin: RouteOrigin.demo,
-      segments: [
-        [
-          for (var i = 0; i < 40; i++) LatLng(39.99 + i * 0.001, 116.18 + i * 0.001),
-        ],
-      ],
-      elevationsM: [for (var i = 0; i < 40; i++) i * 20.0],
-      sourceName: '集成测试',
-      isDemo: true,
-    );
+  id: 'demo-int',
+  name: '集成测试线路',
+  origin: RouteOrigin.demo,
+  segments: [
+    [
+      for (var i = 0; i < 40; i++)
+        LatLng(39.99 + i * 0.001, 116.18 + i * 0.001),
+    ],
+  ],
+  elevationsM: [for (var i = 0; i < 40; i++) i * 20.0],
+  sourceName: '集成测试',
+  isDemo: true,
+);
+
+class _DeniedLocationService implements LocationService {
+  @override
+  Future<LocationFix> currentPosition({
+    void Function(LatLng)? onLastKnown,
+  }) async =>
+      throw const LocationFailure(LocationFailureKind.denied, '集成测试不启用设备定位');
+
+  @override
+  Future<bool> openSettings(LocationFailureKind kind) async => false;
+}
 
 Future<SharedPreferences> _mockPrefs() async {
   SharedPreferences.setMockInitialValues({});
@@ -128,6 +146,7 @@ Future<void> _pumpApp(WidgetTester tester, SharedPreferences prefs) async {
     ProviderScope(
       overrides: [
         prefsProvider.overrideWithValue(prefs),
+        locationServiceProvider.overrideWithValue(_DeniedLocationService()),
         weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
       ],
       child: const _AppShell(),
@@ -145,15 +164,15 @@ class _AppShell extends StatelessWidget {
       home: MapHomeScreen(),
       routes: {
         '/import': (c) => const Scaffold(body: Center(child: Text('import'))),
-        '/settings': (c) => const Scaffold(body: Center(child: Text('settings'))),
+        '/settings': (c) =>
+            const Scaffold(body: Center(child: Text('settings'))),
       },
     );
   }
 }
 
 void main() {
-  testWidgets('核心闭环：地图 → 线路列表 → 详情 → 天气节点 → 行程模式 → 收藏 → 重启恢复',
-      (tester) async {
+  testWidgets('核心闭环：地图 → 线路列表 → 详情 → 天气节点 → 行程模式 → 收藏 → 重启恢复', (tester) async {
     final prefs = await _mockPrefs();
     await _pumpApp(tester, prefs);
 
@@ -173,9 +192,14 @@ void main() {
       ProviderScope(
         overrides: [
           prefsProvider.overrideWithValue(prefs),
-          weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
+          locationServiceProvider.overrideWithValue(_DeniedLocationService()),
+          weatherProvidersProvider.overrideWithValue([
+            IntegrationFakeProvider(),
+          ]),
         ],
-        child: MaterialApp(home: RouteDetailScreen(args: RouteDetailArgs(route: route))),
+        child: MaterialApp(
+          home: RouteDetailScreen(args: RouteDetailArgs(route: route)),
+        ),
       ),
     );
     // 数据 future 与 pumpAndSettle 存在时序边界：显式泵帧直到天气区渲染。
@@ -187,6 +211,20 @@ void main() {
     // 4. 详情页：事实卡 + 演示标签（ListView 懒挂载，断言前滚动到目标）
     expect(find.text('集成测试线路'), findsOneWidget);
     expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
+
+    // 节点按天气阈值着色，并附图例说明（非官方预警）。
+    expect(find.byType(NodeWxMarker), findsWidgets);
+    expect(find.text(S.nodeWxLegendNote), findsOneWidget);
+
+    // 线路小地图：可打开可交互的全屏大图，并能“显示整条线路”。
+    await tester.tap(find.byTooltip(S.routeMapFullscreen));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip(S.routeMapFitAll), findsOneWidget);
+    await tester.tap(find.byTooltip(S.routeMapFitAll));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip(S.routeMapFitAll), findsNothing);
 
     // 5. 滚动到天气区：节点有数据（温度文本出现）
     await tester.scrollUntilVisible(find.text(S.routeSummary), 300);
@@ -213,8 +251,10 @@ void main() {
     for (var i = 0; i < 12 && !alertsVisible; i++) {
       await tester.drag(find.byType(ListView), const Offset(0, -700));
       await tester.pumpAndSettle();
-      alertsVisible =
-          find.textContaining(officialAlertsText0).evaluate().isNotEmpty;
+      alertsVisible = find
+          .textContaining(officialAlertsText0)
+          .evaluate()
+          .isNotEmpty;
     }
     expect(alertsVisible, isTrue, reason: '滚动后应显示官方预警未接入说明');
 
