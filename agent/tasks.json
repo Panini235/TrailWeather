@@ -465,7 +465,7 @@
       "status": "done",
       "acceptance": "起终点标记+方向箭头+环线识别+反向行走；地图标记/海拔剖面/时间线共享选中，再点或详情按钮打开节点详情（完整天气、未来12小时、标记、多来源对比）；节点或全屏地图长按标记营地/休息点/水源/补给等（新增 rest/supply 类型，休息点停留时长计入 ETA），保存到我的行程；GPX wpt/KML Point 有名称才导入，跳过起终点与线路同名点",
       "verify": "flutter test test/unit/route_direction_waypoints_test.dart test/widget/route_detail_v2_test.dart",
-      "result": "本地 analyze 0 + test 169 全绿；五台山 4 个示例文件均全程 74.5 km 进入分析、4 个命名航点上线"
+      "result": "本地 analyze 0 + test 169 全绿；五台山 4 个示例文件均全程 74.5 km 进入分析、4 个命名航点上线；CI 38681970611 全绿"
     },
     {
       "id": "T-124",
@@ -477,7 +477,7 @@
       "status": "done",
       "acceptance": "首尾相距 ≤1 km 的相邻段串联为分析路径（两步路多日 KML 三段间隔 12 m/34 m，原先只分析 31.3 km 的第二天）；更远断开段取最长链并提示",
       "verify": "route_direction_waypoints_test 分析路径用例 + 本地真实文件核对",
-      "result": "完成"
+      "result": "完成；CI 38681970611 全绿"
     },
     {
       "id": "T-125",

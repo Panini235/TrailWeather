@@ -294,4 +294,4 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓。
 
 **本地验证**：flutter analyze 0；flutter test 169/169；example/ 四个真实文件全程进入分析、4 个命名航点上线。
 **未验证**：真机手势（标记点选、全屏长按）。
-
+**CI 结果**：run 38681970611 conclusion=success（commit b00d707；analyze / test / Web / APK）。
