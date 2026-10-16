@@ -26,7 +26,8 @@ flutter run -d chrome                             # run Web locally
 
 - Run analyze and test locally until both are clean before you push. CI runs cost budget.
 - Network access (pub, gh, git push) needs the proxy exports listed in AGENTS.md.
-- Platform dirs: only `android/app/src/main/AndroidManifest.xml`, `ios/Runner/Info.plist` and `web/` are committed. Before any local build, run `flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .` (it does not overwrite the committed custom files). Analyze/test do not need this step.
+- Platform dirs: only `android/app/src/main/AndroidManifest.xml`, `ios/Runner/Info.plist` and `web/` are committed. Before any local build, run `flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .` (it does not overwrite the committed custom files), then `python3 tool/apply_branding.py --platforms android web` and `python3 tool/configure_release.py --platform android`. The release app ID is `app.shanqing.hiking`, while the Kotlin package and namespace stay `dev.trailweather.trailweather`. Analyze/test do not need this step.
+- Android release signing: CI signs with the `ANDROID_*` GitHub Secrets when they are set (the user creates them with `tool/create_android_keystore.sh`), and falls back to debug signing otherwise. Never generate, read or upload the keystore or its passwords yourself.
 - Lints: `flutter_lints` plus `strict-casts`, `prefer_single_quotes` and `unawaited_futures`.
 
 ## CI (`.github/workflows/`)

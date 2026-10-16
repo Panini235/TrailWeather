@@ -27,7 +27,8 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (!ref.read(settingsProvider).hasCompletedOnboarding) {
+      final settings = ref.read(settingsProvider);
+      if (!settings.hasCompletedOnboarding || !settings.privacyAccepted) {
         context.push('/onboarding');
       }
     });

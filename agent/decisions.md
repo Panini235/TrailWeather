@@ -209,9 +209,25 @@
 - iOS 打开方式：沿用 Android 的 MethodChannel 协议，AppDelegate 在安全作用域内复制到临时目录后交给 Dart；
   冷启动经 getInitialFile 取，运行中经 onFile 推送，Dart 确认后清 pending，Dart 端按 uri 去重。
 
-## D-027 分享图二维码与下载地址（2026-10-16）
+## D-029 分享图二维码与下载地址（2026-10-16；原误编为 D-027，与离线行程包重号）
 - qr_flutter 精确锁定 4.1.0（2023-05 发布、pub 150/160、六平台、纯 Dart 绘制；传递依赖 qr 3.0.2）。
 - 下载地址编译期注入（SHANQING_DOWNLOAD_URL = 本次 Actions 运行页），因“每次构建地址不同”只能在构建时确定；
   本地构建回退为工作流列表页。Actions 产物需登录下载、默认保留期有限，正式分发前替换为商店或固定下载页。
 - 分享图的轨迹为矢量示意（不含地图瓦片），避免把瓦片授权带进外发图片。
 
+## D-030 发布身份、正式签名与首启隐私（2026-10-16）
+- 应用 ID 改为 `app.shanqing.hiking`（Android applicationId 与 iOS Bundle ID）。namespace 与 Kotlin 包路径保持
+  `dev.trailweather.trailweather`，因此已提交的 MainActivity.kt、`flutter create --org dev.trailweather` 都不用动。
+  改动在 `flutter create` 之后由 `tool/configure_release.py` 注入，CI 用 `verify_build_branding.py` 校验产物。
+  旧包名的测试安装与新包是两个独立 App，本机数据不会迁移。
+- 正式签名：签名文件与密码只由用户本人生成和保管（`tool/create_android_keystore.sh`：PKCS12、RSA 2048、有效期 10000 天，
+  上传 4 个 GitHub Secrets，打印 SHA-1/SHA-256/MD5 与公钥供备案）。CI 把签名文件解码到 RUNNER_TEMP，密码只在 APK 构建步骤以环境变量提供，
+  Gradle 运行时读取，不写入文件。没有 Secrets 时退回 debug 签名，运行摘要中标注。用 apksigner（而非 keytool -printcert，
+  后者读不到 v2/v3 签名）记录证书；配置了正式签名却产出 debug 签名时 CI 失败。
+- 首启隐私：`AppSettings.privacyAcceptedVersion` 记录已同意的版本；内容有实质变化时提升 `privacyNoticeVersion`，老用户会再次确认。
+  同意项默认不勾选，未同意前引导页不能返回关闭。外部传入的文件暂存，等用户同意并回到主界面（依赖 ModalRoute.isCurrent）后再解析，
+  避免确认框挂在即将移除的引导页上。
+- 定位授权时机：`LocationService.currentPosition(requestPermission: false)` 只检查权限。地图打开时的自动定位走这条路径，失败时静默；
+  系统授权只在用户点击“定位”时请求。
+- 反馈：GitHub Issues 加上手动复制的诊断信息（不含位置、线路或 Key）。不接入崩溃上报 SDK，是否接入留待 beta 反馈后决定。
+- 无新增依赖（使用已声明的 url_launcher）。

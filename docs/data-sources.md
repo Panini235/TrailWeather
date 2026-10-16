@@ -225,7 +225,7 @@ vec/img/ter/cva/cia/cta 六个图层实测（原始记录：claude/zealous-cori-
 
 | 渲染环境 | 发出的 UA | 使用的 Key（设置项） |
 | --- | --- | --- |
-| Android / iOS 原生 2D（flutter_map） | `flutter_map (dev.trailweather.trailweather)` | 服务端（`tiandituServerKey`） |
+| Android / iOS 原生 2D（flutter_map） | `flutter_map (app.shanqing.hiking)` | 服务端（`tiandituServerKey`） |
 | Flutter Web 2D | 浏览器 UA（无法改写） | 浏览器端（`tiandituBrowserKey`） |
 | 将来的 3D 视图（WebView / iframe） | 浏览器 UA | 浏览器端 |
 

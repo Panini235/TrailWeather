@@ -223,4 +223,58 @@ abstract final class S {
   static const photoAddedAt = '添加于';
   static const photoCaption = '备注';
   static const photoDelete = '删除图片';
+
+  // 隐私说明（首启同意与设置页共用；内容变化时提升 AppSettings.privacyNoticeVersion）
+  static const privacyTitle = '隐私说明';
+  static const privacySummary =
+      '山晴不需要注册账号，不内置统计、广告或崩溃上报 SDK。线路、收藏、图片和设置只保存在本机；'
+      '查询天气时，线路或地图上点选的坐标会发送给你启用的天气来源。';
+  static const privacyAgree = '我已阅读并同意隐私说明';
+  static const privacyRead = '查看隐私说明';
+  static const privacyRequired = '请先阅读并勾选同意隐私说明';
+  static const privacySections = <(String, String)>[
+    (
+      '我们不收集什么',
+      '山晴没有自己的服务器和账号体系，不收集姓名、手机号、设备标识，'
+          '不内置统计、广告或崩溃上报 SDK。',
+    ),
+    (
+      '保存在本机的数据',
+      '导入或手绘的线路、收藏、节点图片、离线行程包、设置、你填写的第三方 Key、天气缓存，'
+          '都只保存在本机。可在“缓存管理”清除缓存；卸载 App 会一并删除。',
+    ),
+    (
+      '位置',
+      '只在前台读取位置，不持续监听、不后台定位。打开地图时，仅当你此前已授权才自动定位；'
+          '系统授权只在你点击“定位”按钮时请求。拒绝定位后仍可手动点选地图、搜索地点和查看线路天气。',
+    ),
+    (
+      '发送给第三方的数据',
+      '查询天气时，线路采样点、你点选或定位得到的坐标（及海拔）会发送给已启用的天气来源：'
+          'Open-Meteo（含海拔、空气质量、地点搜索）、MET Norway，以及你自行配置 Key 后的和风天气、meteoblue。'
+          '在地图上搜索线路时，当前视野范围会发送给 OpenStreetMap Overpass 服务。'
+          '地图瓦片由你选择的底图服务商（高德、天地图、OpenStreetMap 等）提供，请求中包含瓦片坐标。'
+          '这些服务会按各自的隐私政策处理请求（包括你的 IP 地址）。',
+    ),
+    (
+      '文件与图片',
+      '导入的 GPX/KML/KMZ/GeoJSON 文件只在本机解析。节点图片来自你主动选择的相册或拍照，只保存在本机。'
+          '分享图在本机生成，经系统分享面板发送到你选择的应用。',
+    ),
+    ('分享与导出', '分享或导出线路时，其中可能包含住宅、常去出发点等敏感位置，请自行确认后再发送。'),
+    ('安全提示', '天气提示来自公开预报模型，不是实测，也不能替代官方预警和你的户外安全判断。'),
+    ('联系我们', '测试版问题与隐私疑问可在“设置 → 问题反馈”中复制诊断信息并提交。'),
+  ];
+
+  // 问题反馈
+  static const feedbackTitle = '问题反馈';
+  static const feedbackSubtitle = '复制诊断信息，到 GitHub 提交问题';
+  static const feedbackIntro =
+      '请描述你做了什么、看到了什么、期望是什么，最好附上截图或出问题的轨迹文件（注意其中的敏感位置）。'
+      '下面的诊断信息不含位置、线路或 Key。';
+  static const feedbackCopy = '复制诊断信息';
+  static const feedbackCopied = '已复制诊断信息';
+  static const feedbackOpenIssues = '去 GitHub 提交问题';
+  static const feedbackIssuesNote = '提交 GitHub 问题需要登录 GitHub 账号；问题内容公开可见。';
+  static const feedbackOpenFailed = '无法打开浏览器，链接已复制到剪贴板';
 }

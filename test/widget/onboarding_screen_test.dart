@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/onboarding/onboarding_screen.dart';
+import 'package:trailweather/ui/strings.dart';
 import 'package:trailweather/ui/theme.dart';
 
 void main() {
@@ -97,13 +98,39 @@ void main() {
       expect(find.textContaining('Pro'), findsNothing);
       expect(find.textContaining('试用'), findsNothing);
       final action = find.text(importRoute ? '导入我的线路' : '先看示例线路');
-      await tester.ensureVisible(action);
+      // 隐私说明不默认勾选；未勾选不能继续，也不记录完成。
+      expect(
+        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        isFalse,
+      );
+      final scrollable = find.byType(Scrollable).first;
+      await tester.scrollUntilVisible(action, 200, scrollable: scrollable);
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(find.text(S.privacyRequired), findsOneWidget);
+      expect(find.byType(OnboardingScreen), findsOneWidget);
+      expect(prefs.getString('settings.v1'), isNull);
+
+      await tester.scrollUntilVisible(
+        find.text(S.privacyAgree),
+        -200,
+        scrollable: scrollable,
+      );
+      await tester.tap(find.text(S.privacyAgree));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(action, 200, scrollable: scrollable);
       await tester.tap(action);
       await tester.pumpAndSettle();
       expect(find.text(importRoute ? '线路导入页' : '示例线路首页'), findsOneWidget);
       expect(
         prefs.getString('settings.v1'),
         contains('"hasCompletedOnboarding":true'),
+      );
+      expect(
+        prefs.getString('settings.v1'),
+        contains(
+          '"privacyAcceptedVersion":${AppSettings.privacyNoticeVersion}',
+        ),
       );
       if (importRoute) {
         router.pop();

@@ -10,6 +10,7 @@ import 'onboarding/onboarding_screen.dart';
 import 'offline/offline_screens.dart';
 import 'planet/planet_screen.dart';
 import 'planner/route_planner_screen.dart';
+import 'privacy/privacy_screen.dart';
 import 'settings/settings_screen.dart';
 import 'strings.dart';
 import 'trips/trips_screen.dart';
@@ -91,6 +92,10 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/privacy',
+      builder: (context, state) => const PrivacyScreen(),
     ),
     // 暂缓商业化期间，旧链接也不能进入付费墙。
     GoRoute(path: '/paywall', redirect: (context, state) => '/'),

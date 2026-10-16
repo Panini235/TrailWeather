@@ -16,12 +16,15 @@ import 'package:trailweather/ui/strings.dart';
 
 class _FakeLocationService implements LocationService {
   int calls = 0;
+  final requested = <bool>[];
 
   @override
   Future<LocationFix> currentPosition({
     void Function(LatLng)? onLastKnown,
+    bool requestPermission = true,
   }) async {
     calls++;
+    requested.add(requestPermission);
     return LocationFix(
       calls == 1
           ? const LatLng(31.2304, 121.4737)
@@ -145,6 +148,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(location.calls, 1);
+    // 打开地图时只在已授权时定位，不弹系统授权框。
+    expect(location.requested, [false]);
     // 不自动弹出面板，也不自动发 Overpass 请求。
     expect(routes.calls, 0);
     expect(find.text(S.currentLocation), findsNothing);
@@ -172,6 +177,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(location.calls, 2);
+    // 用户主动点“定位”才请求授权。
+    expect(location.requested, [false, true]);
     expect(routes.calls, 0);
     expect(find.text(S.currentLocation), findsNothing);
     await tester.tap(find.text('${S.myLocationChip} · 18°C'));

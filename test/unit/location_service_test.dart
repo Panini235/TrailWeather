@@ -31,7 +31,10 @@ class _FakeBackend implements GeolocatorBackend {
   Future<LocationPermission> checkPermission() async => permission;
 
   @override
-  Future<LocationPermission> requestPermission() async => permission;
+  Future<LocationPermission> requestPermission() async {
+    calls.add('request');
+    return permission;
+  }
 
   @override
   Future<LatLng?> lastKnown() async {
@@ -147,6 +150,31 @@ void main() {
         ),
       );
       expect(denied.calls, isEmpty);
+    });
+
+    test('只检查不请求：未授权时不弹授权框、不读取位置', () async {
+      final backend = _FakeBackend(
+        permission: LocationPermission.denied,
+        last: lastPoint,
+      );
+      await expectLater(
+        GeolocatorLocationService(backend: backend)
+            .currentPosition(requestPermission: false),
+        throwsA(
+          isA<LocationFailure>().having(
+            (f) => f.kind,
+            'kind',
+            LocationFailureKind.denied,
+          ),
+        ),
+      );
+      expect(backend.calls, isEmpty);
+
+      await expectLater(
+        GeolocatorLocationService(backend: backend).currentPosition(),
+        throwsA(isA<LocationFailure>()),
+      );
+      expect(backend.calls, ['request']);
     });
   });
 

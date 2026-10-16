@@ -26,8 +26,12 @@ class AppSettings {
     this.qweatherApiHost = '',
     this.qweatherApiKey = '',
     this.hasCompletedOnboarding = false,
+    this.privacyAcceptedVersion = 0,
     this.elevationLapseRateCorrection = true,
   });
+
+  /// 隐私说明版本。说明内容有实质变化时 +1，已同意旧版的用户会再次看到并确认。
+  static const privacyNoticeVersion = 1;
 
   static const defaultProviderIds = <String>[
     'open-meteo:best_match',
@@ -81,6 +85,12 @@ class AppSettings {
   int get effectiveMaxNodes => lowPower ? 12 : maxNodesPerRoute;
 
   final bool hasCompletedOnboarding;
+
+  /// 用户已同意的隐私说明版本（0 = 未同意）。
+  final int privacyAcceptedVersion;
+
+  bool get privacyAccepted => privacyAcceptedVersion >= privacyNoticeVersion;
+
   final bool elevationLapseRateCorrection;
 
   AppSettings copyWith({
@@ -100,6 +110,7 @@ class AppSettings {
     String? qweatherApiHost,
     String? qweatherApiKey,
     bool? hasCompletedOnboarding,
+    int? privacyAcceptedVersion,
     bool? elevationLapseRateCorrection,
   }) => AppSettings(
     departureThresholds: departureThresholds ?? this.departureThresholds,
@@ -119,6 +130,8 @@ class AppSettings {
     qweatherApiKey: qweatherApiKey ?? this.qweatherApiKey,
     hasCompletedOnboarding:
         hasCompletedOnboarding ?? this.hasCompletedOnboarding,
+    privacyAcceptedVersion:
+        privacyAcceptedVersion ?? this.privacyAcceptedVersion,
     elevationLapseRateCorrection:
         elevationLapseRateCorrection ?? this.elevationLapseRateCorrection,
   );
@@ -140,6 +153,7 @@ class AppSettings {
     'qweatherApiHost': qweatherApiHost,
     'qweatherApiKey': qweatherApiKey,
     'hasCompletedOnboarding': hasCompletedOnboarding,
+    'privacyAcceptedVersion': privacyAcceptedVersion,
     'elevationLapseRateCorrection': elevationLapseRateCorrection,
   };
 
@@ -172,6 +186,7 @@ class AppSettings {
     qweatherApiHost: m['qweatherApiHost'] as String? ?? '',
     qweatherApiKey: m['qweatherApiKey'] as String? ?? '',
     hasCompletedOnboarding: m['hasCompletedOnboarding'] as bool? ?? false,
+    privacyAcceptedVersion: (m['privacyAcceptedVersion'] as num?)?.toInt() ?? 0,
     elevationLapseRateCorrection:
         m['elevationLapseRateCorrection'] as bool? ?? true,
   );
@@ -229,6 +244,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   Future<void> completeOnboarding() =>
       update(state.copyWith(hasCompletedOnboarding: true));
+
+  Future<void> acceptPrivacy() => update(
+    state.copyWith(privacyAcceptedVersion: AppSettings.privacyNoticeVersion),
+  );
 
   Future<void> setLapseRateCorrection(bool v) =>
       update(state.copyWith(elevationLapseRateCorrection: v));

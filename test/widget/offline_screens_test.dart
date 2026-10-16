@@ -126,7 +126,10 @@ void main() {
   });
 
   testWidgets('首页入口 → 列表 → 离线详情，模拟重启时不初始化天气仓库', (tester) async {
-    await prefs.setString('settings.v1', '{"hasCompletedOnboarding":true}');
+    await prefs.setString(
+      'settings.v1',
+      '{"hasCompletedOnboarding":true,"privacyAcceptedVersion":1}',
+    );
     final offline = OfflineTripRepository(
       store: PreferencesOfflineTripStore(prefs),
       weather: () => throw StateError('禁止天气网络'),
@@ -158,7 +161,10 @@ void main() {
   });
 
   testWidgets('下载可选时段，失败后重试成功打开已校验包，浏览页面不额外请求', (tester) async {
-    await prefs.setString('settings.v1', '{"hasCompletedOnboarding":true}');
+    await prefs.setString(
+      'settings.v1',
+      '{"hasCompletedOnboarding":true,"privacyAcceptedVersion":1}',
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

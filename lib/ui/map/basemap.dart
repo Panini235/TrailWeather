@@ -83,7 +83,7 @@ class Basemap {
     return TileLayer(
       urlTemplate: template.replaceAll('{-y}', '{y}'),
       subdomains: def.subdomains,
-      userAgentPackageName: 'dev.trailweather.trailweather',
+      userAgentPackageName: 'app.shanqing.hiking',
       maxNativeZoom: def.maxNativeZoom,
       tms: template.contains('{-y}'),
       tileProvider: client == null

@@ -13,6 +13,7 @@ import '../map/basemap.dart';
 import '../map/map_layers_ui.dart';
 import '../strings.dart';
 import '../departure/departure_threshold_screen.dart';
+import 'feedback_sheet.dart';
 import 'meteoblue_card.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -230,16 +231,34 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _section(context, '数据与帮助'),
           Card(
-            child: ListTile(
-              dense: true,
-              leading: const Icon(Icons.explore_outlined, size: 20),
-              title: const Text('查看使用指引', style: TextStyle(fontSize: 13)),
-              subtitle: const Text(
-                '导入线路、选择出发时间、核对天气来源',
-                style: TextStyle(fontSize: 11),
-              ),
-              trailing: const Icon(Icons.chevron_right, size: 18),
-              onTap: () => context.push('/onboarding'),
+            child: Column(
+              children: [
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.explore_outlined, size: 20),
+                  title: const Text('查看使用指引', style: TextStyle(fontSize: 13)),
+                  subtitle: const Text(
+                    '导入线路、选择出发时间、核对天气来源',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => context.push('/onboarding'),
+                ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.feedback_outlined, size: 20),
+                  title: const Text(
+                    S.feedbackTitle,
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  subtitle: const Text(
+                    S.feedbackSubtitle,
+                    style: TextStyle(fontSize: 11),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => showFeedbackSheet(context, ref),
+                ),
+              ],
             ),
           ),
           const _CacheCard(),
@@ -256,9 +275,12 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.privacy_tip_outlined, size: 20),
-                  title: const Text('隐私说明', style: TextStyle(fontSize: 13)),
+                  title: const Text(
+                    S.privacyTitle,
+                    style: TextStyle(fontSize: 13),
+                  ),
                   trailing: const Icon(Icons.chevron_right, size: 18),
-                  onTap: () => _showPrivacy(context),
+                  onTap: () => context.push('/privacy'),
                 ),
                 ListTile(
                   dense: true,
@@ -382,35 +404,6 @@ class SettingsScreen extends ConsumerWidget {
             '地点搜索：Open-Meteo Geocoding（GeoNames/知识共享数据）。\n\n'
             '内置示例线路为本项目演示数据（已标注“演示”），非实测。\n\n'
             '完整对照表与条款链接见 docs/data-sources.md。',
-            style: TextStyle(fontSize: 12, height: 1.6),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dCtx),
-            child: const Text(S.close),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showPrivacy(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (dCtx) => AlertDialog(
-        title: const Text('隐私说明'),
-        content: const SingleChildScrollView(
-          child: Text(
-            '· 不默认上传你的轨迹、精确位置或收藏；收藏和缓存保存在本机。\n'
-            '· 首页会请求一次前台定位，用于显示当前位置天气并查询当地线路；之后仅在你再次点击定位按钮时读取，不持续监听、不后台定位。\n'
-            '· 定位成功、点击地图或查看线路天气时，会把对应坐标/视野发送到已启用天气来源和 Overpass；地图瓦片请求发送标准瓦片坐标。\n'
-            '· 混合搜索会把关键词发送给地点搜索；只有你主动点击外部攻略入口时，才在系统浏览器用百度搜索小红书/两步路/六只脚。App 不读取 Cookie，也不抓取或缓存外部网页内容。\n'
-            '· 拒绝定位后仍可手动点选地图、搜索地点和查看线路天气。\n'
-            '· 日志不记录你的完整轨迹与精确位置；来源异常仅记录端点与状态码。\n'
-            '· 缓存仅在本机；可在“缓存管理”随时清除。\n'
-            '· 分享/导出线路时请注意其中可能包含住宅、常去出发点等敏感位置。\n'
-            '· 本 App 的天气提示不能替代官方预警与户外安全判断。',
             style: TextStyle(fontSize: 12, height: 1.6),
           ),
         ),

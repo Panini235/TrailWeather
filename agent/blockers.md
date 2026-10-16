@@ -49,3 +49,10 @@
 
 - **B-002 补充**：出发窗口及天气摘要改进已有共享 Flutter 测试；Android APK/iOS 无签名 CI 构建只证明平台编译，不证明手机启动、帧率、耗电、GPS 或系统无障碍。具体待验项见 docs/performance.md。
 - **T-157 优先级暂停**：按用户新目标暂缓 Web 性能跑分投入；保留历史报告，不宣称分数已接近满分。此暂停仅针对 Web 专项，仍有可推进的原生共享功能。
+
+### 2026-10-16 签名与 beta
+
+- **B-015 Android 正式签名 Secrets**：签名文件与密码必须由用户本人生成和保管（不可代办）。需要用户安装 JDK 17
+  （`brew install --cask temurin@17`），然后运行 `bash tool/create_android_keystore.sh`，并把 `~/shanqing-release.jks` 和密码离线备份。
+  在此之前 CI 产出 debug 签名 APK（运行摘要会标注），不能作为正式分发包。
+- **B-006 补充**：App 备案需要的签名公钥与 MD5 由上述脚本输出；备案、软著、商店开发者账号都由用户本人办理。

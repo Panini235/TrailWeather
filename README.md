@@ -30,12 +30,23 @@
 其余平台文件在构建前由 `flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .`
 生成（CI 已内置此步骤）。生成后运行 `python3 tool/apply_branding.py --platforms android web`
 应用正式名称与图标；iOS工作流对应使用 `--platforms ios`。详见 `docs/branding.md`。
+再运行 `python3 tool/configure_release.py --platform android`（或 `ios`）把应用 ID 设为
+`app.shanqing.hiking`；Kotlin 包路径与 namespace 仍为 `dev.trailweather.trailweather`。
+
+### Android 正式签名
+
+签名文件与密码只由维护者本人生成和保管，不进仓库。首次配置运行
+`bash tool/create_android_keystore.sh`（需要 JDK 17 与已登录的 `gh`）：生成
+`~/shanqing-release.jks`，上传 4 个 GitHub Secrets（`ANDROID_KEYSTORE_BASE64`、
+`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`），并打印证书指纹与公钥。
+CI 有这些 Secrets 时用正式签名构建 APK，没有时退回 debug 签名并在运行摘要中标注。
 
 ## 运行
 
 ```bash
 flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .
 python3 tool/apply_branding.py --platforms android web
+python3 tool/configure_release.py --platform android
 flutter pub get
 flutter run            # 选择设备/浏览器
 ```

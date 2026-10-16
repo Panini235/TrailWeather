@@ -129,6 +129,7 @@ class _DeniedLocationService implements LocationService {
   @override
   Future<LocationFix> currentPosition({
     void Function(LatLng)? onLastKnown,
+    bool requestPermission = true,
   }) async =>
       throw const LocationFailure(LocationFailureKind.denied, '集成测试不启用设备定位');
 

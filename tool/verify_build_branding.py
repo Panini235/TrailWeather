@@ -9,6 +9,8 @@ import re
 import subprocess
 import zipfile
 
+from configure_release import APP_ID
+
 REPO = Path(__file__).resolve().parents[1]
 BRAND = REPO / 'assets/branding'
 NAME = json.loads((BRAND / 'selection.json').read_text())['displayName']
@@ -31,17 +33,19 @@ def main():
         badging = subprocess.check_output([str(aapt), 'dump', 'badging', str(args.apk)], text=True)
         assert f"application-label:'{NAME}'" in badging, 'APK display name mismatch'
         assert 'application-icon-' in badging, 'APK launcher icon missing'
+        assert f"package: name='{APP_ID}'" in badging, 'APK applicationId mismatch'
         with zipfile.ZipFile(args.apk) as apk:
             assert apk.read('assets/flutter_assets/assets/branding/app-icon.png') == (BRAND / 'app-icon.png').read_bytes()
-        print(f'APK: {NAME} display name, launcher declaration and brand image verified')
+        print(f'APK: {APP_ID}, {NAME} display name, launcher declaration and brand image verified')
     if args.ios_app:
         info = plistlib.loads((args.ios_app / 'Info.plist').read_bytes())
         assert info['CFBundleDisplayName'] == info['CFBundleName'] == NAME
+        assert info['CFBundleIdentifier'] == APP_ID, 'iOS bundle id mismatch'
         icon = info['CFBundleIcons']['CFBundlePrimaryIcon']
         assert icon['CFBundleIconName'] == 'AppIcon'
         assert icon['CFBundleIconFiles']
         assert (args.ios_app / 'Assets.car').is_file()
-        print(f'iOS: {NAME} display name and compiled AppIcon catalog verified')
+        print(f'iOS: {APP_ID}, {NAME} display name and compiled AppIcon catalog verified')
     if args.web:
         manifest = json.loads((args.web / 'manifest.json').read_text())
         assert manifest['name'] == manifest['short_name'] == NAME

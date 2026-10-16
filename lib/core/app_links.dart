@@ -12,3 +12,6 @@ const String kDownloadUrl = String.fromEnvironment(
 
 /// 分享图上的一句宣传语。
 const String kShareSlogan = '山晴 · 出发前，看懂沿途天气';
+
+/// 测试版问题反馈入口（公开仓库的 Issues，提交需登录 GitHub）。
+const String kFeedbackUrl = 'https://github.com/Panini235/TrailWeather/issues';

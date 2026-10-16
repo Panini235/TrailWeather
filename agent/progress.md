@@ -501,8 +501,26 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
   → 线路示意（经纬度等比投影、北向上、不含地图瓦片；节点按天气类别着色，关键节点编号，起终点标签）+ 海拔剖面（完整轨迹海拔，编号落在剖面上）
   → 关键节点 ≤6（起终点、最高点、红/黄阈值节点、命名航点，编号与示意图一致）→ 页脚来源与免责 → 宣传条 + 二维码。
 - 下载地址：lib/core/app_links.dart，CI（web/apk/ios）以 --dart-define 注入本次运行页；本地回退为 CI 工作流列表页。
-- 依赖：qr_flutter 4.1.0（D-027）。
+- 依赖：qr_flutter 4.1.0（D-029，原误编 D-027）。
 
 **验证**：flutter analyze 0；flutter test 293/293；本地 Web 预览实看。
 **说明**：GitHub Actions 产物需登录才能下载且有保留期；正式分发前需换为商店/固定下载页（不影响本轮功能）。
 **CI 结果**：run 38916384264 success；构建日志确认 SHANQING_DOWNLOAD_URL=https://github.com/Panini235/TrailWeather/actions/runs/38916384264 。
+
+## Round 26 — 2026-10-16（发布身份与签名、首启隐私、定位时机、反馈入口、多角色审查）
+
+**用户要求**：帮忙签名（包名可换）；把讨论整理成 review；先修一批轻量问题，重活明天做。
+
+**完成**：
+- T-161（进行中）：应用 ID `app.shanqing.hiking`（namespace/Kotlin 包不变）。`tool/configure_release.py` 在 flutter create 之后注入；
+  `tool/create_android_keystore.sh` 由用户本人运行，生成签名并上传 4 个 Secrets，同时打印指纹与公钥。CI 在有 Secrets 时正式签名；
+  apksigner 指纹写入运行摘要；“配置了正式签名却产出 debug 签名”时 CI 失败；verify_build_branding 校验 APK 与 iOS 的应用 ID。
+- T-162：首启隐私同意（默认不勾选、版本化、未同意不能关闭引导页；同意前暂存外部文件，回到主界面后再解析）。新增独立隐私说明页，
+  内容按实际网络行为重写（移除已下线的百度外链描述，补充海拔、空气质量、和风、meteoblue）。docs/privacy.md 同步更新。
+- T-163：地图打开时自动定位只检查权限，不弹授权框；授权只在点击定位时请求。
+- T-164：设置 → 问题反馈（诊断信息不含位置、线路、Key；GitHub Issues）。
+- docs/review-2026-10-16.md：用户、户外开发者、工程、合规、商业、气象六个视角，附 UI 重构方向与 beta 前置清单。
+- 记录整理：decisions 重号 D-027（二维码）改为 D-029；新增 D-030。
+
+**验证**：flutter analyze 0；flutter test 297/297。脚本在本地 scratch 的 flutter create 产物上验证：无签名、有签名、iOS 三种情况都通过。
+**未验证**：正式签名产物（等 B-015）；真机（B-002）。

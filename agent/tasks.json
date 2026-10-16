@@ -738,6 +738,70 @@
       "acceptance": "固定时刻按设备时区整天取数（滑块不再触发请求）；结论卡给出全天沿途最大降水与降水时段（Open-Meteo 前一小时语义）；摘要标签按模式区分“该时次/行程降水”；概率高而量为 0 时注明来自不同模型",
       "verify": "flutter test test/unit/day_precip_test.dart；用户文件（蓟县歪顶坨）17 日实测：22:00 为 0.0 mm/100%，全天约 79 mm、00–21 时",
       "result": "本地全绿；CI 38910599967 全绿"
+    },
+    {
+      "id": "T-161",
+      "p": "P0",
+      "title": "Android 正式签名与发布应用 ID（app.shanqing.hiking）",
+      "deps": [],
+      "status": "in_progress",
+      "acceptance": "applicationId/Bundle ID 为 app.shanqing.hiking，namespace 不变；签名文件与密码只由用户生成并存入 GitHub Secrets；CI 有 Secrets 时正式签名、无则 debug 并在摘要标注；配置了正式签名却产出 debug 签名时 CI 失败；产物应用 ID 由 verify_build_branding 校验",
+      "verify": "本地 flutter create 产物上运行 configure_release.py（有/无签名两种）；CI 运行摘要的证书指纹；用户运行 tool/create_android_keystore.sh 后再跑一次 CI",
+      "result": "2026-10-16：脚本与 CI 接线完成，本地对生成工程验证通过（applicationId、signingConfigs、iOS 6 处 Bundle ID）。等用户运行签名脚本、配置 Secrets 后再验证正式签名产物，届时改为 done。"
+    },
+    {
+      "id": "T-162",
+      "p": "P0",
+      "title": "首次启动隐私说明同意",
+      "deps": [],
+      "status": "done",
+      "acceptance": "引导页展示摘要与全文入口；同意项默认不勾选，未勾选不能继续；未同意前不能返回关闭；同意版本持久化，版本提升后老用户再次确认；同意前收到的外部文件不解析；App 内全文与 docs/privacy.md 一致",
+      "verify": "test/widget/onboarding_screen_test.dart；test/widget/trips_shell_test.dart（首启外部文件、老用户再次确认）",
+      "result": "2026-10-16：本地 analyze 0、test 297/297"
+    },
+    {
+      "id": "T-163",
+      "p": "P1",
+      "title": "定位授权时机：打开地图不弹授权框",
+      "deps": [],
+      "status": "done",
+      "acceptance": "地图打开时的自动定位只检查权限（已授权才定位，失败静默）；系统授权只在用户点击定位时请求；拒绝后其余功能可用",
+      "verify": "test/unit/location_service_test.dart（只检查不请求）；test/widget/map_home_location_test.dart（自动=false、手动=true）",
+      "result": "2026-10-16：本地全绿"
+    },
+    {
+      "id": "T-164",
+      "p": "P1",
+      "title": "测试版问题反馈入口",
+      "deps": [],
+      "status": "done",
+      "acceptance": "设置中可复制诊断信息（构建、平台、来源、底图、开关；不含位置、线路、Key 原文），可打开 GitHub Issues；打开失败时复制链接并提示",
+      "verify": "test/unit/feedback_diagnostics_test.dart",
+      "result": "2026-10-16：本地全绿"
+    },
+    {
+      "id": "T-165",
+      "p": "P0",
+      "title": "UI 重构：design tokens 与“山脊天气带”视觉签名",
+      "deps": [],
+      "status": "todo",
+      "acceptance": "先集中定义颜色、间距、圆角、字号 token，替换硬编码颜色并通过深浅色对比度检查；详情、出发窗口、分享图共用以海拔剖面为主视觉的天气带；结论先行并带来源一致度或信心；拆分 route_detail_screen；内联中文迁入 S",
+      "verify": "组件测试与无障碍 guideline；本地 Web 预览走查；docs/review-2026-10-16.md 第 7 节",
+      "result": ""
+    },
+    {
+      "id": "T-166",
+      "p": "P1",
+      "title": "第一个 beta：0.2.0-beta.1 与 GitHub Release",
+      "deps": [
+        "T-161",
+        "T-165",
+        "T-158"
+      ],
+      "status": "todo",
+      "acceptance": "版本 0.2.0-beta.1 + CHANGELOG；GitHub Release 附正式签名 APK（公开发布前由用户确认）；分享图二维码改指 releases/latest；至少一台 Android 真机冒烟记录",
+      "verify": "Release 页面、APK 签名指纹、真机记录",
+      "result": ""
     }
   ]
 }

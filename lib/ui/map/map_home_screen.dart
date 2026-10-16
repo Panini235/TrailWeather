@@ -342,13 +342,16 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     });
   }
 
-  Future<void> _locate() async {
+  /// [interactive] 为 false 时是打开地图的自动定位：只在已授权时定位，
+  /// 不弹系统授权框，失败也不提示；授权只在用户点“定位”时请求。
+  Future<void> _locate({bool interactive = true}) async {
     if (_locating) return;
     setState(() => _locating = true);
     try {
       final fix = await ref
           .read(locationServiceProvider)
           .currentPosition(
+            requestPermission: interactive,
             // 系统缓存的上次已知位置先用于居中，减少等待新定位时的空白。
             onLastKnown: (point) {
               if (mounted) _mapController.move(_basemap.toDisplay(point), 13);
@@ -369,7 +372,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       }
       unawaited(_loadMyLocationWeather(fix, atUtc));
     } on LocationFailure catch (failure) {
-      if (!mounted) return;
+      if (!mounted || !interactive) return;
       final canOpenSettings =
           failure.kind == LocationFailureKind.serviceDisabled ||
           failure.kind == LocationFailureKind.deniedForever;
@@ -387,7 +390,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
         ),
       );
     } catch (_) {
-      if (mounted) {
+      if (mounted && interactive) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('定位失败。你仍可手动点选地图查询天气。')));
       }
@@ -567,7 +570,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   void _autoLocate() {
     if (_autoLocateStarted) return;
     _autoLocateStarted = true;
-    unawaited(_locate());
+    unawaited(_locate(interactive: false));
   }
 
   @override
