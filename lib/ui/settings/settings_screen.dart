@@ -13,6 +13,7 @@ import '../../data/weather/weather_models.dart';
 import '../map/basemap.dart';
 import '../map/map_layers_ui.dart';
 import '../strings.dart';
+import '../departure/departure_threshold_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -85,6 +86,20 @@ class SettingsScreen extends ConsumerWidget {
                 selected: {settings.themeMode},
                 onSelectionChanged: (s) =>
                     notifier.update(settings.copyWith(themeMode: s.first)),
+              ),
+            ),
+          ),
+          _section(context, '出发窗口'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.tune),
+              title: const Text('出发窗口阈值'),
+              subtitle: const Text('调整阵风、小时降水和低温规则'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const DepartureThresholdScreen(),
+                ),
               ),
             ),
           ),
@@ -170,7 +185,7 @@ class SettingsScreen extends ConsumerWidget {
                   dense: true,
                   title: const Text('低耗电模式', style: TextStyle(fontSize: 14)),
                   subtitle: const Text(
-                    '加大采样间距与节点上限（减少请求与计算），不自动刷新。精细度会变化并在详情页可见。',
+                    '加大采样间距，并把常规节点上限设为 12（关键航点仍保留）。前台仍检查天气时效，不在后台轮询。',
                     style: TextStyle(fontSize: 11),
                   ),
                   value: settings.lowPower,

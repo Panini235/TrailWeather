@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'detail/route_detail_screen.dart';
+import 'departure/departure_screen.dart';
 import 'import/import_screen.dart';
 import 'import/incoming_file_listener.dart';
 import 'map/map_home_screen.dart';
@@ -55,6 +56,12 @@ GoRouter buildRouter() => GoRouter(
       redirect: (context, state) => state.extra is RouteDetailArgs ? null : '/',
       builder: (context, state) =>
           RouteDetailScreen(args: state.extra! as RouteDetailArgs),
+    ),
+    GoRoute(
+      path: '/departures',
+      redirect: (context, state) => state.extra is DepartureArgs ? null : '/',
+      builder: (context, state) =>
+          DepartureScreen(args: state.extra! as DepartureArgs),
     ),
     GoRoute(
       path: '/offline',

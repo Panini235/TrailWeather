@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart' show CancelToken;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:trailweather/data/weather/weather_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -26,8 +29,12 @@ HikingRoute _route() => HikingRoute(
   sourceName: '测试',
 );
 
-Future<ProviderContainer> _pump(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(900, 2400);
+Future<ProviderContainer> _pump(
+  WidgetTester tester, {
+  bool missingTemperature = false,
+  double width = 900,
+}) async {
+  tester.view.physicalSize = Size(width, 2400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   SharedPreferences.setMockInitialValues({});
@@ -36,7 +43,11 @@ Future<ProviderContainer> _pump(WidgetTester tester) async {
     ProviderScope(
       overrides: [
         prefsProvider.overrideWithValue(prefs),
-        weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
+        weatherProvidersProvider.overrideWithValue([
+          missingTemperature
+              ? _MissingTemperatureProvider()
+              : IntegrationFakeProvider(),
+        ]),
       ],
       child: MaterialApp(
         home: RouteDetailScreen(args: RouteDetailArgs(route: _route())),
@@ -52,7 +63,49 @@ Future<ProviderContainer> _pump(WidgetTester tester) async {
 
 Finder _tileTitle(String text) => find.textContaining(text);
 
+class _MissingTemperatureProvider extends IntegrationFakeProvider {
+  @override
+  Future<List<WxPointForecast>> fetchPoints({
+    required List<LatLng> points,
+    required DateTime startUtc,
+    required DateTime endUtc,
+    CancelToken? cancelToken,
+  }) async {
+    final data = await super.fetchPoints(
+      points: points,
+      startUtc: startUtc,
+      endUtc: endUtc,
+    );
+    return [
+      for (final p in data)
+        WxPointForecast(
+          lat: p.lat,
+          lon: p.lon,
+          provenance: p.provenance,
+          dailySunsetsUtc: p.dailySunsetsUtc,
+          hours: [
+            for (final h in p.hours)
+              WxHourValue(
+                validFromUtc: h.validFromUtc,
+                values: {...h.values, WxVar.temperature: null},
+              ),
+          ],
+        ),
+    ];
+  }
+}
+
 void main() {
+  testWidgets('移动端天气摘要先于地图；缺气温不显示成零度', (tester) async {
+    await _pump(tester, missingTemperature: true, width: 390);
+    expect(find.text('${S.notProvided} / ${S.notProvided}'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text(S.routeSummary)).dy,
+      lessThan(tester.getTopLeft(find.byType(FlutterMap).first).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('显示行进方向；点节点选中，再点或点详情打开节点详情', (tester) async {
     await _pump(tester);
 

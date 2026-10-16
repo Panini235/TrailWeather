@@ -73,12 +73,14 @@ String primaryProviderId(
 }
 
 final weatherProvidersProvider = Provider<List<WeatherProvider>>((ref) {
-  final settings = ref.watch(settingsProvider);
+  final credentials = ref.watch(
+    settingsProvider.select((s) => (s.qweatherApiHost, s.qweatherApiKey)),
+  );
   // 只监听 key：调用计数变化不应重建来源列表（否则会连带刷新所有天气请求）。
   final mbKey = ref.watch(meteoblueSettingsProvider.select((s) => s.apiKey));
   return defaultWeatherProviders(
-    qweatherApiHost: settings.qweatherApiHost,
-    qweatherApiKey: settings.qweatherApiKey,
+    qweatherApiHost: credentials.$1,
+    qweatherApiKey: credentials.$2,
     meteoblueApiKey: mbKey,
     onMeteoblueCall: () =>
         ref.read(meteoblueSettingsProvider.notifier).recordCall(),

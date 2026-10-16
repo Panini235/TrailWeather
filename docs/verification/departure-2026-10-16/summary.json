@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-16",
+  "focus": "Android/iOS shared Flutter behavior; Web performance optimization deferred by user",
+  "source_commit": null,
+  "validation": {
+    "analyze": "0 issues",
+    "tests_passed": 284,
+    "new_tests": 21,
+    "test_scope": [
+      "departure thresholds and missing fields",
+      "segment-interior hours and raw Open-Meteo times",
+      "past-sunset and cross-midnight",
+      "single union query and local threshold recalculation",
+      "cache preserved after refresh failure",
+      "360px light/dark and 2x text",
+      "threshold persistence",
+      "weather summary before map and missing temperature",
+      "existing core flows"
+    ]
+  },
+  "ci": {
+    "android": null,
+    "ios_nocodesign": null
+  },
+  "limitations": [
+    "No physical-device launch, battery or airplane-mode cold start evidence",
+    "No new Lighthouse measurements; prior numbers do not measure native experience",
+    "Multi-day splitting remains T-147",
+    "Sunrise, official alerts and terrain shading not implemented",
+    "Native builds pending at initial implementation commit"
+  ],
+  "raw_evidence": {
+    "flutter-test.txt": "0aa57e5d81380dd1a31d11742f041b06394791739d541a9b7f9da163c78b26fd",
+    "flutter-analyze.txt": "313e6ddf457c994a21f0ebdc79c131e8161c5a2b1b3a6d30b6a2feaa08b4d475"
+  }
+}

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/offline/offline_trip.dart';
 import '../offline/offline_screens.dart';
+import '../departure/departure_screen.dart';
 
 import '../../core/geo.dart';
 import '../../core/units.dart';
@@ -18,9 +19,9 @@ import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/photos/route_photos.dart';
 import '../../data/weather/eta.dart';
+import '../../data/weather/departure_windows.dart';
 import '../../data/weather/node_wx_class.dart';
 import '../../data/weather/risk_rules.dart';
-import '../../data/weather/weather_models.dart';
 import '../../data/weather/weather_provider.dart';
 import '../../data/weather/weather_repository.dart';
 import '../strings.dart';
@@ -35,6 +36,8 @@ import 'node_detail_view.dart';
 import 'node_photos.dart';
 import 'node_wx_style.dart';
 import 'weather_cells.dart';
+
+String _two(int n) => n.toString().padLeft(2, '0');
 
 class RouteDetailArgs {
   const RouteDetailArgs({required this.route});
@@ -419,6 +422,57 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         controller: _scroll,
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         children: [
+          Text(
+            '${_mode == TimeMode.trip ? '行程天气' : '固定时刻天气'} · '
+            '${query.fixedUtc.toLocal().year}-${query.fixedUtc.toLocal().month}-${query.fixedUtc.toLocal().day} '
+            '${_two(query.fixedUtc.toLocal().hour)}:${_two(query.fixedUtc.toLocal().minute)}（设备时间）',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          Text(
+            ref
+                .watch(weatherProvidersProvider)
+                .where((p) => p.caps.providerId == _providerId)
+                .first
+                .caps
+                .displayName,
+          ),
+          if (bundleAsync.value != null)
+            WeatherCacheNotice(result: bundleAsync.value!.result),
+          if (bundleAsync.isLoading && !bundleAsync.hasValue)
+            const LinearProgressIndicator(semanticsLabel: '正在获取线路天气')
+          else
+            _SummaryCard(summary: summarizeRows(rows), settings: settings),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.date_range),
+              title: const Text('比较出发窗口'),
+              subtitle: const Text('按日期和时刻，比较沿途天气阈值与数据缺口'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final selected = await context.push<DepartureSelection>(
+                  '/departures',
+                  extra: DepartureArgs(
+                    route: route,
+                    nodes: nodes,
+                    pace: _pace,
+                    providerId: _providerId,
+                    initialDate: _date,
+                    reversed: _reversed,
+                  ),
+                );
+                if (selected != null && mounted) {
+                  final local = selected.startUtc.toLocal();
+                  setState(() {
+                    _mode = TimeMode.trip;
+                    _date = DateTime(local.year, local.month, local.day);
+                    _startTime = TimeOfDay.fromDateTime(local);
+                    _providerId = selected.providerId;
+                    _selectedNode = null;
+                  });
+                }
+              },
+            ),
+          ),
           _RouteMiniMap(
             route: route,
             rows: rows,
@@ -537,19 +591,18 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     }
 
     final bundle = bundleAsync.value;
-    final summary = summarizeRows(rows);
-    // 日落提示只在行程模式有意义：取出发后的第一次日落（不是“今天”的日落）。
+    // 使用终点的出发日日落（经度近似归属日期），日落后出发不能误取明天。
     final tripMode = _mode == TimeMode.trip && etas.isNotEmpty;
-    final sunset = tripMode
-        ? bundle?.result.points.firstOrNullValue?.nextSunsetAfter(etas.first)
+    final sunset = tripMode && rows.isNotEmpty
+        ? departureDaySunset(
+            point: rows.last.point,
+            longitude: rows.last.node.pos.longitude,
+            startUtc: etas.first,
+          )
         : null;
     final finishEta = tripMode ? etas.last : null;
 
     return [
-      if (bundle != null) WeatherCacheNotice(result: bundle.result),
-      const SizedBox(height: 8),
-      _SummaryCard(summary: summary, settings: settings),
-      const SizedBox(height: 8),
       if (!route.analysisPath.coversAllSegments)
         const GranularityNotice(text: S.multiSegmentNote),
       if (_reversed) const GranularityNotice(text: S.reversedNote),
@@ -561,6 +614,16 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         const GranularityNotice(text: S.longTripNote),
       const SizedBox(height: 8),
       _HintsCard(rows: rows, sunsetUtc: sunset, finishEta: finishEta),
+      if (tripMode)
+        Text(
+          sunset == null
+              ? '日落：此来源未提供出发日终点日落。日出未接入。'
+              : '日落按终点经度近似归属出发日期；未计山体遮挡，日出未接入。',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       const SizedBox(height: 8),
       Text(S.weatherAlongRoute, style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 4),
@@ -647,10 +710,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       ),
     );
   }
-}
-
-extension on List<WxPointForecast> {
-  WxPointForecast? get firstOrNullValue => isEmpty ? null : first;
 }
 
 class _RouteMiniMap extends ConsumerWidget {
@@ -1273,8 +1332,6 @@ class _TimeControlsCard extends StatelessWidget {
       ),
     );
   }
-
-  String _two(int n) => n.toString().padLeft(2, '0');
 }
 
 class _SourceChips extends ConsumerWidget {
@@ -1366,10 +1423,12 @@ class _SummaryCard extends StatelessWidget {
               runSpacing: 6,
               children: [
                 _kv(
+                  context,
                   '最低/最高温',
-                  '${Units.temp(summary.minTempC ?? 0, imperial: settings.imperial, digits: 0)} / ${Units.temp(summary.maxTempC ?? 0, imperial: settings.imperial)}',
+                  '${summary.minTempC == null ? S.notProvided : Units.temp(summary.minTempC!, imperial: settings.imperial, digits: 0)} / ${summary.maxTempC == null ? S.notProvided : Units.temp(summary.maxTempC!, imperial: settings.imperial)}',
                 ),
                 _kv(
+                  context,
                   '沿途降水（估算）',
                   summary.totalPrecipMm == null
                       ? S.notProvided
@@ -1379,6 +1438,7 @@ class _SummaryCard extends StatelessWidget {
                         ),
                 ),
                 _kv(
+                  context,
                   '最大阵风',
                   summary.maxGustMs == null
                       ? S.notProvided
@@ -1388,6 +1448,7 @@ class _SummaryCard extends StatelessWidget {
                         ),
                 ),
                 _kv(
+                  context,
                   '有降水节点',
                   '${summary.precipNodeCount}/${summary.totalNodes}',
                 ),
@@ -1407,10 +1468,16 @@ class _SummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _kv(String k, String v) => Column(
+  Widget _kv(BuildContext context, String k, String v) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(k, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      Text(
+        k,
+        style: TextStyle(
+          fontSize: 11,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
       Text(
         v,
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),

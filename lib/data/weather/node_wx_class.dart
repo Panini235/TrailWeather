@@ -7,7 +7,7 @@ import 'weather_models.dart';
 /// ≥ 17.2 m/s（8 级）红；小时降水 ≥ 2 mm 黄；气温 ≤ -10 ℃ 红。
 /// 缺失数据不计为“无显著天气”（红线：缺失 ≠ 安全）。
 enum NodeWxClass {
-  /// 阵风（或缺阵风时的持续风速）≥ 17.2 m/s。
+  /// 阵风≥ 17.2 m/s。
   galeWind,
 
   /// 气温 ≤ -10 ℃。
@@ -16,7 +16,7 @@ enum NodeWxClass {
   /// 小时降水 ≥ 2 mm。
   heavyPrecip,
 
-  /// 阵风（或持续风速）≥ 13.9 m/s。
+  /// 阵风≥ 13.9 m/s。
   strongWind,
 
   /// 小时降水 ≥ 0.1 mm，或降水概率 ≥ 50%。
@@ -65,9 +65,8 @@ NodeWxClass classifyNodeWx(WxHourValue? wx) {
   final temp = v[WxVar.temperature];
   final precip = v[WxVar.precip];
   final prob = v[WxVar.precipProb];
-  // 阵风 ≠ 持续风速：优先阵风；来源不提供阵风时退用持续风速（持续风速
-  // 不会高于阵风，因此只可能少报，不会多报）。
-  final wind = v[WxVar.windGust] ?? v[WxVar.windSpeed];
+  // 阵风与持续风速分别建模；缺少阵风就保留未知。
+  final wind = v[WxVar.windGust];
 
   if (wind != null && wind >= 17.2) return NodeWxClass.galeWind;
   if (temp != null && temp <= -10) return NodeWxClass.severeCold;

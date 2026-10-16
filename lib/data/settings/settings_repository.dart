@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../map/tile_sources.dart';
+import '../weather/departure_windows.dart';
 
 /// 单位与偏好设置。
 class AppSettings {
   const AppSettings({
+    this.departureThresholds = const DepartureThresholds(),
     this.imperial = false,
     this.windUnit = 'km/h',
     this.themeMode = ThemeMode.system,
@@ -33,6 +35,7 @@ class AppSettings {
     'met.no:locationforecast2.0',
   ];
 
+  final DepartureThresholds departureThresholds;
   final bool imperial;
   final String windUnit;
   final ThemeMode themeMode;
@@ -81,6 +84,7 @@ class AppSettings {
   final bool elevationLapseRateCorrection;
 
   AppSettings copyWith({
+    DepartureThresholds? departureThresholds,
     bool? imperial,
     String? windUnit,
     ThemeMode? themeMode,
@@ -98,6 +102,7 @@ class AppSettings {
     bool? hasCompletedOnboarding,
     bool? elevationLapseRateCorrection,
   }) => AppSettings(
+    departureThresholds: departureThresholds ?? this.departureThresholds,
     imperial: imperial ?? this.imperial,
     windUnit: windUnit ?? this.windUnit,
     themeMode: themeMode ?? this.themeMode,
@@ -119,6 +124,7 @@ class AppSettings {
   );
 
   Map<String, dynamic> toJson() => {
+    'departureThresholds': departureThresholds.toJson(),
     'imperial': imperial,
     'windUnit': windUnit,
     'themeMode': themeMode.name,
@@ -138,6 +144,7 @@ class AppSettings {
   };
 
   static AppSettings fromJson(Map<String, dynamic> m) => AppSettings(
+    departureThresholds: DepartureThresholds.fromJson(m['departureThresholds']),
     imperial: m['imperial'] as bool? ?? false,
     windUnit: m['windUnit'] as String? ?? 'km/h',
     themeMode: ThemeMode.values.byName(m['themeMode'] as String? ?? 'system'),

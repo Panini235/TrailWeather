@@ -238,25 +238,21 @@ void main() {
     expect(find.text(S.sourceTransparency), findsOneWidget);
     expect(find.textContaining('非点位实测'), findsWidgets);
 
-    // 6. 回滚顶部切换行程模式 → 显示预计到达说明
-    await tester.drag(find.byType(ListView), const Offset(0, 2000));
+    // 6. 按控件定位回滚，布局增减后不依赖固定滚动像素。
+    await tester.scrollUntilVisible(find.text(S.modeTrip), -400);
     await tester.pumpAndSettle();
     await tester.tap(find.text(S.modeTrip));
     await tester.pumpAndSettle();
     // ETA 说明与模式按钮同卡（视口内），无需滚动。
     expect(find.textContaining(S.etaIsEstimate), findsWidgets);
 
-    // 7. 循环滚动：官方预警未接入的如实说明（在风险提示卡内）
-    var alertsVisible = false;
-    for (var i = 0; i < 12 && !alertsVisible; i++) {
-      await tester.drag(find.byType(ListView), const Offset(0, -700));
-      await tester.pumpAndSettle();
-      alertsVisible = find
-          .textContaining(officialAlertsText0)
-          .evaluate()
-          .isNotEmpty;
-    }
-    expect(alertsVisible, isTrue, reason: '滚动后应显示官方预警未接入说明');
+    // 7. 按说明定位，避免固定的大步滚动越过已可见的风险卡。
+    await tester.scrollUntilVisible(
+      find.textContaining(officialAlertsText0),
+      200,
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining(officialAlertsText0), findsWidgets);
 
     // 8. 收藏 → 写入本地
     await tester.tap(find.byTooltip(S.favorites));
