@@ -1,0 +1,26 @@
+[
+  {
+    "file": "index.html",
+    "originalBytes": 1854,
+    "gzipBytes": 1021,
+    "lossless": true,
+    "notModifiedStatus": 304,
+    "gzipDisabledRespected": true
+  },
+  {
+    "file": "main.dart.js",
+    "originalBytes": 4405541,
+    "gzipBytes": 1270380,
+    "lossless": true,
+    "notModifiedStatus": 304,
+    "gzipDisabledRespected": true
+  },
+  {
+    "file": "canvaskit/chromium/canvaskit.wasm",
+    "originalBytes": 5428806,
+    "gzipBytes": 2062566,
+    "lossless": true,
+    "notModifiedStatus": 304,
+    "gzipDisabledRespected": true
+  }
+]

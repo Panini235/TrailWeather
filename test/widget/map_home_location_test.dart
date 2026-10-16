@@ -159,7 +159,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(S.currentLocation), findsOneWidget);
     expect(find.textContaining('查询时刻 10月17日'), findsOneWidget);
-    expect(find.textContaining('定位于 10月16日'), findsOneWidget);
+    expect(find.textContaining('位置读取于 10月16日'), findsOneWidget);
     expect(find.text(S.selectedPointWeather), findsNothing);
     expect(find.textContaining('31.23040, 121.47370'), findsOneWidget);
 

@@ -501,7 +501,7 @@
       "status": "in_progress",
       "acceptance": "覆盖时段索引可复用已有逐时数据；7小时旧缓存在线能更新；后台错误被捕获并反馈；刷新成功通知UI。",
       "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16 已实现并通过首轮 240 项本地回归；新增页面刷新与无障碍验证进行中，等待 CI 构建。见 docs/quality-2026-10-16.md。"
+      "result": "2026-10-16 实现通过本地 245 项测试与 analyze；业务提交 3384b2c 的 Web/APK CI 38862593549、iOS 无签名 CI 38862597530 成功。已补充逐节点正反向天气坐标映射验证；位置读取文案收尾等待最新 CI。"
     },
     {
       "id": "T-141",
@@ -513,7 +513,7 @@
       "status": "in_progress",
       "acceptance": "相同节点数/总长度但坐标或顺序变化时不得复用错误bundle；按节点坐标验证正反向天气映射。",
       "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16 已实现并通过首轮 240 项本地回归；新增页面刷新与无障碍验证进行中，等待 CI 构建。见 docs/quality-2026-10-16.md。"
+      "result": "2026-10-16 实现通过本地 245 项测试与 analyze；业务提交 3384b2c 的 Web/APK CI 38862593549、iOS 无签名 CI 38862597530 成功。已补充逐节点正反向天气坐标映射验证；位置读取文案收尾等待最新 CI。"
     },
     {
       "id": "T-142",
@@ -525,7 +525,7 @@
       "status": "in_progress",
       "acceptance": "当前天气取打开时的当前时间；区分定位时间与天气有效时间；前后台恢复按时效刷新，离线标注旧预报。",
       "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16 已实现并通过首轮 240 项本地回归；新增页面刷新与无障碍验证进行中，等待 CI 构建。见 docs/quality-2026-10-16.md。"
+      "result": "2026-10-16 实现通过本地 245 项测试与 analyze；业务提交 3384b2c 的 Web/APK CI 38862593549、iOS 无签名 CI 38862597530 成功。已补充逐节点正反向天气坐标映射验证；位置读取文案收尾等待最新 CI。"
     },
     {
       "id": "T-143",
@@ -688,10 +688,22 @@
       "deps": [
         "T-153"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "主题化加载/失败重试；不禁用缩放；有意义的标题、描述与首屏语义；渲染资源来自本地构建；真实 CI 产物运行 Lighthouse 并保存分数与边界，不以加载页或局部测试替代全应用验收。",
       "verify": "Flutter 无障碍/大字体测试 + playwright-cli + Lighthouse 13.5.0",
-      "result": "实现完成，等待本地最终检查与 CI 产物浏览器实测。保留 iOS 优先与暂缓 Web 发行、订阅隐藏的产品决定。"
+      "result": "CI 38862593549 产物浏览器验证通过：缩放、深浅色、失败重试、键盘导入、语义控件、本地 CanvasKit。Lighthouse 全报告与局限已记录；性能/最佳实践尚未 >=95，继续 T-157，不宣称总目标完成。"
+    },
+    {
+      "id": "T-157",
+      "p": "P1",
+      "title": "真实首屏性能与最佳实践接近满分（>=95），单独验证可交互耗时",
+      "deps": [
+        "T-156"
+      ],
+      "status": "in_progress",
+      "acceptance": "保持完整 App 业务；真实发布配置下多次测量 Lighthouse 各可测类别 >=95，首帧/可交互时间独立量测；修复构建与交付问题，不通过只测加载页、屏蔽警告或关掉功能刷分。原生性能另按 T-050 验收。",
+      "verify": "docs/quality-2026-10-16.md 及后续原始报告；实际 CI 产物与正式交付配置",
+      "result": "2026-10-16 初始基线已取得，增加 gzip 预览并做 HTTP 验证；当前压缩单次性能 70、最佳实践 81，未达标。下一步 source maps、SDK 弃用 API 调研、首包延迟加载与真实可交互时间；正式部署未提供。"
     }
   ]
 }

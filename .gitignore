@@ -48,3 +48,7 @@ devtools_options.yaml
 
 # 用户本地示例轨迹（真实位置/时间，不入库）
 example/
+
+# Local browser verification sessions
+.playwright-cli/
+__pycache__/

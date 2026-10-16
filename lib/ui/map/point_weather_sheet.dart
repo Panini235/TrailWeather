@@ -159,7 +159,7 @@ class _PointWeatherSheetState extends ConsumerState<PointWeatherSheet> {
           ),
           if (widget.locationAtUtc != null)
             Text(
-              '定位于 ${_formatLocal(widget.locationAtUtc!.toLocal())} · '
+              '位置读取于 ${_formatLocal(widget.locationAtUtc!.toLocal())} · '
               '天气按该坐标查询，移动后请重新定位',
               style: TextStyle(
                 fontSize: 12,

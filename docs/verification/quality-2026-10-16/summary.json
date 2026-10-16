@@ -1,0 +1,79 @@
+{
+  "artifactCommit": "3384b2c8b191cfde55025091e2e4c1677b069ad8",
+  "ci": {
+    "webApk": 38862593549,
+    "iosUnsigned": 38862597530
+  },
+  "lighthouseVersion": "13.5.0",
+  "measurements": {
+    "before": {
+      "url": "http://127.0.0.1:8765/",
+      "fetchTime": "2026-10-16T06:51:07.993Z",
+      "scores": {
+        "performance": 39,
+        "accessibility": 100,
+        "best-practices": 81,
+        "seo": 100
+      },
+      "interactiveMs": 34041.17095000001,
+      "lcpMs": 33776.8755,
+      "blockingMs": 1627.5000000000036,
+      "transferBytes": 6510398
+    },
+    "after": {
+      "url": "http://127.0.0.1:8766/",
+      "fetchTime": "2026-10-16T07:25:55.748Z",
+      "scores": {
+        "performance": 62,
+        "accessibility": 100,
+        "best-practices": 81,
+        "seo": 100
+      },
+      "interactiveMs": 49661.8998,
+      "lcpMs": 1831.9998,
+      "blockingMs": 1787.5,
+      "transferBytes": 10465203
+    },
+    "before-gzip": {
+      "url": "http://127.0.0.1:8767/",
+      "fetchTime": "2026-10-16T07:38:22.432Z",
+      "scores": {
+        "performance": 37,
+        "accessibility": 100,
+        "best-practices": 81,
+        "seo": 100
+      },
+      "interactiveMs": 17563.48424999999,
+      "lcpMs": 17563.48424999999,
+      "blockingMs": 2157,
+      "transferBytes": 3379641
+    },
+    "after-gzip": {
+      "url": "http://127.0.0.1:8768/",
+      "fetchTime": "2026-10-16T07:38:37.394Z",
+      "scores": {
+        "performance": 70,
+        "accessibility": 100,
+        "best-practices": 81,
+        "seo": 100
+      },
+      "interactiveMs": 16562.3909975,
+      "lcpMs": 1371.48535,
+      "blockingMs": 1291.0857749999996,
+      "transferBytes": 3895771
+    }
+  },
+  "limitations": [
+    "Local loopback preview; no public deployment or search indexing verified.",
+    "Mobile simulated throttling; single run per configuration, not native-device performance.",
+    "LCP includes the loading screen; actual application readiness requires separate assessment.",
+    "Compressed measurement batch emitted an internal LanternError: NO_LCP diagnostic; both final JSON reports have no runtimeError, runWarnings or errored audits. Scores are diagnostic baselines, not release acceptance."
+  ],
+  "artifactHashes": {
+    "index.html": "8cfbd2fa3a455d474a1e52e301cb63a01940ff8cf47cdbc58e6687324a4d4a7d",
+    "launch.js": "fe70311b8f23ae7ba76026d9421e500fbbad4b74b4855eb1cecefc9a5c85d19b",
+    "launch.css": "ca42c7bd10bf9f5c7f4c951e2a91cecd727ec8668231a52b34f8ee7a2590b095",
+    "flutter_bootstrap.js": "79cb561e25b354718fc54b456c63c069405d9e49181057fb31d6118d3798e888",
+    "main.dart.js": "4ca0fbbf218e52fcb63f3b9d633d86d6dc430f86463aafe467a079f03bb117a8"
+  }
+}
