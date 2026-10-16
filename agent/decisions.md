@@ -209,3 +209,9 @@
 - iOS 打开方式：沿用 Android 的 MethodChannel 协议，AppDelegate 在安全作用域内复制到临时目录后交给 Dart；
   冷启动经 getInitialFile 取，运行中经 onFile 推送，Dart 确认后清 pending，Dart 端按 uri 去重。
 
+## D-027 分享图二维码与下载地址（2026-10-16）
+- qr_flutter 精确锁定 4.1.0（2023-05 发布、pub 150/160、六平台、纯 Dart 绘制；传递依赖 qr 3.0.2）。
+- 下载地址编译期注入（SHANQING_DOWNLOAD_URL = 本次 Actions 运行页），因“每次构建地址不同”只能在构建时确定；
+  本地构建回退为工作流列表页。Actions 产物需登录下载、默认保留期有限，正式分发前替换为商店或固定下载页。
+- 分享图的轨迹为矢量示意（不含地图瓦片），避免把瓦片授权带进外发图片。
+

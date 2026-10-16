@@ -46,6 +46,9 @@ dependencies:
   # Android 自带 FileProvider 声明，无需改已提交的 manifest。精确锁定 13.3.1（2026-10-01 发布，
   # 满足 ≥2 周；Dart ≥3.10 / Flutter ≥3.38.1），见 agent/decisions.md D-026
   share_plus: 13.3.1
+  # 分享图上的下载二维码（纯 Dart 绘制，三端一致）。4.1.0（2023-05 发布，pub 150/160，
+  # 依赖纯 Dart 的 qr ^3.0.1），见 agent/decisions.md D-027
+  qr_flutter: 4.1.0
 
 dev_dependencies:
   flutter_test:

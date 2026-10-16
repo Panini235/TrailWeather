@@ -563,8 +563,18 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             tripMode: _mode == TimeMode.trip,
             reversed: _reversed,
             summary: summarizeRows(rows),
-            dayLine: _mode == TimeMode.fixed
-                ? _dayPrecipLine(bundle, settings)
+            dayPrecip: _mode == TimeMode.fixed
+                ? summarizeDayPrecip(
+                    points: bundle.result.points,
+                    dayStartUtc: DateTime(
+                      _date.year,
+                      _date.month,
+                      _date.day,
+                    ).toUtc(),
+                    precedingHour: bundle.result.providerId.startsWith(
+                      'open-meteo:',
+                    ),
+                  )
                 : null,
             hints: hints,
             rows: rows,

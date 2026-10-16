@@ -6,26 +6,44 @@ import '../../data/settings/settings_repository.dart';
 import '../../data/weather/departure_windows.dart';
 import '../../data/weather/risk_rules.dart';
 import '../detail/detail_state.dart';
-import '../detail/weather_cells.dart';
+import '../../data/weather/node_wx_class.dart';
+import '../../data/weather/weather_models.dart';
+import '../../data/weather/weather_phenomena.dart';
+import '../detail/node_wx_style.dart';
+import 'share_graphics.dart';
 import 'share_image.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
+
+/// 降水时段的结束小时：最后一个有雨小时的起点 + 1 小时，午夜写作 24。
+String _endHour(DateTime lastWetStartUtc) {
+  final h = lastWetStartUtc.toLocal().add(const Duration(hours: 1)).hour;
+  return _two(h == 0 ? 24 : h);
+}
+
 String _stamp(DateTime utc) {
   final l = utc.toLocal();
   return '${l.month}/${l.day} ${_two(l.hour)}:${_two(l.minute)}';
 }
 
-/// 分享图上最多列出的节点数（多了按距离均匀抽取，并注明）。
-const int shareMaxNodes = 12;
-
-/// 均匀抽取至多 [max] 个下标，保留首尾。
-List<int> sampleShareIndices(int count, {int max = shareMaxNodes}) {
-  if (count <= max) return [for (var i = 0; i < count; i++) i];
-  return {for (var k = 0; k < max; k++) ((count - 1) * k / (max - 1)).round()}
-      .toList();
+/// 节点在分享图上的一行天气：气温 · 降水 · 阵风（缺失项省略，不显示成 0）。
+String shareNodeWeather(NodeWxRow r, AppSettings settings) {
+  final v = r.wx?.values;
+  if (v == null) return '此来源无该时刻数据';
+  final parts = <String>[
+    if (v[WxVar.temperature] != null)
+      Units.temp(v[WxVar.temperature]!, imperial: settings.imperial),
+    if ((v[WxVar.precip] ?? 0) >= 0.1)
+      Units.precipMm(v[WxVar.precip]!, imperial: settings.imperial),
+    if (v[WxVar.windGust] != null)
+      '阵风 ${Units.windMs(v[WxVar.windGust]!, unit: settings.windUnit)}',
+  ];
+  final phen = phenomenonOf(r.wx);
+  if (phen != null) parts.insert(0, phen.label);
+  return parts.isEmpty ? '数据不完整' : parts.join(' · ');
 }
 
-/// 线路天气分享卡：时间、摘要、全天降水、提示、沿途节点。
+/// 线路天气分享卡（分层：标题 → 三个大数字 → 醒目提示 → 线路示意 + 海拔剖面 → 关键节点）。
 class RouteShareCard extends StatelessWidget {
   const RouteShareCard({
     super.key,
@@ -34,7 +52,7 @@ class RouteShareCard extends StatelessWidget {
     required this.tripMode,
     required this.reversed,
     required this.summary,
-    required this.dayLine,
+    required this.dayPrecip,
     required this.hints,
     required this.rows,
     required this.settings,
@@ -47,7 +65,9 @@ class RouteShareCard extends StatelessWidget {
   final bool tripMode;
   final bool reversed;
   final RouteWxSummary summary;
-  final String? dayLine;
+
+  /// 固定时刻模式的全天降水（行程模式为 null，用行程降水）。
+  final DayPrecipSummary? dayPrecip;
   final List<WxHint> hints;
   final List<NodeWxRow> rows;
   final AppSettings settings;
@@ -56,105 +76,221 @@ class RouteShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurfaceVariant;
     final ascent = route.totalAscentM;
-    final pick = sampleShareIndices(rows.length);
-    String temp(double? c) =>
-        c == null ? '未提供' : Units.temp(c, imperial: settings.imperial);
-    Widget kv(String k, String v) => Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(k, style: TextStyle(fontSize: 11, color: muted)),
-          Text(
-            v,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
+    final keys = pickKeyNodes(rows);
+    String temp(double c) => Units.temp(c, imperial: settings.imperial);
+    final tempRange = summary.minTempC == null || summary.maxTempC == null
+        ? '未提供'
+        : '${temp(summary.minTempC!)}~${temp(summary.maxTempC!)}';
+    final day = dayPrecip;
+    final (precipLabel, precipValue, precipSub) = day != null
+        ? (
+            '全天降水',
+            day.maxDayMm == null
+                ? '未提供'
+                : Units.precipMm(day.maxDayMm!, imperial: settings.imperial),
+            day.firstWetUtc == null
+                ? '无明显降水'
+                : '${_two(day.firstWetUtc!.toLocal().hour)}–${_endHour(day.lastWetUtc!)} 时',
+          )
+        : (
+            tripMode ? '行程降水' : '该时次降水',
+            summary.totalPrecipMm == null
+                ? '未提供'
+                : Units.precipMm(
+                    summary.totalPrecipMm!,
+                    imperial: settings.imperial,
+                  ),
+            null,
+          );
+    final sorted = [...hints]
+      ..sort((a, b) => b.level.index.compareTo(a.level.index));
+
     return ShareCardFrame(
-      // 名称已含“示例”时不再重复加“（演示）”。
-      title:
-          '${route.name}${route.isDemo && !route.name.contains('示例') ? '（演示）' : ''}',
+      title: route.name,
       subtitle: [
+        timeLabel,
         '${(route.totalDistanceM / 1000).toStringAsFixed(1)} km',
         if (ascent != null) '↑${ascent.toStringAsFixed(0)} m',
-        timeLabel,
-        if (reversed) '反向行走',
+        if (reversed) '反向',
+        if (route.isDemo && !route.name.contains('示例')) '演示线路',
       ].join(' · '),
       body: [
+        // ① 三个大数字
         Row(
           children: [
-            kv(
-              '最低/最高温',
-              '${temp(summary.minTempC)} / ${temp(summary.maxTempC)}',
-            ),
-            kv(
+            _stat(context, Icons.thermostat, '气温', tempRange, null),
+            _stat(
+              context,
+              Icons.air,
               '最大阵风',
               summary.maxGustMs == null
                   ? '未提供'
                   : Units.windMs(summary.maxGustMs!, unit: settings.windUnit),
+              null,
             ),
-            kv(
-              tripMode ? '行程降水' : '该时次降水',
-              summary.totalPrecipMm == null
-                  ? '未提供'
-                  : Units.precipMm(
-                      summary.totalPrecipMm!,
-                      imperial: settings.imperial,
-                    ),
+            _stat(
+              context,
+              Icons.water_drop,
+              precipLabel,
+              precipValue,
+              precipSub,
             ),
           ],
         ),
-        if (dayLine != null) ...[const SizedBox(height: 6), Text(dayLine!)],
-        const SizedBox(height: 6),
-        Text(
-          hints.isEmpty
-              ? '未触发阈值提示（不代表安全）'
-              : '提示：${hints.map((h) => h.title).join('、')}',
-          style: TextStyle(
-            fontSize: 12,
-            color: hints.any((h) => h.level == HintLevel.warning)
-                ? Colors.red.shade700
-                : null,
+        // ② 醒目提示（图标 + 颜色）
+        if (sorted.isEmpty)
+          _pill(
+            Icons.check_circle_outline,
+            '未触发阈值提示（不代表安全）',
+            const Color(0xFF2E7D32),
+          )
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final h in sorted.take(4))
+                _pill(hintIcon(h), h.title, hintColor(h)),
+            ],
           ),
+        // ③ 线路示意 + 海拔剖面
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RouteSketch(route: route, rows: rows, keyNodes: keys),
+            const SizedBox(height: 6),
+            if (ascent != null)
+              ShareElevationProfile(route: route, rows: rows, keyNodes: keys),
+          ],
         ),
-        const SizedBox(height: 10),
-        for (final i in pick)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 112,
-                  child: Text(
-                    '${tripMode ? '${_two(rows[i].validUtc.toLocal().hour)}:${_two(rows[i].validUtc.toLocal().minute)} ' : ''}'
-                    '${rows[i].node.label ?? '节点 ${i + 1}'}'
-                    '${rows[i].node.elevationM == null ? '' : ' ${rows[i].node.elevationM!.toStringAsFixed(0)} m'}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
+        // ④ 关键节点（编号与示意图一致）
+        Column(
+          children: [
+            for (final i in keys)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    _numberBadge(
+                      i + 1,
+                      nodeWxColor(classifyNodeWx(rows[i].wx)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${tripMode ? '${_two(rows[i].validUtc.toLocal().hour)}:${_two(rows[i].validUtc.toLocal().minute)}  ' : ''}'
+                            '${rows[i].node.label ?? '节点 ${i + 1}'}'
+                            '${rows[i].node.elevationM == null ? '' : ' · ${rows[i].node.elevationM!.toStringAsFixed(0)} m'}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            shareNodeWeather(rows[i], settings),
+                            style: TextStyle(fontSize: 12, color: muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      nodeWxIcon(classifyNodeWx(rows[i].wx)),
+                      size: 18,
+                      color: nodeWxColor(classifyNodeWx(rows[i].wx)),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: WxBriefLine(wx: rows[i].wx, settings: settings),
-                ),
-              ],
-            ),
-          ),
-        if (pick.length < rows.length)
-          Text(
-            '共 ${rows.length} 个节点，图中按距离均匀列出 ${pick.length} 个',
-            style: TextStyle(fontSize: 11, color: muted),
-          ),
+              ),
+          ],
+        ),
       ],
       footer: [
         '数据：$sourceName · 获取于 ${_stamp(fetchedAtUtc)}（设备时区）',
-        '预报非实测；提示按阈值计算，非官方预警、非安全评分。${tripMode ? '到达时间为配速估算。' : ''}',
-        if (route.isDemo) '演示线路，仅供体验。',
+        '预报非实测；提示按阈值计算，非官方预警、非安全评分${tripMode ? '；到达时间为配速估算' : ''}。示意图不含地图。',
       ],
     );
   }
+
+  Widget _stat(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+    String? sub,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: scheme.primary),
+              const SizedBox(width: 3),
+              Text(
+                label,
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          if (sub != null)
+            Text(
+              sub,
+              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(IconData icon, String text, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.5)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _numberBadge(int n, Color color) => Container(
+    width: 22,
+    height: 22,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    child: Text(
+      '$n',
+      style: const TextStyle(
+        fontSize: 11,
+        color: Colors.white,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 }
 
 /// 出发窗口分享卡中的一个格子。

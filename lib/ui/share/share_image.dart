@@ -3,8 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/app_links.dart';
 import '../theme.dart';
 
 /// 把一张“分享卡片”渲染成 PNG，交给系统分享面板（微信 / QQ / X / Threads 等）。
@@ -100,7 +102,7 @@ Future<Uint8List> capturePng(
   return data!.buffer.asUint8List();
 }
 
-/// 分享卡片外框：品牌抬头 + 内容 + 来源 / 免责页脚。
+/// 分享卡片外框：品牌抬头 → 标题 → 内容（分区留白）→ 来源 / 免责页脚 → 宣传语 + 下载二维码。
 class ShareCardFrame extends StatelessWidget {
   const ShareCardFrame({
     super.key,
@@ -120,49 +122,119 @@ class ShareCardFrame extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 360,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: scheme.outlineVariant),
       ),
+      clipBehavior: Clip.antiAlias,
       child: DefaultTextStyle(
         style: TextStyle(color: scheme.onSurface, fontSize: 13, height: 1.4),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.terrain, size: 16, color: scheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        '山晴 · 徒步天气',
+                        style: TextStyle(fontSize: 12, color: scheme.primary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  for (final b in body) ...[const SizedBox(height: 14), b],
+                  const SizedBox(height: 14),
+                  for (final f in footer)
+                    Text(
+                      f,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            const SharePromoBar(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 卡片底部宣传条：一句宣传语 + 下载二维码（地址见 [kDownloadUrl]）。
+class SharePromoBar extends StatelessWidget {
+  const SharePromoBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      color: scheme.primaryContainer,
+      padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.terrain, size: 18, color: scheme.primary),
-                const SizedBox(width: 6),
                 Text(
-                  '山晴 · 徒步天气',
-                  style: TextStyle(fontSize: 12, color: scheme.primary),
+                  kShareSlogan,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '导入轨迹，按出发时间查看沿途天气\n扫码下载（测试版构建页）',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onPrimaryContainer,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          Container(
+            padding: const EdgeInsets.all(4),
+            color: Colors.white,
+            child: QrImageView(
+              data: kDownloadUrl,
+              size: 76,
+              padding: EdgeInsets.zero,
+              backgroundColor: Colors.white,
+              semanticsLabel: '下载二维码',
             ),
-            Text(
-              subtitle,
-              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 12),
-            ...body,
-            const SizedBox(height: 12),
-            Divider(height: 1, color: scheme.outlineVariant),
-            const SizedBox(height: 8),
-            for (final f in footer)
-              Text(
-                f,
-                style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

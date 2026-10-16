@@ -491,3 +491,18 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 
 **验证**：flutter analyze 0；flutter test 292/292；Web 预览页实看分享卡；flutter create（ios）不覆盖 AppDelegate/Info.plist（本地 scratch）。
 **CI 结果**：Android/Web run 38910599967 success；iOS 无签名 run 38910604777 success（commit 见 git log）。
+
+## Round 25 — 2026-10-16（分享图改版：轨迹、海拔、醒目提示、宣传与二维码）
+
+**用户反馈**：分享图无轨迹、不知节点位置；需海拔剖面；雨/雪/风等要醒目带图标；信息太密、主次不分；加宣传语与下载二维码（用工作流构建页）。
+
+**完成**：
+- 分层：标题 → 三个大数字（气温 / 最大阵风 / 全天或行程降水+时段）→ 醒目提示胶囊（图标+颜色，最多 4 条；无则绿色“未触发”）
+  → 线路示意（经纬度等比投影、北向上、不含地图瓦片；节点按天气类别着色，关键节点编号，起终点标签）+ 海拔剖面（完整轨迹海拔，编号落在剖面上）
+  → 关键节点 ≤6（起终点、最高点、红/黄阈值节点、命名航点，编号与示意图一致）→ 页脚来源与免责 → 宣传条 + 二维码。
+- 下载地址：lib/core/app_links.dart，CI（web/apk/ios）以 --dart-define 注入本次运行页；本地回退为 CI 工作流列表页。
+- 依赖：qr_flutter 4.1.0（D-027）。
+
+**验证**：flutter analyze 0；flutter test 293/293；本地 Web 预览实看。
+**说明**：GitHub Actions 产物需登录才能下载且有保留期；正式分发前需换为商店/固定下载页（不影响本轮功能）。
+

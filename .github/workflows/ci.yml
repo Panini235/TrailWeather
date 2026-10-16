@@ -54,13 +54,15 @@ jobs:
         run: flutter test
 
       - name: Web Release 构建
-        run: flutter build web --release --source-maps
+        # 分享图二维码指向本次构建页（lib/core/app_links.dart）
+        run: flutter build web --release --source-maps --dart-define=SHANQING_DOWNLOAD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: 补齐并验证 Web 调试映射
         run: python3 tool/prepare_web_artifact.py --web build/web
 
       - name: Android APK 构建（release，模板 debug 签名）
-        run: flutter build apk --release
+        # 分享图二维码指向本次构建页（lib/core/app_links.dart）
+        run: flutter build apk --release --dart-define=SHANQING_DOWNLOAD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: 验证安装包名称与图标资源
         run: python3 tool/verify_build_branding.py --apk build/app/outputs/flutter-apk/app-release.apk --web build/web
