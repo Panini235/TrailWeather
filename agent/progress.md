@@ -505,4 +505,4 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 
 **验证**：flutter analyze 0；flutter test 293/293；本地 Web 预览实看。
 **说明**：GitHub Actions 产物需登录才能下载且有保留期；正式分发前需换为商店/固定下载页（不影响本轮功能）。
-
+**CI 结果**：run 38916384264 success；构建日志确认 SHANQING_DOWNLOAD_URL=https://github.com/Panini235/TrailWeather/actions/runs/38916384264 。
