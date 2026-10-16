@@ -1,12 +1,37 @@
 {
   "date": "2026-10-16",
-  "commit": "b51b11e",
   "local": {
     "analyze": "No issues found",
     "testsPassed": 263,
     "testsFailed": 0
   },
   "ci": {
+    "web_apk": {
+      "run": 38881636861,
+      "status": "success"
+    },
+    "ios_unsigned": {
+      "run": 38881655873,
+      "status": "success"
+    }
+  },
+  "browser": {
+    "status": "verified-with-limitations",
+    "weatherOrTileRequestsAfterRestart": 0,
+    "offlineLastHour": "2026-10-19 17:00 Asia/Shanghai",
+    "fontRequestsFailedOffline": true,
+    "offlineFlowCommit": "b51b11eda8720656fae542fba755210486895534",
+    "onboardingCommit": "03090e2dd35676f78dd26d22ca20e8138a7bb611"
+  },
+  "limits": [
+    "No iOS/Android physical device airplane-mode cold-start measurement",
+    "No offline basemap or live GPS navigation",
+    "No official warning service",
+    "Web is an engineering preview and has no guaranteed offline cold start",
+    "Overall near-full-score goal remains active"
+  ],
+  "finalCodeCommit": "03090e2dd35676f78dd26d22ca20e8138a7bb611",
+  "initialCi": {
     "web_apk": {
       "run": 38877163711,
       "status": "success"
@@ -16,17 +41,48 @@
       "status": "success"
     }
   },
-  "browser": {
-    "status": "verified-with-limitations",
-    "weatherOrTileRequestsAfterRestart": 0,
-    "offlineLastHour": "2026-10-19 17:00 Asia/Shanghai",
-    "fontRequestsFailedOffline": true
-  },
-  "limits": [
-    "No iOS/Android physical device airplane-mode cold-start measurement",
-    "No offline basemap or live GPS navigation",
-    "No official warning service",
-    "Web is an engineering preview and has no guaranteed offline cold start",
-    "Overall near-full-score goal remains active"
+  "lighthouse": [
+    {
+      "file": "final-lighthouse.json",
+      "commit": "03090e2dd35676f78dd26d22ca20e8138a7bb611",
+      "lighthouseVersion": "13.5.0",
+      "fetchTime": "2026-10-16T09:54:11.957Z",
+      "scores": {
+        "performance": 44,
+        "accessibility": 100,
+        "best-practices": 81,
+        "seo": 100
+      },
+      "simulatedTTIms": 16500.4072975,
+      "simulatedLCPms": 11423.20335,
+      "observedLaunchPageLCPms": 48,
+      "runtimeError": null,
+      "runWarnings": [],
+      "erroredAudits": []
+    },
+    {
+      "file": "final-lighthouse-repeat.json",
+      "commit": "03090e2dd35676f78dd26d22ca20e8138a7bb611",
+      "lighthouseVersion": "13.5.0",
+      "fetchTime": "2026-10-16T09:58:35.283Z",
+      "scores": {
+        "performance": 68,
+        "accessibility": 100,
+        "best-practices": 81,
+        "seo": 100
+      },
+      "simulatedTTIms": 16879.19262,
+      "simulatedLCPms": 1376.2332000000001,
+      "observedLaunchPageLCPms": 33,
+      "runtimeError": null,
+      "runWarnings": [],
+      "erroredAudits": []
+    }
+  ],
+  "measurementNotes": [
+    "Both runs used Lighthouse 13.5.0 mobile/simulate, loopback gzip preview, Chrome headless and the local proxy for external resources.",
+    "Scores are 44 and 68, not a selected best run; LCP is a launch-page text element and does not prove Flutter interactivity.",
+    "TTI remains 16.5-16.9 seconds; source maps are present but CanvasKit WASM lacks a map and Dart map lacks 1208 sourcesContent items.",
+    "Intl.v8BreakIterator warning comes from the shipped Flutter engine; no warning suppression or synthetic source maps were used."
   ]
 }

@@ -539,7 +539,7 @@
       "status": "in_progress",
       "acceptance": "持久化路线/航点/计划/完整可用预报与溯源；下载校验与重试；飞行模式冷启动、跨小时/午夜、24/48/72小时读取；不受普通LRU淘汰。",
       "verify": "flutter analyze --no-pub；flutter test --no-pub（offline_trip_test / offline_screens_test 与全部回归）；CI Web/APK + 无签名 iOS；原生飞行模式待真机。",
-      "result": "2026-10-16：独立离线包、24/48/72小时下载、快照/溯源、完整性与坐标校验、失败保留/重试、首页访问和零网络查看已实现。自动化与产物验收进行中；未将文件冷启动测试当成原生飞行模式真机证明。"
+      "result": "2026-10-16：基础离线包、24/48/72小时下载、快照/溯源、完整性与坐标校验、失败保留/重试、首页入口和无天气/地图请求查看已实现。本地 analyze 0 / 263 tests；最终 03090e2 的 Web/APK CI 38881636861 与 iOS 无签名 CI 38881655873 成功。首批同功能 b51b11e 实际浏览器下载72小时/7节点/504地点时段，页面重启后恢复并断网读到最后一小时；最终构建引导修正另行验证。原生飞行模式/强制结束/低存储/升级与24/48/72小时真实老化仍待 B-002 真机，保持 in_progress；Web 字体离线限制已记录。"
     },
     {
       "id": "T-144",
@@ -703,7 +703,7 @@
       "status": "in_progress",
       "acceptance": "保持完整 App 业务；真实发布配置下多次测量 Lighthouse 各可测类别 >=95，首帧/可交互时间独立量测；修复构建与交付问题，不通过只测加载页、屏蔽警告或关掉功能刷分。原生性能另按 T-050 验收。",
       "verify": "docs/quality-2026-10-16.md 及后续原始报告；实际 CI 产物与正式交付配置",
-      "result": "2026-10-16 初始基线已取得，增加 gzip 预览并做 HTTP 验证；当前压缩单次性能 70、最佳实践 81，未达标。下一步 source maps、SDK 弃用 API 调研、首包延迟加载与真实可交互时间；正式部署未提供。 2026-10-16 离线包批次：已在 b51b11e CI 产物补齐真实 source maps。Web 断网下 Noto 备用字体仍有网络依赖，评分与性能继续验证；不隐藏告警。"
+      "result": "2026-10-16：最终 03090e2 产物，两次 Lighthouse 13.5.0/mobile/simulate/gzip 实测性能44和68、可访问性100、最佳实践81、SEO100，模拟TTI16.5/16.9秒；原始报告无runtimeError/runWarnings，保留两次波动结果。真实JS source maps已加入且loader映射通过，但CanvasKit WASM无映射、Dart缺1208项sourcesContent以及SDK弃用API仍影响最佳实践；Web Noto字体断网依赖未解决。尚未达到≥95，不能把启动页LCP或局部评分当全应用完成度。详见 docs/verification/offline-2026-10-16/summary.json。"
     }
   ]
 }

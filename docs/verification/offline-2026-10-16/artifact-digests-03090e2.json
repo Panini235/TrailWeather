@@ -1,0 +1,21 @@
+{
+  "commit": "03090e2",
+  "files": {
+    "main.dart.js": {
+      "bytes": 4447513,
+      "sha256": "711b76c1808734fb36747bd2ec4970d0aa216e5f947018109df5b2ac99dc4711"
+    },
+    "main.dart.js.map": {
+      "bytes": 4287431,
+      "sha256": "02c82a92f6cc4455c4ce8f76d00d472d2d19b68c24eb5b726d36f21dd6109c61"
+    },
+    "flutter_bootstrap.js": {
+      "bytes": 13344,
+      "sha256": "79cb561e25b354718fc54b456c63c069405d9e49181057fb31d6118d3798e888"
+    },
+    "flutter.js.map": {
+      "bytes": 53673,
+      "sha256": "7fee241a3b4ced4c6961668eb45f61772c722f472f680341bcbbd774d04f3421"
+    }
+  }
+}
