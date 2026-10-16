@@ -441,7 +441,7 @@
       "status": "in_progress",
       "acceptance": "AppDelegate application(_:open:options:) 读取 Inbox/安全作用域文件 → 同一 MethodChannel；Info.plist 补 KMZ/GeoJSON 文档类型",
       "verify": "手动 iOS Build 工作流",
-      "result": "AppDelegate.swift（同一通道协议、安全作用域复制到临时目录、冷启动 pending + 确认后清除）、Info.plist 增 KMZ 文档类型与 GPX/KML/KMZ 导入类型声明；flutter create 不覆盖已验证；待 iOS 构建与真机验证"
+      "result": "AppDelegate.swift（同一通道协议、安全作用域复制到临时目录、冷启动 pending + 确认后清除）、Info.plist 增 KMZ 文档类型与 GPX/KML/KMZ 导入类型声明；flutter create 不覆盖已验证；待 iOS 构建与真机验证；iOS 无签名构建 38910604777 成功（AppDelegate.swift 编译通过）；真机打开方式待用户确认"
     },
     {
       "id": "T-130",
@@ -725,7 +725,7 @@
       "status": "done",
       "acceptance": "预览页显示专门排版的卡片（固定宽度、浅色、无地图瓦片）；系统分享面板（微信/QQ/X/Threads 等）；卡片自带来源、获取时间、非实测/非安全评分说明；节点超过 12 个均匀抽取并注明",
       "verify": "flutter test test/widget/share_cards_test.dart；Web 预览页实看",
-      "result": "本地 analyze 0 + test 292"
+      "result": "本地 analyze 0 + test 292；CI 38910599967 全绿"
     },
     {
       "id": "T-160",
@@ -737,7 +737,7 @@
       "status": "done",
       "acceptance": "固定时刻按设备时区整天取数（滑块不再触发请求）；结论卡给出全天沿途最大降水与降水时段（Open-Meteo 前一小时语义）；摘要标签按模式区分“该时次/行程降水”；概率高而量为 0 时注明来自不同模型",
       "verify": "flutter test test/unit/day_precip_test.dart；用户文件（蓟县歪顶坨）17 日实测：22:00 为 0.0 mm/100%，全天约 79 mm、00–21 时",
-      "result": "本地全绿"
+      "result": "本地全绿；CI 38910599967 全绿"
     }
   ]
 }

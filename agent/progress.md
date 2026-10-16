@@ -490,4 +490,4 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 - T-159：share_plus 13.3.1；线路天气卡、多日出发窗口对比卡；预览后经系统分享面板分享。
 
 **验证**：flutter analyze 0；flutter test 292/292；Web 预览页实看分享卡；flutter create（ios）不覆盖 AppDelegate/Info.plist（本地 scratch）。
-
+**CI 结果**：Android/Web run 38910599967 success；iOS 无签名 run 38910604777 success（commit 见 git log）。
