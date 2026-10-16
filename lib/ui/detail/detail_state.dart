@@ -188,3 +188,75 @@ List<NodeWeatherEntry> rowsToEntries(List<NodeWxRow> rows) => [
       elevationM: r.node.elevationM,
     ),
 ];
+
+/// 选定日期（设备时区）全天的沿途降水概况。
+class DayPrecipSummary {
+  const DayPrecipSummary({
+    required this.maxDayMm,
+    required this.firstWetUtc,
+    required this.lastWetUtc,
+    required this.maxProb,
+    required this.minHoursCovered,
+  });
+
+  /// 沿途各查询点全天降水合计的最大值；全部缺失为 null（不当作 0）。
+  final double? maxDayMm;
+
+  /// 有降水（≥0.1 mm）的最早 / 最晚小时起点（UTC）；无降水为 null。
+  final DateTime? firstWetUtc;
+  final DateTime? lastWetUtc;
+
+  /// 全天最大降水概率（集合预报）；未提供为 null。
+  final double? maxProb;
+
+  /// 各点实际覆盖的小时数最小值（< 24 表示来源未覆盖全天）。
+  final int minHoursCovered;
+}
+
+/// 全天降水：每个查询点按来源时间语义合计全天，再取沿途最大。
+///
+/// [precedingHour]：Open-Meteo 的降水标在“上一小时结束”时刻（t 表示 t−1h~t），
+/// 全天取 (00:00, 24:00]；其他来源按“该小时起”取 [00:00, 24:00)。
+DayPrecipSummary summarizeDayPrecip({
+  required List<WxPointForecast> points,
+  required DateTime dayStartUtc,
+  required bool precedingHour,
+}) {
+  final dayEnd = dayStartUtc.add(const Duration(hours: 24));
+  double? maxDay;
+  double? maxProb;
+  DateTime? first;
+  DateTime? last;
+  var minCovered = points.isEmpty ? 0 : 24;
+  for (final p in points) {
+    var sum = 0.0;
+    var covered = 0;
+    for (final h in p.hours) {
+      final t = h.validFromUtc;
+      final inDay = precedingHour
+          ? t.isAfter(dayStartUtc) && !t.isAfter(dayEnd)
+          : !t.isBefore(dayStartUtc) && t.isBefore(dayEnd);
+      if (!inDay) continue;
+      final prob = h.values[WxVar.precipProb];
+      if (prob != null && (maxProb == null || prob > maxProb)) maxProb = prob;
+      final mm = h.values[WxVar.precip];
+      if (mm == null) continue;
+      covered++;
+      sum += mm;
+      if (mm >= 0.1) {
+        final start = precedingHour ? t.subtract(const Duration(hours: 1)) : t;
+        if (first == null || start.isBefore(first)) first = start;
+        if (last == null || start.isAfter(last)) last = start;
+      }
+    }
+    if (covered < minCovered) minCovered = covered;
+    if (covered > 0 && (maxDay == null || sum > maxDay)) maxDay = sum;
+  }
+  return DayPrecipSummary(
+    maxDayMm: maxDay,
+    firstWetUtc: first,
+    lastWetUtc: last,
+    maxProb: maxProb,
+    minHoursCovered: minCovered,
+  );
+}

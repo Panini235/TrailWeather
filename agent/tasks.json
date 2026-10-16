@@ -438,10 +438,10 @@
       "deps": [
         "T-121"
       ],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "AppDelegate application(_:open:options:) 读取 Inbox/安全作用域文件 → 同一 MethodChannel；Info.plist 补 KMZ/GeoJSON 文档类型",
       "verify": "手动 iOS Build 工作流",
-      "result": ""
+      "result": "AppDelegate.swift（同一通道协议、安全作用域复制到临时目录、冷启动 pending + 确认后清除）、Info.plist 增 KMZ 文档类型与 GPX/KML/KMZ 导入类型声明；flutter create 不覆盖已验证；待 iOS 构建与真机验证"
     },
     {
       "id": "T-130",
@@ -714,6 +714,30 @@
       "acceptance": "在统一天气模型中保留逐变量原始时次/有效区间；固定时刻、行程节点、未来小时、离线页和出发窗口一致解释；Open-Meteo前一小时降水/阵风与MET下一小时降水分别处理，不能整体平移瞬时气温；旧离线包仍可读并说明语义。",
       "verify": "官方字段契约、跨小时边界fixture、应用出发时刻后各页面一致性回归；本地analyze/test通过后一次CI。",
       "result": "2026-10-16：T-130已在独立评估器中正确对齐Open-Meteo累计量并保留原始时次；现有NodeWxRow/hourAt与未来小时列表仍按来源原始记录展示，需明确区间并统一查询语义，避免用户把之前一小时累计量当作当前/之后一小时。不能把本轮局部对齐声称为所有天气页面已统一整改。"
+    },
+    {
+      "id": "T-159",
+      "p": "P1",
+      "title": "分享图片：线路天气卡与多日出发窗口对比卡",
+      "deps": [
+        "T-130"
+      ],
+      "status": "done",
+      "acceptance": "预览页显示专门排版的卡片（固定宽度、浅色、无地图瓦片）；系统分享面板（微信/QQ/X/Threads 等）；卡片自带来源、获取时间、非实测/非安全评分说明；节点超过 12 个均匀抽取并注明",
+      "verify": "flutter test test/widget/share_cards_test.dart；Web 预览页实看",
+      "result": "本地 analyze 0 + test 292"
+    },
+    {
+      "id": "T-160",
+      "p": "P0",
+      "title": "固定时刻降水易误读：全天降水一行与时次标签",
+      "deps": [
+        "T-144"
+      ],
+      "status": "done",
+      "acceptance": "固定时刻按设备时区整天取数（滑块不再触发请求）；结论卡给出全天沿途最大降水与降水时段（Open-Meteo 前一小时语义）；摘要标签按模式区分“该时次/行程降水”；概率高而量为 0 时注明来自不同模型",
+      "verify": "flutter test test/unit/day_precip_test.dart；用户文件（蓟县歪顶坨）17 日实测：22:00 为 0.0 mm/100%，全天约 79 mm、00–21 时",
+      "result": "本地全绿"
     }
   ]
 }

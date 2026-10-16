@@ -12,6 +12,8 @@ import '../../data/weather/eta.dart';
 import '../../data/weather/weather_models.dart';
 import '../../data/weather/weather_repository.dart';
 import '../weather_refresh_clock.dart';
+import '../share/share_cards.dart';
+import '../share/share_image.dart';
 import 'departure_threshold_screen.dart';
 
 class DepartureArgs {
@@ -217,6 +219,22 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
         title: const Text('出发窗口'),
         actions: [
           IconButton(
+            tooltip: '分享图片',
+            icon: const Icon(Icons.ios_share),
+            onPressed: bundle == null || source == null || !supported
+                ? null
+                : () => _openShare(
+                    dates: dates,
+                    slots: slots,
+                    now: now,
+                    bundle: bundle,
+                    thresholds: t,
+                    sourceName: source.caps.displayName,
+                    durationHours: duration.inMinutes / 60,
+                    departure: departure,
+                  ),
+          ),
+          IconButton(
             tooltip: '规则与数据说明',
             icon: const Icon(Icons.info_outline),
             onPressed: () => _showExplain(explain),
@@ -419,6 +437,75 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// 分享图：多日出发窗口对比卡（格子判定与屏幕相同，来源与阈值写在页脚）。
+  void _openShare({
+    required List<DateTime> dates,
+    required List<TimeOfDay> slots,
+    required DateTime now,
+    required RouteWeatherBundle bundle,
+    required DepartureThresholds thresholds,
+    required String sourceName,
+    required double durationHours,
+    required DateTime Function(DateTime, TimeOfDay) departure,
+  }) {
+    final args = widget.args;
+    final starts = [
+      for (final d in dates) [for (final s in slots) departure(d, s)],
+    ];
+    final cells = [
+      for (final row in starts)
+        [
+          for (final st in row)
+            if (st.isBefore(now))
+              const DepartureShareCell.past()
+            else
+              () {
+                final a = assessDeparture(
+                  nodes: args.nodes,
+                  startUtc: st,
+                  pace: args.pace,
+                  bundle: bundle,
+                  thresholds: thresholds,
+                );
+                return DepartureShareCell(
+                  departureGlyphs(a),
+                  a.level,
+                  a.insufficient,
+                );
+              }(),
+        ],
+    ];
+    final t = thresholds;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SharePreviewPage(
+          title: '分享出发窗口',
+          fileName: 'shanqing-departures-${_date(dates.first)}.png',
+          shareText: '${args.route.name} · 出发窗口对比 · 山晴徒步天气',
+          card: DepartureShareCard(
+            routeName: args.route.name,
+            isDemo: args.route.isDemo,
+            reversed: args.reversed,
+            durationHours: durationHours,
+            dayLabels: [
+              for (final d in dates) _dayLabel(d).replaceAll('\n', ' '),
+            ],
+            dates: dates,
+            slotLabels: [
+              for (final s in slots) '${_two(s.hour)}:${_two(s.minute)}',
+            ],
+            cells: cells,
+            startsUtc: starts,
+            sourceName: sourceName,
+            fetchedAtUtc: bundle.result.fetchedAtUtc,
+            thresholdText:
+                '阈值：阵风 ≥${t.gustYellow}/${t.gustRed} m/s（黄/红），小时降水 ≥${t.precipYellow} mm（黄），气温 ≤${t.coldRed}℃（红），晚于日落（黄）。',
+          ),
+        ),
       ),
     );
   }

@@ -271,7 +271,12 @@ class KeyWeatherValues extends StatelessWidget {
           p == null
               ? S.notProvided
               : Units.precipMm(p, imperial: settings.imperial),
-          pp == null ? null : '概率 ${pp.toStringAsFixed(0)}%',
+          pp == null
+              ? null
+              // 概率高而量为 0：两者来自不同模型（Open-Meteo 概率来自集合预报）。
+              : (pp >= 50 && (p ?? 0) < 0.1)
+              ? '概率 ${pp.toStringAsFixed(0)}% · ${S.probVsAmountNote}'
+              : '概率 ${pp.toStringAsFixed(0)}%',
         ),
         cell(S.phenomenonLabel, phen?.label ?? S.notProvided),
       ],

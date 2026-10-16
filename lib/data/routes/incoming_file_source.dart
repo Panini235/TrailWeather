@@ -88,9 +88,11 @@ class NoIncomingFiles implements IncomingFileSource {
       Future.error(UnsupportedError('当前平台不支持外部传入文件'));
 }
 
-/// 目前只有 Android 接入了原生通道；iOS 待接入 AppDelegate 并经 iOS 构建验证。
+/// Android（MainActivity.kt）与 iOS（AppDelegate.swift）使用同一通道协议；Web 无此能力。
 final incomingFileSourceProvider = Provider<IncomingFileSource>((ref) {
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS)) {
     return MethodChannelIncomingFileSource();
   }
   return const NoIncomingFiles();

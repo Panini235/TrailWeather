@@ -23,6 +23,9 @@ class _IncomingFileListenerState extends ConsumerState<IncomingFileListener> {
   StreamSubscription<IncomingFile>? _sub;
   bool _busy = false;
 
+  /// 已处理过的文件标识：iOS 冷启动时同一文件可能既经 onFile 推送、又经 getInitialFile 取到。
+  final Set<String> _handled = {};
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +44,7 @@ class _IncomingFileListenerState extends ConsumerState<IncomingFileListener> {
   }
 
   Future<void> _handle(IncomingFile file) async {
-    if (!mounted || _busy) return;
+    if (!mounted || _busy || !_handled.add(file.uri)) return;
     _busy = true;
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(SnackBar(content: Text('正在解析 ${file.name}…')));

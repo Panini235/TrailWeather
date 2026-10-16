@@ -475,3 +475,19 @@ T-143软件闭环已有验证，真机部分仍待 B-002；T-147多日计划/徒
 
 **验证**：flutter analyze 0；flutter test 284/284（4 个用例随布局调整定位方式，行为断言保留）；重建 Web 本地走查确认。
 **CI 结果**：run 38900673341 conclusion=success（commit 5cc5163；analyze / test / Web / APK）。
+
+## Round 24 — 2026-10-16（降水误读、iOS 打开方式、分享图片）
+
+**用户问题**：导入“蓟县歪顶坨.kml”后 17 日显示降水概率 100%、降水量 0.0 mm。
+**核查**：App 数值与来源一致——固定时刻默认“下一整点”（约 22:00），切换日期后仍为 22:00；该线路 17 日降水集中在
+07–21 时（每小时 8–10 mm），22:00 已停雨。Open-Meteo 官方：precipitation 为前一小时合计（0.1 mm 精度），
+precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km、30 成员），与降水量来自不同模型。
+
+**完成**：
+- T-160：固定时刻按整天取数；结论卡“X月X日全天：沿途降水最多约 … mm，主要在 HH–HH 时，最大概率 …%”；
+  摘要标签“该时次降水 / 行程降水”；节点 4 值在概率 ≥50% 且量 <0.1 mm 时注明“来自不同模型”。用户文件 17 日实测全天约 79 mm、00–21 时。
+- T-122（进行中）：iOS AppDelegate.swift + Info.plist 文档/导入类型（GPX/KML/KMZ）；Dart 端启用 iOS 并按 uri 去重。
+- T-159：share_plus 13.3.1；线路天气卡、多日出发窗口对比卡；预览后经系统分享面板分享。
+
+**验证**：flutter analyze 0；flutter test 292/292；Web 预览页实看分享卡；flutter create（ios）不覆盖 AppDelegate/Info.plist（本地 scratch）。
+

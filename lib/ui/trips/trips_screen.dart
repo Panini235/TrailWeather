@@ -159,9 +159,11 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
   }
 }
 
-/// “用山晴打开”目前只在 Android 接入（iOS 待验证，见 agent/tasks.json）。
+/// “用山晴打开”：Android 与 iOS 均已接入（Web 无此能力）。
 bool get _supportsOpenWith =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS);
 
 class _EmptyTrips extends StatelessWidget {
   const _EmptyTrips({required this.onImport, required this.onDraw});

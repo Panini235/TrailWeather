@@ -201,3 +201,11 @@
 - 逐路段检查经过小时的两端，包含航点停留；气温、阵风、降水独立判断，缺失不替代。保留已知触发项和缺口两个维度。
 - 按 Open-Meteo 官方字段语义对齐降水/阵风的前一小时时段，并保留原始时次。终点日落用经度近似归属出发日期，避免只取 nextSunsetAfter 导致日落后出发误取明天。
 - 多日拆分、实际日出/山体遮挡、官方预警和原生真机性能仍未完成。不将局部测试通过或构建成功表述为全软件满分。本轮无新增依赖。
+
+## D-026 分享图片依赖与卡片原则（2026-10-16）
+- share_plus 精确锁定 13.3.1（2026-10-01 发布，≥2 周；Dart ≥3.10 / Flutter ≥3.38.1；fluttercommunity 维护；
+  Android 自带 FileProvider，不改已提交 manifest）。新增传递依赖仅 share_plus_platform_interface 7.2.0。
+- 分享的是专门排版的卡片而非截图：不含地图瓦片（避免瓦片授权进入图片），必含来源、获取时间、非实测/非安全评分说明。
+- iOS 打开方式：沿用 Android 的 MethodChannel 协议，AppDelegate 在安全作用域内复制到临时目录后交给 Dart；
+  冷启动经 getInitialFile 取，运行中经 onFile 推送，Dart 确认后清 pending，Dart 端按 uri 去重。
+

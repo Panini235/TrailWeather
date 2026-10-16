@@ -126,6 +126,9 @@ abstract final class S {
   static const airQualityTitle = '空气质量（雾霾）';
   static const phenomenonLabel = '天气现象';
   static const moreMetrics = '更多指标';
+  static const shareImage = '分享图片';
+  static const shareNeedsData = '天气数据加载完成后才能分享';
+  static const probVsAmountNote = '概率与降水量来自不同模型，可能不一致';
   static const noHintsTriggered = '当前数据未触发任何阈值提示（这不代表安全）。';
   static const dataNotesTitle = '数据说明与来源';
   static const dataNotesSubtitle = '颗粒度、模型、官方预警与线路来源';

@@ -31,6 +31,8 @@ import '../map/map_layers_ui.dart';
 import '../map/route_camera.dart';
 import '../map/route_marks.dart';
 import 'detail_state.dart';
+import '../share/share_cards.dart';
+import '../share/share_image.dart';
 import 'elevation_profile.dart';
 import 'node_detail_view.dart';
 import 'node_photos.dart';
@@ -319,8 +321,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
 
   (DateTime, DateTime) _utcWindow(List<RouteNode> nodes, List<DateTime> etas) {
     if (_mode == TimeMode.fixed) {
-      final f = _fixedUtc();
-      return (f, f.add(const Duration(hours: 1)));
+      // 固定时刻按“设备时区的整天”取数（多 1 小时容纳 Open-Meteo 24:00 的前一小时累计）：
+      // 结论卡可给出全天降水，拖动时刻滑块也不再触发新请求。
+      final day = DateTime(_date.year, _date.month, _date.day).toUtc();
+      return (day, day.add(const Duration(hours: 25)));
     }
     final start = _tripStartUtc();
     final end = (etas.isEmpty ? start : etas.last).add(
@@ -405,6 +409,18 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: S.shareImage,
+            icon: const Icon(Icons.ios_share),
+            onPressed: () => _openShare(
+              route: route,
+              rows: rows,
+              settings: settings,
+              hints: hints,
+              bundle: bundleAsync.value,
+              query: query,
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.download_for_offline_outlined),
             tooltip: '下载离线行程包',
             onPressed: () => context.push(
@@ -476,6 +492,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           else if (!bundleAsync.hasError)
             _ConclusionCard(
               summary: summarizeRows(rows),
+              tripMode: _mode == TimeMode.trip,
+              dayLine: _mode == TimeMode.fixed && bundleAsync.value != null
+                  ? _dayPrecipLine(bundleAsync.value!, settings)
+                  : null,
               settings: settings,
               hints: hints,
               onShowHints: () => _showHints(hints),
@@ -508,6 +528,79 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         ],
       ),
     );
+  }
+
+  /// 分享图：线路天气卡片（时间、摘要、全天降水、提示、沿途节点、来源与免责声明）。
+  void _openShare({
+    required HikingRoute route,
+    required List<NodeWxRow> rows,
+    required AppSettings settings,
+    required List<WxHint> hints,
+    required RouteWeatherBundle? bundle,
+    required RouteWeatherQuery query,
+  }) {
+    if (bundle == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text(S.shareNeedsData)));
+      return;
+    }
+    final source = ref
+        .read(weatherProvidersProvider)
+        .where((p) => p.caps.providerId == _providerId)
+        .firstOrNull;
+    final timeLabel = _timeChipLabel(query.fixedUtc);
+    final day = query.fixedUtc.toLocal();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SharePreviewPage(
+          title: S.shareImage,
+          fileName:
+              'shanqing-${day.year}${_two(day.month)}${_two(day.day)}.png',
+          shareText: '${route.name} · $timeLabel · 山晴徒步天气',
+          card: RouteShareCard(
+            route: route,
+            timeLabel: timeLabel,
+            tripMode: _mode == TimeMode.trip,
+            reversed: _reversed,
+            summary: summarizeRows(rows),
+            dayLine: _mode == TimeMode.fixed
+                ? _dayPrecipLine(bundle, settings)
+                : null,
+            hints: hints,
+            rows: rows,
+            settings: settings,
+            sourceName: source?.caps.displayName ?? _providerId,
+            fetchedAtUtc: bundle.result.fetchedAtUtc,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 固定时刻模式的“全天”一行，避免把某一小时的 0.0 mm 读成全天无雨。
+  String _dayPrecipLine(RouteWeatherBundle bundle, AppSettings settings) {
+    final day = DateTime(_date.year, _date.month, _date.day);
+    final d = summarizeDayPrecip(
+      points: bundle.result.points,
+      dayStartUtc: day.toUtc(),
+      precedingHour: bundle.result.providerId.startsWith('open-meteo:'),
+    );
+    final head = '${day.month}月${day.day}日全天';
+    if (d.maxDayMm == null) return '$head：此来源未提供降水量。';
+    final partial = d.minHoursCovered < 24
+        ? '（来源仅覆盖 ${d.minHoursCovered} 小时）'
+        : '';
+    final prob = d.maxProb == null
+        ? ''
+        : '，最大概率 ${d.maxProb!.toStringAsFixed(0)}%';
+    if (d.firstWetUtc == null) {
+      return '$head：沿途预报无明显降水（每小时 <0.1 mm）$prob$partial';
+    }
+    final a = d.firstWetUtc!.toLocal();
+    final b = d.lastWetUtc!.toLocal().add(const Duration(hours: 1));
+    return '$head：沿途降水最多约 '
+        '${Units.precipMm(d.maxDayMm!, imperial: settings.imperial)}，'
+        '主要在 ${_two(a.hour)}–${_two(b.hour == 0 ? 24 : b.hour)} 时$prob$partial';
   }
 
   /// 顶部时间标签：固定时刻显示“固定 M/d HH:00”，行程模式显示“出发 M/d HH:mm”（设备时区）。
@@ -1442,6 +1535,8 @@ class _ControlBar extends ConsumerWidget {
 class _ConclusionCard extends StatelessWidget {
   const _ConclusionCard({
     required this.summary,
+    required this.tripMode,
+    required this.dayLine,
     required this.settings,
     required this.hints,
     required this.onShowHints,
@@ -1449,6 +1544,10 @@ class _ConclusionCard extends StatelessWidget {
   });
 
   final RouteWxSummary summary;
+  final bool tripMode;
+
+  /// 固定时刻模式的全天降水一行；行程模式为 null。
+  final String? dayLine;
   final AppSettings settings;
   final List<WxHint> hints;
   final VoidCallback onShowHints;
@@ -1498,7 +1597,8 @@ class _ConclusionCard extends StatelessWidget {
                   Expanded(
                     child: _kv(
                       context,
-                      '沿途降水',
+                      // 固定时刻只是一个小时的量，标清楚，避免当成全天。
+                      tripMode ? '行程降水' : '该时次降水',
                       summary.totalPrecipMm == null
                           ? S.notProvided
                           : Units.precipMm(
@@ -1508,6 +1608,11 @@ class _ConclusionCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            if (dayLine != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(dayLine!, style: const TextStyle(fontSize: 13)),
               ),
             const SizedBox(height: 8),
             if (sorted.isEmpty)

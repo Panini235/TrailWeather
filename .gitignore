@@ -32,6 +32,8 @@ ios/*
 !ios/Runner/
 ios/Runner/*
 !ios/Runner/Info.plist
+# “用山晴打开”接收外部文件（flutter create 不覆盖已存在文件）
+!ios/Runner/AppDelegate.swift
 
 # 本地环境与密钥（不入库）
 .env
