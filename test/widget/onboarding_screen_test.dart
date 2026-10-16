@@ -8,6 +8,50 @@ import 'package:trailweather/ui/onboarding/onboarding_screen.dart';
 import 'package:trailweather/ui/theme.dart';
 
 void main() {
+  for (final dark in [false, true]) {
+    testWidgets('引导页 ${dark ? '深色' : '浅色'}：360px 双倍字体与无障碍检查', (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final semantics = tester.ensureSemantics();
+      try {
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [prefsProvider.overrideWithValue(prefs)],
+            child: MaterialApp(
+              theme: dark ? AppTheme.dark() : AppTheme.light(),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: const TextScaler.linear(2)),
+                child: child!,
+              ),
+              home: const OnboardingScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await expectLater(tester, meetsGuideline(textContrastGuideline));
+        await tester.scrollUntilVisible(
+          find.text('先看示例线路'),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+        await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+        await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
+        await expectLater(tester, meetsGuideline(textContrastGuideline));
+      } finally {
+        semantics.dispose();
+      }
+    });
+  }
+
   for (final importRoute in [false, true]) {
     testWidgets('首次引导直接进入${importRoute ? '导入' : '示例'}并记住完成状态，无付费引导', (
       tester,

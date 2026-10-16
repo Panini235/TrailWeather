@@ -85,6 +85,12 @@ final weatherProvidersProvider = Provider<List<WeatherProvider>>((ref) {
   );
 });
 
+/// 可测试的当前时钟；定位时间与天气查询时间分别记录。
+final weatherNowProvider = Provider<DateTime Function()>(
+  (ref) =>
+      () => DateTime.now().toUtc(),
+);
+
 final weatherRepositoryProvider = Provider<WeatherRepository>((ref) {
   return WeatherRepository(
     cache: CacheStore(ref.watch(prefsProvider)),

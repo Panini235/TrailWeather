@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -18,6 +18,7 @@ import '../../data/settings/favorites_repository.dart';
 import '../../data/map/tianditu.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
+import '../../data/weather/weather_repository.dart';
 import '../detail/route_detail_screen.dart';
 import 'basemap.dart';
 import 'map_layers_ui.dart';
@@ -26,6 +27,7 @@ import 'point_weather_sheet.dart';
 import 'route_marks.dart';
 import 'route_camera.dart';
 import '../strings.dart';
+import '../weather_refresh_clock.dart';
 import '../widgets/common.dart';
 
 /// 地图首页：地图浏览 → 线路发现 → 进入详情。
@@ -67,6 +69,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   DateTime? _myFixAtUtc;
   String? _myWxText;
   String? _myWxSource;
+  late final WeatherRefreshClock _weatherClock;
+  StreamSubscription<RouteWeatherBundle>? _myWeatherSubscription;
+  int _weatherGeneration = 0;
 
   double get _zoom {
     try {
@@ -108,7 +113,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     _showPointSheet(
       point,
       label: label,
-      requestedAtUtc: DateTime.now().toUtc(),
+      requestedAtUtc: ref.read(weatherNowProvider)(),
     );
   }
 
@@ -116,6 +121,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     LatLng point, {
     required String label,
     required DateTime requestedAtUtc,
+    DateTime? locationAtUtc,
   }) {
     showModalBottomSheet<void>(
       context: context,
@@ -127,6 +133,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
           point: point,
           label: label,
           requestedAtUtc: requestedAtUtc,
+          locationAtUtc: locationAtUtc,
         ),
       ),
     );
@@ -349,7 +356,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
           );
       if (!mounted) return;
       _mapController.move(_basemap.toDisplay(fix.point), 13);
-      final atUtc = DateTime.now().toUtc();
+      final atUtc = ref.read(weatherNowProvider)();
       setState(() {
         _myFix = fix;
         _myFixAtUtc = atUtc;
@@ -404,41 +411,67 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
         .read(weatherProvidersProvider)
         .firstWhere((p) => p.caps.providerId == providerId)
         .caps;
-    String text;
-    try {
-      final bundle = await fetchPointWeather(
-        ref.read(weatherRepositoryProvider),
-        providerId: providerId,
-        point: fix.point,
-        label: _myLocationSheetLabel(fix),
-        requestedAtUtc: atUtc,
-      );
-      final points = bundle.result.points;
-      final hour = points.isEmpty
-          ? null
-          : nearestPointHour(points.first, atUtc);
-      final temp = hour?.values[WxVar.temperature];
-      text = temp == null
-          ? S.myLocationNoTemp
-          : Units.temp(temp, imperial: ref.read(settingsProvider).imperial);
-    } catch (_) {
-      text = S.myLocationTapHint;
+    final generation = ++_weatherGeneration;
+    unawaited(_myWeatherSubscription?.cancel());
+    if (!mounted || generation != _weatherGeneration) return;
+    _myWeatherSubscription =
+        watchPointWeather(
+          ref.read(weatherRepositoryProvider),
+          providerId: providerId,
+          point: fix.point,
+          label: _myLocationSheetLabel(fix),
+          requestedAtUtc: atUtc,
+        ).listen(
+          (bundle) {
+            if (!mounted ||
+                generation != _weatherGeneration ||
+                !identical(_myFix, fix)) {
+              return;
+            }
+            final points = bundle.result.points;
+            // 当前位置标签只显示当前小时；缺口不拿临近小时冒充。
+            final hour = points.isEmpty ? null : points.first.hourAt(atUtc);
+            final temp = hour?.values[WxVar.temperature];
+            setState(() {
+              _myWxText = temp == null
+                  ? S.myLocationNoTemp
+                  : Units.temp(
+                      temp,
+                      imperial: ref.read(settingsProvider).imperial,
+                    );
+              _myWxSource =
+                  '${caps.displayName}'
+                  '${bundle.result.stale ? ' · 旧预报' : ''}'
+                  '${bundle.result.refreshing ? ' · 更新中' : ''}'
+                  '${bundle.result.refreshFailed ? ' · 更新失败' : ''}';
+            });
+          },
+          onError: (Object error) {
+            if (!mounted || generation != _weatherGeneration) return;
+            setState(() {
+              _myWxText = S.myLocationTapHint;
+              _myWxSource = caps.displayName;
+            });
+          },
+        );
+  }
+
+  void _refreshCurrentWeather() {
+    final fix = _myFix;
+    if (fix != null) {
+      unawaited(_loadMyLocationWeather(fix, _weatherClock.value));
     }
-    if (!mounted || !identical(_myFix, fix)) return;
-    setState(() {
-      _myWxText = text;
-      _myWxSource = caps.displayName;
-    });
   }
 
   void _openMyLocationWeather() {
     final fix = _myFix;
-    final atUtc = _myFixAtUtc;
-    if (fix == null || atUtc == null) return;
+    if (fix == null) return;
+    _weatherClock.check();
     _showPointSheet(
       fix.point,
       label: _myLocationSheetLabel(fix),
-      requestedAtUtc: atUtc,
+      requestedAtUtc: ref.read(weatherNowProvider)(),
+      locationAtUtc: _myFixAtUtc,
     );
   }
 
@@ -540,10 +573,19 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _weatherClock = WeatherRefreshClock(
+      initialUtc: ref.read(weatherNowProvider)(),
+      nowUtc: ref.read(weatherNowProvider),
+    )..addListener(_refreshCurrentWeather);
   }
 
   @override
   void dispose() {
+    _weatherGeneration++;
+    _myWeatherSubscription?.cancel();
+    _weatherClock.dispose();
+    _mapController.dispose();
+    _hitNotifier.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }

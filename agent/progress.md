@@ -408,3 +408,10 @@ analyze ✓ / test ✓ / Web release ✓ / APK release ✓（含 image_picker An
 **本地验证**：flutter analyze 0；flutter test 228/228。
 **未验证**：真机展示与网络时延。
 **CI 结果**：run 38743636066 conclusion=success（commit 69d9990；含天地图双 Key 合并；analyze / test / Web / APK）。
+
+## Round 20 — 2026-10-16（天气正确性、恢复体验与基础 SEO）
+
+目标延续：改善用户体验与可核验评分。上一轮属于实质进展（海拔天气等已入库且 CI 成功），本轮仍未证明全部接近满分。
+已修复跨小时缓存、过期刷新与 UI 传播、线路节点身份碰撞、当前天气查询时间与前后台时效；Web 增加加载失败恢复、缩放与首屏语义。
+最终本地 analyze 0、244/244 tests；页面级刷新、360px 双倍字体、深浅色对比度与 iOS/Android 触控尺寸检查通过。CI 和浏览器审计进行中。
+详情见 docs/quality-2026-10-16.md。T-143 完整离线包仍为后续 P0，不以缓存修复宣称完成。

@@ -46,7 +46,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     'assets/branding/app-icon.png',
                     width: 64,
                     height: 64,
-                    semanticLabel: S.appTitle,
+                    excludeFromSemantics: true,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -54,10 +54,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            Text(
-              '出发前，看懂沿途天气',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+            Semantics(
+              header: true,
+              child: Text(
+                '出发前，看懂沿途天气',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 12),

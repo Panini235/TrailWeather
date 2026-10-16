@@ -119,11 +119,11 @@ class _SourceNodeCard extends ConsumerStatefulWidget {
   ConsumerState<_SourceNodeCard> createState() => _SourceNodeCardState();
 }
 
-/// 请求 Future 保存在 State 中：仅当来源/节点/时刻变化才重新请求，
+/// 请求流保存在 State 中：仅当来源/节点/时刻变化才重新请求，
 /// 避免每次重建（如切换节点、设置变化）都重复发起网络请求。
 class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
   /// 按次计费来源（caps.onDemandOnly）不自动请求：null 表示等待用户点击查询。
-  late Future<RouteWeatherBundle>? _future = _onDemand ? null : _fetch();
+  late Stream<RouteWeatherBundle>? _stream = _onDemand ? null : _fetch();
 
   bool get _onDemand => ref
       .read(weatherProvidersProvider)
@@ -136,8 +136,9 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
     super.didUpdateWidget(old);
     if (old.providerId != widget.providerId ||
         old.node.pos != widget.node.pos ||
+        old.node.elevationM != widget.node.elevationM ||
         old.wantUtc != widget.wantUtc) {
-      _future = _onDemand ? null : _fetch();
+      _stream = _onDemand ? null : _fetch();
     }
   }
 
@@ -146,9 +147,9 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
   DateTime get wantUtc => widget.wantUtc;
   AppSettings get settings => widget.settings;
 
-  Future<RouteWeatherBundle> _fetch() async {
+  Stream<RouteWeatherBundle> _fetch() {
     final repo = ref.read(weatherRepositoryProvider);
-    return repo.getRouteWeatherBundle(
+    return repo.watchRouteWeatherBundle(
       providerId: providerId,
       nodes: [node],
       startUtc: wantUtc.subtract(const Duration(hours: 6)),
@@ -166,8 +167,8 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.all(10),
-        child: FutureBuilder<RouteWeatherBundle>(
-          future: _future,
+        child: StreamBuilder<RouteWeatherBundle>(
+          stream: _stream,
           builder: (context, snap) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,11 +182,11 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (_future == null)
+                if (_stream == null)
                   OnDemandQueryPrompt(
                     caps: caps,
                     onQuery: () => setState(() {
-                      _future = _fetch();
+                      _stream = _fetch();
                     }),
                   )
                 else if (snap.connectionState == ConnectionState.waiting &&
@@ -205,7 +206,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
                     '该来源请求失败：${snap.error}',
                     style: const TextStyle(fontSize: 12, color: Colors.red),
                   )
-                else
+                else if (snap.hasData)
                   ..._dataWidgets(context, snap.data!),
               ],
             );
@@ -237,6 +238,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
     final diffMin = nearest.validFromUtc.difference(wantUtc).inMinutes.abs();
     final prov = point.provenance;
     return [
+      WeatherCacheNotice(result: bundle.result),
       if (diffMin > 0)
         Padding(
           padding: const EdgeInsets.only(bottom: 6),

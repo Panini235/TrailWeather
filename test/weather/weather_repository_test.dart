@@ -193,7 +193,7 @@ void main() {
     expect(fake.callCount, 3);
   });
 
-  test('TTL 过期读取标记 stale（stale-while-revalidate）', () async {
+  test('点数不匹配的缓存回退到网络', () async {
     final prefs = await SharedPreferences.getInstance();
     final fake = FakeProvider(responses: {});
     final repo = WeatherRepository(cache: CacheStore(prefs), providers: [fake]);

@@ -62,7 +62,7 @@ def apply(platform, project, check_only):
     else:
         manifest = json.loads((project / 'web/manifest.json').read_text())
         assert manifest['name'] == manifest['short_name'] == NAME
-        assert f'<title>{NAME}</title>' in (project / 'web/index.html').read_text()
+        assert f'<title>{NAME}｜徒步天气与行前规划</title>' in (project / 'web/index.html').read_text()
         for image in manifest['icons']:
             assert png_size(project / 'web' / image['src']) == tuple(map(int, image['sizes'].split('x')))
     print(f'{platform}: {NAME}, {len(files)} brand assets verified')

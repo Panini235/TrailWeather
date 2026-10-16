@@ -498,10 +498,10 @@
       "deps": [
         "T-020"
       ],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "覆盖时段索引可复用已有逐时数据；7小时旧缓存在线能更新；后台错误被捕获并反馈；刷新成功通知UI。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "A-01/A-02：3项诊断探针已复现，尚未修复。"
+      "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
+      "result": "2026-10-16 已实现并通过首轮 240 项本地回归；新增页面刷新与无障碍验证进行中，等待 CI 构建。见 docs/quality-2026-10-16.md。"
     },
     {
       "id": "T-141",
@@ -510,10 +510,10 @@
       "deps": [
         "T-123"
       ],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "相同节点数/总长度但坐标或顺序变化时不得复用错误bundle；按节点坐标验证正反向天气映射。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "A-03：DetailFetchKey身份碰撞已复现；并非所有路线都会触发。"
+      "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
+      "result": "2026-10-16 已实现并通过首轮 240 项本地回归；新增页面刷新与无障碍验证进行中，等待 CI 构建。见 docs/quality-2026-10-16.md。"
     },
     {
       "id": "T-142",
@@ -522,10 +522,10 @@
       "deps": [
         "T-103"
       ],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "当前天气取打开时的当前时间；区分定位时间与天气有效时间；前后台恢复按时效刷新，离线标注旧预报。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "A-04：当前保存并复用上次定位时间，代码确认。"
+      "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
+      "result": "2026-10-16 已实现并通过首轮 240 项本地回归；新增页面刷新与无障碍验证进行中，等待 CI 构建。见 docs/quality-2026-10-16.md。"
     },
     {
       "id": "T-143",
@@ -680,6 +680,18 @@
       "acceptance": "设置有服务端/浏览器端两个 Key；原生用服务端、Web 用浏览器端（数据层选择，可单测）；缺对应 Key 显示未配置；旧 tiandituKey 迁移到两栏并提示两栏相同；天地图 403 按 301001/301012/301013（及 418/其他）在地图与设置卡片显示明确提示；不提交真实 Key、测试不访问网络",
       "verify": "flutter analyze；flutter test（test/unit/tile_sources_test.dart、test/unit/tianditu_test.dart、test/widget/map_layers_test.dart、test/widget/tianditu_tiles_test.dart）",
       "result": "本地 analyze 0 + test 207/207（新增 key 选择/迁移/错误码分类/拦截 client/提示组件与 TileLayer 端到端测试）；未 push、未跑 CI；真实 Key 真机/Web 出图待用户在 App 内填写确认（B-014）；2026-10-15 已合并入 feat/robust-track-import 并随 CI 38743636066 验证"
+    },
+    {
+      "id": "T-156",
+      "p": "P1",
+      "title": "Web 入口启动恢复、基础 SEO 与可访问性实测",
+      "deps": [
+        "T-153"
+      ],
+      "status": "in_progress",
+      "acceptance": "主题化加载/失败重试；不禁用缩放；有意义的标题、描述与首屏语义；渲染资源来自本地构建；真实 CI 产物运行 Lighthouse 并保存分数与边界，不以加载页或局部测试替代全应用验收。",
+      "verify": "Flutter 无障碍/大字体测试 + playwright-cli + Lighthouse 13.5.0",
+      "result": "实现完成，等待本地最终检查与 CI 产物浏览器实测。保留 iOS 优先与暂缓 Web 发行、订阅隐藏的产品决定。"
     }
   ]
 }

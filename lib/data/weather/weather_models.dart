@@ -327,10 +327,20 @@ class WxSourceResult {
     required this.stale,
     required this.cachedAtUtc,
     required this.fetchedAtUtc,
+    this.refreshing = false,
+    this.refreshFailed = false,
+    this.partialCoverage = false,
   });
 
   final String providerId;
   final List<WxPointForecast> points;
+
+  /// 缓存立即显示后，流会继续发出刷新成功或失败状态。
+  final bool refreshing;
+  final bool refreshFailed;
+
+  /// 当前请求窗有小时未覆盖；不对缺口进行补值或时间插值。
+  final bool partialCoverage;
 
   final bool fromCache;
   final bool stale; // 过期缓存（stale-while-revalidate 期间读取）

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/semantics.dart' show SemanticsHandle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,14 +14,34 @@ import 'ui/theme.dart';
 /// （如切换深色模式）时重建，导致导航栈被重置回首页。
 final appRouterProvider = Provider<GoRouter>((ref) => buildRouter());
 
-class TrailWeatherApp extends ConsumerWidget {
+class TrailWeatherApp extends ConsumerStatefulWidget {
   const TrailWeatherApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TrailWeatherApp> createState() => _TrailWeatherAppState();
+}
+
+class _TrailWeatherAppState extends ConsumerState<TrailWeatherApp> {
+  SemanticsHandle? _webSemantics;
+
+  @override
+  void initState() {
+    super.initState();
+    // Web 首屏就提供可访问的控件语义，让键盘和读屏用户能直接操作。
+    if (kIsWeb) _webSemantics = WidgetsBinding.instance.ensureSemantics();
+  }
+
+  @override
+  void dispose() {
+    _webSemantics?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     return MaterialApp.router(
-      title: S.appTitle,
+      title: kIsWeb ? '${S.appTitle}｜徒步天气与行前规划' : S.appTitle,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

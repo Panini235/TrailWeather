@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -39,29 +40,30 @@ class RouteDetailArgs {
 /// 详情页天气数据提供者：参数为（节点序列, 查询）。
 /// 必须实现 ==：family 依赖键相等判断，避免每帧重建触发重复请求。
 class DetailFetchKey {
-  const DetailFetchKey({required this.nodes, required this.query});
+  DetailFetchKey({required List<RouteNode> nodes, required this.query})
+    : nodes = List.unmodifiable(nodes),
+      _coordinates = List.unmodifiable(
+        nodes.map((n) => (n.pos.latitude, n.pos.longitude, n.elevationM)),
+      );
+
   final List<RouteNode> nodes;
   final RouteWeatherQuery query;
-
-  String _nodesSig() => nodes.isEmpty
-      ? '0'
-      : '${nodes.length}:${nodes.first.distFromStartM.toStringAsFixed(1)}:'
-            '${nodes.last.distFromStartM.toStringAsFixed(1)}';
+  final List<(double, double, double?)> _coordinates;
 
   @override
   bool operator ==(Object other) =>
       other is DetailFetchKey &&
       other.query == query &&
-      other._nodesSig() == _nodesSig();
+      listEquals(other._coordinates, _coordinates);
 
   @override
-  int get hashCode => Object.hash(query, _nodesSig());
+  int get hashCode => Object.hash(query, Object.hashAll(_coordinates));
 }
 
-final detailWeatherProvider = FutureProvider.autoDispose
-    .family<RouteWeatherBundle, DetailFetchKey>((ref, key) async {
+final detailWeatherProvider = StreamProvider.autoDispose
+    .family<RouteWeatherBundle, DetailFetchKey>((ref, key) {
       final repo = ref.watch(weatherRepositoryProvider);
-      return repo.getRouteWeatherBundle(
+      return repo.watchRouteWeatherBundle(
         providerId: key.query.providerId,
         nodes: key.nodes,
         startUtc: key.query.startUtc,
@@ -538,10 +540,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     final finishEta = tripMode ? etas.last : null;
 
     return [
-      if (bundle != null && bundle.result.stale)
-        StaleDataBanner(
-          cachedAtUtc: bundle.result.cachedAtUtc ?? DateTime.now().toUtc(),
-        ),
+      if (bundle != null) WeatherCacheNotice(result: bundle.result),
       const SizedBox(height: 8),
       _SummaryCard(summary: summary, settings: settings),
       const SizedBox(height: 8),

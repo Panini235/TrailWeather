@@ -21,13 +21,12 @@ class WeatherRepository {
   WeatherRepository({
     required this.cache,
     required this.providers,
-    this.staleWindow = const Duration(hours: 6),
     this.approxGridDeg = 0.1,
   });
 
   final CacheStore cache;
   final List<WeatherProvider> providers;
-  final Duration staleWindow;
+  final _requests = <String, Future<WxSourceResult>>{};
 
   /// 近似网格粒度（度）。用于无网格标识来源的节点去重。
   /// 这只是请求合并策略，不代表天气数据的空间分辨率。
@@ -50,30 +49,44 @@ class WeatherRepository {
     required DateTime startUtc,
     required DateTime endUtc,
     bool refresh = false,
-  }) async {
-    final result = await getRouteWeather(
+  }) => watchRouteWeatherBundle(
+    providerId: providerId,
+    nodes: nodes,
+    startUtc: startUtc,
+    endUtc: endUtc,
+    refresh: refresh,
+  ).last;
+
+  /// 页面订阅此流：先展示已保存的数据，随后接收刷新结果。
+  Stream<RouteWeatherBundle> watchRouteWeatherBundle({
+    required String providerId,
+    required List<RouteNode> nodes,
+    required DateTime startUtc,
+    required DateTime endUtc,
+    bool refresh = false,
+  }) async* {
+    final usesEle = byId(providerId)?.caps.usesElevation ?? false;
+    final plan = planQueries(nodes, usesElevation: usesEle);
+    final hasShared = plan.nodeToQuery.toSet().length < nodes.length;
+    await for (final result in watchRouteWeather(
       providerId: providerId,
       nodes: nodes,
       startUtc: startUtc,
       endUtc: endUtc,
       refresh: refresh,
-    );
-    final usesEle = byId(providerId)?.caps.usesElevation ?? false;
-    final plan = planQueries(nodes, usesElevation: usesEle);
-    final nodeQueryIndex = [
-      for (final q in plan.nodeToQuery) q < result.points.length ? q : 0,
-    ];
-    final hasShared = nodeQueryIndex.toSet().length < nodes.length;
-    return RouteWeatherBundle(
-      result: result,
-      nodeQueryIndex: nodeQueryIndex,
-      sharedGridNote: hasShared
-          ? '部分节点经近似网格（${approxGridDeg.toStringAsFixed(2)}°'
-                '${usesEle ? '，且海拔相差不足 ${elevationBandM.toStringAsFixed(0)} m' : ''}）合并查询，'
-                '这些节点共享同一网格预报，不存在其间的差异；'
-                '近似合并是请求策略，不代表天气数据的空间分辨率'
-          : null,
-    );
+    )) {
+      yield RouteWeatherBundle(
+        result: result,
+        // 保留缺失查询点的索引；不得把未返回的点静默映射到第一个点。
+        nodeQueryIndex: plan.nodeToQuery,
+        sharedGridNote: hasShared
+            ? '部分节点经近似网格（${approxGridDeg.toStringAsFixed(2)}°'
+                  '${usesEle ? '，且海拔相差不足 ${elevationBandM.toStringAsFixed(0)} m' : ''}）合并查询，'
+                  '这些节点共享同一网格预报，不存在其间的差异；'
+                  '近似合并是请求策略，不代表天气数据的空间分辨率'
+            : null,
+      );
+    }
   }
 
   /// 近似网格键：用于判断“哪些节点可能共享同一网格预报”。
@@ -108,77 +121,146 @@ class WeatherRepository {
     return QueryPlan(points, elevations, nodeToQuery);
   }
 
+  /// 一次性调用等待刷新结束；交互页面使用 watchRouteWeatherBundle。
   Future<WxSourceResult> getRouteWeather({
     required String providerId,
     required List<RouteNode> nodes,
     required DateTime startUtc,
     required DateTime endUtc,
     bool refresh = false,
-    Future<void> Function()? onBackgroundRefresh,
-  }) async {
+  }) => watchRouteWeather(
+    providerId: providerId,
+    nodes: nodes,
+    startUtc: startUtc,
+    endUtc: endUtc,
+    refresh: refresh,
+  ).last;
+
+  Stream<WxSourceResult> watchRouteWeather({
+    required String providerId,
+    required List<RouteNode> nodes,
+    required DateTime startUtc,
+    required DateTime endUtc,
+    bool refresh = false,
+  }) async* {
     final provider = byId(providerId);
-    if (provider == null) {
-      throw StateError('未知来源 $providerId');
-    }
-
-    // 请求点去重（近似网格策略；按海拔计算的来源再分海拔档）。
+    if (provider == null) throw StateError('未知来源 $providerId');
+    final start = startUtc.toUtc();
+    final end = endUtc.toUtc();
+    if (end.isBefore(start)) throw ArgumentError('结束时间不能早于开始时间');
     final plan = planQueries(nodes, usesElevation: provider.caps.usesElevation);
-    final queryPoints = plan.points;
-    final queryElevations = plan.elevations;
-
-    final cacheKey = _cacheKey(
+    final key = _cacheKey(
       providerId,
-      queryPoints,
-      startUtc,
-      endUtc,
-      elevations: provider.caps.usesElevation ? queryElevations : null,
+      plan.points,
+      start,
+      end,
+      elevations: provider.caps.usesElevation ? plan.elevations : null,
     );
+    final cached = await _findCached(key, plan.points.length, start, end);
+    if (cached != null) {
+      final mustRefresh =
+          refresh ||
+          cached.entry.isExpired ||
+          (!cached.complete && cached.key != key);
+      yield cached.result(refreshing: mustRefresh);
+      if (!mustRefresh) return;
+    }
+    // 任意年龄的旧缓存都尝试更新；失败时保留原始获取时间与真实覆盖范围。
+    try {
+      final fresh = await _fetchAndStore(
+        provider,
+        plan.points,
+        plan.elevations,
+        start,
+        end,
+        key,
+      );
+      if (cached != null &&
+          _coverageCount(fresh, start, end) == 0 &&
+          _coverageCount(cached.source, start, end) > 0) {
+        yield cached.result(refreshFailed: true);
+      } else {
+        yield fresh;
+      }
+    } catch (_) {
+      if (cached == null) rethrow;
+      // 错误变为可见状态，不留无人处理的后台 Future，也不宣称一定是断网。
+      yield cached.result(refreshFailed: true);
+    }
+  }
 
-    if (!refresh) {
-      final hit = await cache.read(CacheNs.weather, cacheKey);
-      if (hit != null) {
-        final restored = _decode(hit.payload);
-        if (restored != null && restored.points.length == queryPoints.length) {
-          final expired = hit.isExpired;
-          final result = WxSourceResult(
-            providerId: providerId,
-            points: restored.points,
-            fromCache: true,
-            stale: expired,
-            cachedAtUtc: hit.storedAtUtc,
-            fetchedAtUtc: restored.fetchedAtUtc,
-          );
-          if (expired &&
-              DateTime.now().toUtc().isBefore(
-                hit.storedAtUtc.add(staleWindow),
-              )) {
-            // stale-while-revalidate：返回旧数据（已标记），后台刷新。
-            unawaited(
-              _fetchAndStore(
-                provider,
-                queryPoints,
-                queryElevations,
-                startUtc,
-                endUtc,
-                cacheKey,
-                onBackgroundRefresh,
-              ),
-            );
-          }
-          return result;
-        }
+  Future<_CachedForecast?> _findCached(
+    String exactKey,
+    int pointCount,
+    DateTime start,
+    DateTime end,
+  ) async {
+    // 保留 v3 键格式，升级前的持久缓存同样可跨小时使用。
+    final parts = exactKey.split('|');
+    final hasElevation = parts.last.startsWith('ele:');
+    final timeIndex = parts.length - (hasElevation ? 3 : 2);
+    final prefix = '${parts.take(timeIndex).join('|')}|';
+    final suffix = hasElevation ? '|${parts.last}' : '';
+    _CachedForecast? best;
+    var bestCount = -1;
+    for (final key in cache.keys(CacheNs.weather, prefix: prefix)) {
+      if (key.split('|').length != parts.length ||
+          (hasElevation && !key.endsWith(suffix))) {
+        continue;
+      }
+      final entry = await cache.read(CacheNs.weather, key, touch: false);
+      if (entry == null) continue;
+      final source = _decode(entry.payload);
+      if (source == null ||
+          source.providerId != parts[1] ||
+          source.points.length != pointCount ||
+          pointCount == 0) {
+        continue;
+      }
+      final count = _coverageCount(source, start, end);
+      if (count == 0 && key != exactKey) continue;
+      final complete = count == _expectedHours(start, end) * pointCount;
+      final candidate = _CachedForecast(key, entry, source, complete);
+      // 优先完整覆盖，再比较覆盖小时数与获取时间。过期与否由 TTL 独立判断。
+      if (best == null ||
+          count > bestCount ||
+          (count == bestCount &&
+              source.fetchedAtUtc.isAfter(best.source.fetchedAtUtc))) {
+        best = candidate;
+        bestCount = count;
       }
     }
+    if (best != null) await cache.read(CacheNs.weather, best.key);
+    return best;
+  }
 
-    return _fetchAndStore(
-      provider,
-      queryPoints,
-      queryElevations,
-      startUtc,
-      endUtc,
-      cacheKey,
-      onBackgroundRefresh,
-    );
+  static DateTime _hour(DateTime time) => DateTime.utc(
+    time.toUtc().year,
+    time.toUtc().month,
+    time.toUtc().day,
+    time.toUtc().hour,
+  );
+
+  // 请求窗按 [start, end) 使用；零宽查询表示 start 所在小时。
+  static int _expectedHours(DateTime start, DateTime end) =>
+      ((end.difference(_hour(start)).inMinutes / 60).ceil()).clamp(1, 1000000);
+
+  static int _coverageCount(
+    WxSourceResult source,
+    DateTime start,
+    DateTime end,
+  ) {
+    final first = _hour(start);
+    final last = first.add(Duration(hours: _expectedHours(start, end)));
+    var count = 0;
+    for (final point in source.points) {
+      count += point.hours
+          .map((h) => h.validFromUtc.toUtc())
+          .where((time) => !time.isBefore(first) && time.isBefore(last))
+          .toSet()
+          .length;
+    }
+    return count;
   }
 
   Future<WxSourceResult> _fetchAndStore(
@@ -188,32 +270,61 @@ class WeatherRepository {
     DateTime startUtc,
     DateTime endUtc,
     String cacheKey,
-    Future<void> Function()? onBackgroundRefresh,
-  ) async {
-    final points = await provider.fetchPointsAt(
-      points: queryPoints,
-      elevationsM: queryElevations,
-      startUtc: startUtc,
-      endUtc: endUtc,
-    );
-    final now = DateTime.now().toUtc();
-    final result = WxSourceResult(
-      providerId: provider.caps.providerId,
-      points: points,
-      fromCache: false,
-      stale: false,
-      cachedAtUtc: null,
-      fetchedAtUtc: now,
-    );
-    await cache.write(
-      CacheNs.weather,
-      cacheKey,
-      _encode(result),
-      provider.caps.recommendedCacheTtl,
-    );
-    if (onBackgroundRefresh != null) unawaited(onBackgroundRefresh());
-    return result;
-  }
+  ) => _requests.putIfAbsent(cacheKey, () async {
+    try {
+      final points = await provider.fetchPointsAt(
+        points: queryPoints,
+        elevationsM: queryElevations,
+        startUtc: startUtc,
+        endUtc: endUtc,
+      );
+      final now = DateTime.now().toUtc();
+      final raw = WxSourceResult(
+        providerId: provider.caps.providerId,
+        points: points,
+        fromCache: false,
+        stale: false,
+        cachedAtUtc: null,
+        fetchedAtUtc: now,
+      );
+      final result = WxSourceResult(
+        providerId: raw.providerId,
+        points: points,
+        fromCache: false,
+        stale: false,
+        cachedAtUtc: null,
+        fetchedAtUtc: now,
+        partialCoverage:
+            points.length != queryPoints.length ||
+            _coverageCount(raw, startUtc, endUtc) <
+                _expectedHours(startUtc, endUtc) * queryPoints.length,
+      );
+      // 保留真实的来源返回范围（即使本次请求窗没有覆盖），避免按次来源
+      // 因其自身的覆盖限制重复计费；但不得覆盖同键下仍可用的离线数据。
+      if (points.length == queryPoints.length &&
+          points.every((p) => p.hours.isNotEmpty)) {
+        final previous = await cache.read(
+          CacheNs.weather,
+          cacheKey,
+          touch: false,
+        );
+        final prior = previous == null ? null : _decode(previous.payload);
+        if (_coverageCount(result, startUtc, endUtc) > 0 ||
+            prior == null ||
+            _coverageCount(prior, startUtc, endUtc) == 0) {
+          await cache.write(
+            CacheNs.weather,
+            cacheKey,
+            _encode(result),
+            provider.caps.recommendedCacheTtl,
+          );
+        }
+      }
+      return result;
+    } finally {
+      unawaited(_requests.remove(cacheKey));
+    }
+  });
 
   /// 缓存键包含：来源、实际请求坐标集合、时间窗、参数版本。
   /// 坐标保留 4 位小数（约 11 m）；近似网格只负责同次请求去重，不能跨请求复用。
@@ -398,4 +509,27 @@ class QueryPlan {
   final List<LatLng> points;
   final List<double?> elevations;
   final List<int> nodeToQuery;
+}
+
+class _CachedForecast {
+  const _CachedForecast(this.key, this.entry, this.source, this.complete);
+  final String key;
+  final CachedRead entry;
+  final WxSourceResult source;
+  final bool complete;
+
+  WxSourceResult result({
+    bool refreshing = false,
+    bool refreshFailed = false,
+  }) => WxSourceResult(
+    providerId: source.providerId,
+    points: source.points,
+    fromCache: true,
+    stale: entry.isExpired,
+    cachedAtUtc: entry.storedAtUtc,
+    fetchedAtUtc: source.fetchedAtUtc,
+    refreshing: refreshing,
+    refreshFailed: refreshFailed,
+    partialCoverage: !complete,
+  );
 }

@@ -45,7 +45,7 @@ def main():
     if args.web:
         manifest = json.loads((args.web / 'manifest.json').read_text())
         assert manifest['name'] == manifest['short_name'] == NAME
-        assert f'<title>{NAME}</title>' in (args.web / 'index.html').read_text()
+        assert f'<title>{NAME}｜徒步天气与行前规划</title>' in (args.web / 'index.html').read_text()
         for source in (BRAND / 'platforms/web').rglob('*.png'):
             assert (args.web / source.relative_to(BRAND / 'platforms/web')).read_bytes() == source.read_bytes()
         print(f'Web: {NAME} title, manifest and icons verified')
