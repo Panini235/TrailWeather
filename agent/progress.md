@@ -474,4 +474,4 @@ T-143软件闭环已有验证，真机部分仍待 B-002；T-147多日计划/徒
 - 修复：主题只设 Chip 字号导致深色模式 Chip 文字几乎不可见；“同一地点不同海拔”补档后未排序（78/292 倒置）。
 
 **验证**：flutter analyze 0；flutter test 284/284（4 个用例随布局调整定位方式，行为断言保留）；重建 Web 本地走查确认。
-
+**CI 结果**：run 38900673341 conclusion=success（commit 5cc5163；analyze / test / Web / APK）。
