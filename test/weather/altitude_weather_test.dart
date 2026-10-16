@@ -232,6 +232,13 @@ void main() {
         3058,
       ]);
       expect(altitudeLevels(base: 100), [100, 600, 1100, 1600]);
+      // 实机走查发现的乱序：线路最低 78、节点=最高 792 → 补 292 / 1292 后须升序
+      expect(altitudeLevels(base: 792, routeMin: 78, routeMax: 792), [
+        78,
+        292,
+        792,
+        1292,
+      ]);
       expect(altitudeLevels(base: 2500, routeMin: 2500, routeMax: 2505), [
         2000,
         2500,

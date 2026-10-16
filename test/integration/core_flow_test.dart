@@ -214,7 +214,8 @@ void main() {
 
     // 节点按天气阈值着色，并附图例说明（非官方预警）。
     expect(find.byType(NodeWxMarker), findsWidgets);
-    expect(find.text(S.nodeWxLegendNote), findsOneWidget);
+    // 图例说明收进提示（减负后不再占一行），仍可查看。
+    expect(find.byTooltip(S.nodeWxLegendNote), findsOneWidget);
 
     // 线路小地图：可打开可交互的全屏大图，并能“显示整条线路”。
     await tester.tap(find.byTooltip(S.routeMapFullscreen));
@@ -232,27 +233,25 @@ void main() {
     expect(find.text(S.routeSummary), findsOneWidget);
     expect(find.textContaining('°C'), findsWidgets);
 
-    // 溯源卡片与颗粒度声明（滚动到底部）
-    await tester.scrollUntilVisible(find.text(S.sourceTransparency), 600);
+    // 溯源卡片、颗粒度声明与官方预警说明：收在底部“数据说明与来源”，展开可见。
+    await tester.scrollUntilVisible(find.text(S.dataNotesTitle), 600);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.dataNotesTitle));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text(S.sourceTransparency), 300);
     await tester.pumpAndSettle();
     expect(find.text(S.sourceTransparency), findsOneWidget);
     expect(find.textContaining('非点位实测'), findsWidgets);
+    expect(find.textContaining(officialAlertsText0), findsWidgets);
 
-    // 6. 按控件定位回滚，布局增减后不依赖固定滚动像素。
-    await tester.scrollUntilVisible(find.text(S.modeTrip), -400);
+    // 6. 回到顶部，从时间标签展开时间设置，切换行程模式。
+    await tester.scrollUntilVisible(find.byTooltip('设置时间与配速'), -400);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('设置时间与配速'));
     await tester.pumpAndSettle();
     await tester.tap(find.text(S.modeTrip));
     await tester.pumpAndSettle();
-    // ETA 说明与模式按钮同卡（视口内），无需滚动。
     expect(find.textContaining(S.etaIsEstimate), findsWidgets);
-
-    // 7. 按说明定位，避免固定的大步滚动越过已可见的风险卡。
-    await tester.scrollUntilVisible(
-      find.textContaining(officialAlertsText0),
-      200,
-    );
-    await tester.pumpAndSettle();
-    expect(find.textContaining(officialAlertsText0), findsWidgets);
 
     // 8. 收藏 → 写入本地
     await tester.tap(find.byTooltip(S.favorites));

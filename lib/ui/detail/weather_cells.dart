@@ -213,3 +213,68 @@ class WxBriefLine extends StatelessWidget {
     return Text(parts.join(' · '), style: const TextStyle(fontSize: 12));
   }
 }
+
+/// 节点详情的 4 个关键值（放大显示）：气温/体感、阵风、降水、天气现象。
+/// 缺失值如实显示“未提供”，持续风速不顶替阵风。
+class KeyWeatherValues extends StatelessWidget {
+  const KeyWeatherValues({super.key, required this.wx, required this.settings});
+
+  final WxHourValue wx;
+  final AppSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = wx.values;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    String temp(double? x) =>
+        x == null ? '—' : Units.temp(x, imperial: settings.imperial);
+    final t = v[WxVar.temperature];
+    final a = v[WxVar.apparentTemp];
+    final gust = v[WxVar.windGust];
+    final wind = v[WxVar.windSpeed];
+    final p = v[WxVar.precip];
+    final pp = v[WxVar.precipProb];
+    final phen = phenomenonOf(wx);
+    Widget cell(String label, String value, [String? sub]) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, color: muted)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        if (sub != null)
+          Text(sub, style: TextStyle(fontSize: 11, color: muted)),
+      ],
+    );
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 2.4,
+      children: [
+        cell(
+          '气温 / 体感',
+          t == null && a == null ? S.notProvided : '${temp(t)} / ${temp(a)}',
+        ),
+        cell(
+          WxVar.windGust.label,
+          gust == null
+              ? S.notProvided
+              : Units.windMs(gust, unit: settings.windUnit),
+          wind == null
+              ? null
+              : '持续 ${Units.windMs(wind, unit: settings.windUnit)}',
+        ),
+        cell(
+          WxVar.precip.label,
+          p == null
+              ? S.notProvided
+              : Units.precipMm(p, imperial: settings.imperial),
+          pp == null ? null : '概率 ${pp.toStringAsFixed(0)}%',
+        ),
+        cell(S.phenomenonLabel, phen?.label ?? S.notProvided),
+      ],
+    );
+  }
+}

@@ -101,6 +101,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   /// 用户标记会更新这条线路（并保存到“我的行程”）；反向行走只是视图状态。
   late HikingRoute _base = widget.args.route;
   bool _reversed = false;
+
+  /// 时间设置默认收起，由顶部时间标签展开（减少首屏控件）。
+  bool _timeOpen = false;
   final ScrollController _scroll = ScrollController();
   final Map<int, GlobalKey> _tileKeys = {};
 
@@ -373,6 +376,23 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       etas: etas,
     );
 
+    // 结论区需要的提示（含日落）；规则与旧版一致，只是展示位置变了。
+    final tripMode = _mode == TimeMode.trip && etas.isNotEmpty;
+    final sunset = tripMode && rows.isNotEmpty
+        ? departureDaySunset(
+            point: rows.last.point,
+            longitude: rows.last.node.pos.longitude,
+            startUtc: etas.first,
+          )
+        : null;
+    final sunsetWarn = sunset != null
+        ? sunsetHint(sunsetUtc: sunset, finishEtaUtc: etas.last)
+        : null;
+    final hints = <WxHint>[
+      ...computeHints(entries: rowsToEntries(rows)),
+      ?sunsetWarn,
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: Wrap(
@@ -422,57 +442,47 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         controller: _scroll,
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         children: [
-          Text(
-            '${_mode == TimeMode.trip ? '行程天气' : '固定时刻天气'} · '
-            '${query.fixedUtc.toLocal().year}-${query.fixedUtc.toLocal().month}-${query.fixedUtc.toLocal().day} '
-            '${_two(query.fixedUtc.toLocal().hour)}:${_two(query.fixedUtc.toLocal().minute)}（设备时间）',
-            style: Theme.of(context).textTheme.titleSmall,
+          // 第一层：控制条（时间 / 来源）+ 结论。
+          _ControlBar(
+            timeLabel: _timeChipLabel(query.fixedUtc),
+            timeOpen: _timeOpen,
+            onToggleTime: () => setState(() => _timeOpen = !_timeOpen),
+            providerId: _providerId,
+            onSelectProvider: (id) => setState(() => _providerId = id),
+            onCompare: () => _showNodeSheet(rows, settings),
           ),
-          Text(
-            ref
-                .watch(weatherProvidersProvider)
-                .where((p) => p.caps.providerId == _providerId)
-                .first
-                .caps
-                .displayName,
-          ),
+          if (_timeOpen)
+            _TimeControlsCard(
+              mode: _mode,
+              onMode: (m) => setState(() => _mode = m),
+              date: _date,
+              onDate: (d) => setState(() => _date = d),
+              hour: _hour,
+              previewHour: _previewHour,
+              onHourPreview: (h) => setState(() => _previewHour = h),
+              onHourCommit: (h) => setState(() {
+                _hour = h;
+                _previewHour = null;
+              }),
+              startTime: _startTime,
+              onStartTime: (t) => setState(() => _startTime = t),
+              pace: _pace,
+              onPace: (p) => setState(() => _pace = p),
+            ),
           if (bundleAsync.value != null)
             WeatherCacheNotice(result: bundleAsync.value!.result),
           if (bundleAsync.isLoading && !bundleAsync.hasValue)
             const LinearProgressIndicator(semanticsLabel: '正在获取线路天气')
-          else
-            _SummaryCard(summary: summarizeRows(rows), settings: settings),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.date_range),
-              title: const Text('比较出发窗口'),
-              subtitle: const Text('按日期和时刻，比较沿途天气阈值与数据缺口'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                final selected = await context.push<DepartureSelection>(
-                  '/departures',
-                  extra: DepartureArgs(
-                    route: route,
-                    nodes: nodes,
-                    pace: _pace,
-                    providerId: _providerId,
-                    initialDate: _date,
-                    reversed: _reversed,
-                  ),
-                );
-                if (selected != null && mounted) {
-                  final local = selected.startUtc.toLocal();
-                  setState(() {
-                    _mode = TimeMode.trip;
-                    _date = DateTime(local.year, local.month, local.day);
-                    _startTime = TimeOfDay.fromDateTime(local);
-                    _providerId = selected.providerId;
-                    _selectedNode = null;
-                  });
-                }
-              },
+          else if (!bundleAsync.hasError)
+            _ConclusionCard(
+              summary: summarizeRows(rows),
+              settings: settings,
+              hints: hints,
+              onShowHints: () => _showHints(hints),
+              onDepartures: () => _openDepartures(route, nodes),
             ),
-          ),
+          const SizedBox(height: 8),
+          // 第二层：地图 + 线路要点 + 沿途节点。
           _RouteMiniMap(
             route: route,
             rows: rows,
@@ -480,37 +490,11 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             onTapNode: (i) => _select(i, scroll: true),
             onOpenFullscreen: () => _openFullMap(route, rows, settings),
           ),
-          const SizedBox(height: 8),
-          _RouteFactsCard(
+          _RouteFactsRow(
             route: route,
             reversed: _reversed,
             onToggleReverse: _toggleReverse,
           ),
-          const SizedBox(height: 8),
-          _TimeControlsCard(
-            mode: _mode,
-            onMode: (m) => setState(() => _mode = m),
-            date: _date,
-            onDate: (d) => setState(() => _date = d),
-            hour: _hour,
-            previewHour: _previewHour,
-            onHourPreview: (h) => setState(() => _previewHour = h),
-            onHourCommit: (h) => setState(() {
-              _hour = h;
-              _previewHour = null;
-            }),
-            startTime: _startTime,
-            onStartTime: (t) => setState(() => _startTime = t),
-            pace: _pace,
-            onPace: (p) => setState(() => _pace = p),
-          ),
-          const SizedBox(height: 8),
-          _SourceChips(
-            selected: _providerId,
-            onSelect: (id) => setState(() => _providerId = id),
-            onCompare: () => _showNodeSheet(rows, settings),
-          ),
-          const SizedBox(height: 8),
           ..._weatherSection(
             bundleAsync,
             rows,
@@ -519,8 +503,78 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             etas,
             route,
             query,
+            sunsetKnown: sunset != null,
           ),
         ],
+      ),
+    );
+  }
+
+  /// 顶部时间标签：固定时刻显示“固定 M/d HH:00”，行程模式显示“出发 M/d HH:mm”（设备时区）。
+  String _timeChipLabel(DateTime utc) {
+    final l = utc.toLocal();
+    final t = '${l.month}/${l.day} ${_two(l.hour)}:${_two(l.minute)}';
+    return _mode == TimeMode.trip ? '出发 $t' : '固定 $t';
+  }
+
+  Future<void> _openDepartures(HikingRoute route, List<RouteNode> nodes) async {
+    final selected = await context.push<DepartureSelection>(
+      '/departures',
+      extra: DepartureArgs(
+        route: route,
+        nodes: nodes,
+        pace: _pace,
+        providerId: _providerId,
+        initialDate: _date,
+        reversed: _reversed,
+      ),
+    );
+    if (selected != null && mounted) {
+      final local = selected.startUtc.toLocal();
+      setState(() {
+        _mode = TimeMode.trip;
+        _date = DateTime(local.year, local.month, local.day);
+        _startTime = TimeOfDay.fromDateTime(local);
+        _providerId = selected.providerId;
+        _selectedNode = null;
+      });
+    }
+  }
+
+  void _showHints(List<WxHint> hints) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          children: [
+            Text(S.riskHints, style: Theme.of(ctx).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (hints.isEmpty) const Text(S.noHintsTriggered),
+            for (final h in hints) ...[
+              Text(
+                '${h.title}：${h.detail}',
+                style: const TextStyle(fontSize: 14, height: 1.4),
+              ),
+              Text(
+                '依据：${h.basis}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            const Divider(),
+            const Text(
+              officialAlertsNotAvailable,
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -532,21 +586,15 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     List<RouteNode> nodes,
     List<DateTime> etas,
     HikingRoute route,
-    RouteWeatherQuery query,
-  ) {
+    RouteWeatherQuery query, {
+    required bool sunsetKnown,
+  }) {
     final provider = ref
         .read(weatherProvidersProvider)
         .where((p) => p.caps.providerId == _providerId)
         .first;
     if (bundleAsync.isLoading && !bundleAsync.hasValue) {
-      return const [
-        Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: CircularProgressIndicator(),
-          ),
-        ),
-      ];
+      return const [];
     }
     if (bundleAsync.hasError) {
       final err = bundleAsync.error;
@@ -591,58 +639,42 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     }
 
     final bundle = bundleAsync.value;
-    // 使用终点的出发日日落（经度近似归属日期），日落后出发不能误取明天。
     final tripMode = _mode == TimeMode.trip && etas.isNotEmpty;
-    final sunset = tripMode && rows.isNotEmpty
-        ? departureDaySunset(
-            point: rows.last.point,
-            longitude: rows.last.node.pos.longitude,
-            startUtc: etas.first,
-          )
-        : null;
-    final finishEta = tripMode ? etas.last : null;
-
-    return [
-      if (!route.analysisPath.coversAllSegments)
-        const GranularityNotice(text: S.multiSegmentNote),
-      if (_reversed) const GranularityNotice(text: S.reversedNote),
-      if (route.origin == RouteOrigin.planet)
-        const GranularityNotice(text: S.planetElevationNote),
-      if (_mode == TimeMode.trip &&
+    // 说明类文字统一收进底部“数据说明与来源”，不再逐条铺在沿途内容之间。
+    final notes = <String>[
+      if (!route.analysisPath.coversAllSegments) S.multiSegmentNote,
+      if (_reversed) S.reversedNote,
+      if (route.origin == RouteOrigin.planet) S.planetElevationNote,
+      if (tripMode &&
           etas.length > 1 &&
           etas.last.difference(etas.first) > const Duration(hours: 12))
-        const GranularityNotice(text: S.longTripNote),
-      const SizedBox(height: 8),
-      _HintsCard(rows: rows, sunsetUtc: sunset, finishEta: finishEta),
+        S.longTripNote,
+      if (route.totalAscentM == null) S.noElevation,
       if (tripMode)
-        Text(
-          sunset == null
-              ? '日落：此来源未提供出发日终点日落。日出未接入。'
-              : '日落按终点经度近似归属出发日期；未计山体遮挡，日出未接入。',
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-      const SizedBox(height: 8),
+        sunsetKnown
+            ? '日落按终点经度近似归属出发日期；未计山体遮挡，日出未接入。'
+            : '日落：此来源未提供出发日终点日落。日出未接入。',
+      '时间按设备时区显示。',
+    ];
+
+    return [
+      const SizedBox(height: 4),
       Text(S.weatherAlongRoute, style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 4),
-      if (route.totalAscentM != null) ...[
+      if (route.totalAscentM != null)
         ElevationProfile(
           distancesM: [for (final r in rows) r.node.distFromStartM],
           elevationsM: [for (final r in rows) r.node.elevationM],
           selectedIndex: _selectedNode ?? -1,
           onTapNode: (i) => _select(i, scroll: true),
         ),
-      ] else
-        const GranularityNotice(text: S.noElevation),
-      const SizedBox(height: 4),
       for (var i = 0; i < rows.length; i++)
         _NodeTile(
           key: _tileKeys.putIfAbsent(i, GlobalKey.new),
           row: rows[i],
           index: i,
           isLast: i == rows.length - 1,
+          tripMode: tripMode,
           selected: _selectedNode == i,
           settings: settings,
           // 第一次点选中（地图/剖面同步高亮），再点打开详情。
@@ -655,7 +687,36 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           },
         ),
       const SizedBox(height: 8),
-      _TransparencyCard(provider: provider, bundle: bundle),
+      // 第三层：默认收起。
+      ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+        title: const Text(S.dataNotesTitle),
+        subtitle: Text(
+          S.dataNotesSubtitle,
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        children: [
+          for (final n in notes)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: GranularityNotice(text: n),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              '${S.officialAlerts}：$officialAlertsNotAvailable',
+              style: const TextStyle(fontSize: 12, height: 1.4),
+            ),
+          ),
+          RouteSourceLine(route: route),
+          const SizedBox(height: 6),
+          _TransparencyCard(provider: provider, bundle: bundle),
+        ],
+      ),
     ];
   }
 
@@ -1062,8 +1123,9 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
   }
 }
 
-class _RouteFactsCard extends ConsumerWidget {
-  const _RouteFactsCard({
+/// 线路要点一行：里程 · 爬升 · 方向，右侧反向按钮（不再单独一张卡）。
+class _RouteFactsRow extends StatelessWidget {
+  const _RouteFactsRow({
     required this.route,
     required this.reversed,
     required this.onToggleReverse,
@@ -1074,58 +1136,25 @@ class _RouteFactsCard extends ConsumerWidget {
   final VoidCallback onToggleReverse;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final style = const TextStyle(fontSize: 13);
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  '${S.distanceLabel}：${(route.totalDistanceM / 1000).toStringAsFixed(1)} km',
-                  style: style,
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  '${S.ascentLabel}：${route.totalAscentM == null ? S.unknown : '${route.totalAscentM!.toStringAsFixed(0)} m'}',
-                  style: style,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  route.isLoop ? Icons.loop : Icons.trending_flat,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    route.isLoop
-                        ? '${S.loopRoute}（起终点相同，箭头为行进方向）'
-                        : '${S.startPoint}（绿）→ ${S.endPoint}（红）'
-                              '${reversed ? ' · 已反向' : ''}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-                // 环线同样有方向（顺/逆时针到达各点的时间不同），始终可反向。
-                TextButton.icon(
-                  onPressed: onToggleReverse,
-                  icon: const Icon(Icons.swap_horiz, size: 18),
-                  label: Text(reversed ? '恢复原方向' : S.reverseRoute),
-                ),
-              ],
-            ),
-            RouteSourceLine(route: route),
-          ],
+  Widget build(BuildContext context) {
+    final ascent = route.totalAscentM;
+    final facts = [
+      '${(route.totalDistanceM / 1000).toStringAsFixed(1)} km',
+      if (ascent != null) '↑${ascent.toStringAsFixed(0)} m',
+      route.isLoop
+          ? S.loopRoute
+          : '${S.startPoint}（绿）→ ${S.endPoint}（红）${reversed ? ' · 已反向' : ''}',
+    ].join(' · ');
+    return Row(
+      children: [
+        Expanded(child: Text(facts, style: const TextStyle(fontSize: 12))),
+        // 环线同样有方向（顺/逆时针到达各点的时间不同），始终可反向。
+        TextButton.icon(
+          onPressed: onToggleReverse,
+          icon: const Icon(Icons.swap_horiz, size: 18),
+          label: Text(reversed ? '恢复原方向' : S.reverseRoute),
         ),
-      ),
+      ],
     );
   }
 }
@@ -1334,133 +1363,198 @@ class _TimeControlsCard extends StatelessWidget {
   }
 }
 
-class _SourceChips extends ConsumerWidget {
-  const _SourceChips({
-    required this.selected,
-    required this.onSelect,
+/// 顶部控制条：时间标签（展开/收起时间设置）+ 来源菜单（含“对比来源”）。
+class _ControlBar extends ConsumerWidget {
+  const _ControlBar({
+    required this.timeLabel,
+    required this.timeOpen,
+    required this.onToggleTime,
+    required this.providerId,
+    required this.onSelectProvider,
     required this.onCompare,
   });
 
-  final String selected;
-  final void Function(String) onSelect;
+  final String timeLabel;
+  final bool timeOpen;
+  final VoidCallback onToggleTime;
+  final String providerId;
+  final ValueChanged<String> onSelectProvider;
   final VoidCallback onCompare;
+
+  static const _compare = '__compare__';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final providers = ref.watch(weatherProvidersProvider);
     final enabled = ref.watch(settingsProvider).enabledProviderIds;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: [
-                for (final p in providers)
-                  if (enabled.contains(p.caps.providerId) &&
-                      !p.caps.onDemandOnly)
-                    ChoiceChip(
-                      label: Text(
-                        p.caps.displayName,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      selected: selected == p.caps.providerId,
-                      onSelected: (_) => onSelect(p.caps.providerId),
-                    ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                icon: const Icon(Icons.compare_arrows, size: 16),
-                label: Text(
-                  S.compareSources,
-                  style: const TextStyle(fontSize: 13),
+    final auto = [
+      for (final p in providers)
+        if (enabled.contains(p.caps.providerId) && !p.caps.onDemandOnly) p,
+    ];
+    final current = providers
+        .where((p) => p.caps.providerId == providerId)
+        .firstOrNull;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          ActionChip(
+            avatar: const Icon(Icons.schedule, size: 16),
+            label: Text('$timeLabel ${timeOpen ? '▴' : '▾'}'),
+            tooltip: '设置时间与配速',
+            onPressed: onToggleTime,
+          ),
+          PopupMenuButton<String>(
+            tooltip: S.chooseSource,
+            onSelected: (v) =>
+                v == _compare ? onCompare() : onSelectProvider(v),
+            itemBuilder: (_) => [
+              for (final p in auto)
+                CheckedPopupMenuItem(
+                  value: p.caps.providerId,
+                  checked: p.caps.providerId == providerId,
+                  child: Text(p.caps.displayName),
                 ),
-                onPressed: onCompare,
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: _compare,
+                child: Text(S.compareSources),
+              ),
+            ],
+            child: Chip(
+              avatar: const Icon(Icons.cloud_outlined, size: 16),
+              label: Text(
+                '${current?.caps.displayName ?? providerId} ▾',
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.summary, required this.settings});
+/// 结论卡：沿途摘要 3 个数 + 最多 3 条提示 + 出发窗口入口。
+class _ConclusionCard extends StatelessWidget {
+  const _ConclusionCard({
+    required this.summary,
+    required this.settings,
+    required this.hints,
+    required this.onShowHints,
+    required this.onDepartures,
+  });
 
   final RouteWxSummary summary;
   final AppSettings settings;
+  final List<WxHint> hints;
+  final VoidCallback onShowHints;
+  final VoidCallback onDepartures;
 
   @override
   Widget build(BuildContext context) {
-    if (!summary.hasAnyData) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            '当前选定时间与来源没有可用数据（${summary.nodesWithData}/${summary.totalNodes} 节点有数据）。信息不足时无法给出摘要。',
-            style: const TextStyle(fontSize: 12, height: 1.5),
-          ),
-        ),
-      );
-    }
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final sorted = [...hints]
+      ..sort((a, b) => b.level.index.compareTo(a.level.index));
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(S.routeSummary, style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 6),
-            Wrap(
-              spacing: 14,
-              runSpacing: 6,
-              children: [
-                _kv(
-                  context,
-                  '最低/最高温',
-                  '${summary.minTempC == null ? S.notProvided : Units.temp(summary.minTempC!, imperial: settings.imperial, digits: 0)} / ${summary.maxTempC == null ? S.notProvided : Units.temp(summary.maxTempC!, imperial: settings.imperial)}',
-                ),
-                _kv(
-                  context,
-                  '沿途降水（估算）',
-                  summary.totalPrecipMm == null
-                      ? S.notProvided
-                      : Units.precipMm(
-                          summary.totalPrecipMm!,
-                          imperial: settings.imperial,
-                        ),
-                ),
-                _kv(
-                  context,
-                  '最大阵风',
-                  summary.maxGustMs == null
-                      ? S.notProvided
-                      : Units.windMs(
-                          summary.maxGustMs!,
-                          unit: settings.windUnit,
-                        ),
-                ),
-                _kv(
-                  context,
-                  '有降水节点',
-                  '${summary.precipNodeCount}/${summary.totalNodes}',
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '按当前选定来源汇总，不与其他来源拼接。',
-              style: TextStyle(
-                fontSize: 10,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            if (!summary.hasAnyData)
+              Text(
+                '当前选定时间与来源没有可用数据（${summary.nodesWithData}/${summary.totalNodes} 节点有数据）。信息不足时无法给出摘要。',
+                style: const TextStyle(fontSize: 12, height: 1.5),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: _kv(
+                      context,
+                      '最低/最高温',
+                      '${summary.minTempC == null ? S.notProvided : Units.temp(summary.minTempC!, imperial: settings.imperial, digits: 0)} / ${summary.maxTempC == null ? S.notProvided : Units.temp(summary.maxTempC!, imperial: settings.imperial)}',
+                    ),
+                  ),
+                  Expanded(
+                    child: _kv(
+                      context,
+                      '最大阵风',
+                      summary.maxGustMs == null
+                          ? S.notProvided
+                          : Units.windMs(
+                              summary.maxGustMs!,
+                              unit: settings.windUnit,
+                            ),
+                    ),
+                  ),
+                  Expanded(
+                    child: _kv(
+                      context,
+                      '沿途降水',
+                      summary.totalPrecipMm == null
+                          ? S.notProvided
+                          : Units.precipMm(
+                              summary.totalPrecipMm!,
+                              imperial: settings.imperial,
+                            ),
+                    ),
+                  ),
+                ],
               ),
+            const SizedBox(height: 8),
+            if (sorted.isEmpty)
+              InkWell(
+                onTap: onShowHints,
+                child: Text(
+                  S.noHintsTriggered,
+                  style: TextStyle(fontSize: 12, color: muted),
+                ),
+              )
+            else
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final h in sorted.take(3))
+                    ActionChip(
+                      visualDensity: VisualDensity.compact,
+                      avatar: Icon(
+                        h.level == HintLevel.warning
+                            ? Icons.warning_amber_rounded
+                            : Icons.info_outline,
+                        size: 16,
+                        color: h.level == HintLevel.warning
+                            ? Colors.red
+                            : h.level == HintLevel.caution
+                            ? Colors.orange
+                            : muted,
+                      ),
+                      label: Text(h.title),
+                      onPressed: onShowHints,
+                    ),
+                  if (sorted.length > 3)
+                    ActionChip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text('+${sorted.length - 3}'),
+                      onPressed: onShowHints,
+                    ),
+                ],
+              ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(Icons.date_range),
+              title: const Text('比较出发窗口'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: onDepartures,
             ),
           ],
         ),
@@ -1480,99 +1574,10 @@ class _SummaryCard extends StatelessWidget {
       ),
       Text(
         v,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
     ],
   );
-}
-
-class _HintsCard extends StatelessWidget {
-  const _HintsCard({
-    required this.rows,
-    required this.sunsetUtc,
-    required this.finishEta,
-  });
-
-  final List<NodeWxRow> rows;
-  final DateTime? sunsetUtc;
-  final DateTime? finishEta;
-
-  @override
-  Widget build(BuildContext context) {
-    final hints = computeHints(entries: rowsToEntries(rows));
-    final sunset = (sunsetUtc != null && finishEta != null)
-        ? sunsetHint(sunsetUtc: sunsetUtc!, finishEtaUtc: finishEta!)
-        : null;
-    final all = [...hints, ?sunset];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(S.riskHints, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 6),
-            if (all.isEmpty)
-              const Text(
-                '当前数据未触发任何阈值提示（这不代表安全）。',
-                style: TextStyle(fontSize: 12),
-              ),
-            for (final h in all)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      h.level == HintLevel.warning
-                          ? Icons.warning_amber_rounded
-                          : h.level == HintLevel.caution
-                          ? Icons.info
-                          : Icons.info_outline,
-                      size: 16,
-                      color: h.level == HintLevel.warning
-                          ? Colors.red
-                          : h.level == HintLevel.caution
-                          ? Colors.orange
-                          : Colors.grey,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${h.title}：${h.detail}',
-                            style: const TextStyle(fontSize: 12, height: 1.4),
-                          ),
-                          Text(
-                            '依据：${h.basis}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const Divider(height: 16),
-            Text(
-              S.officialAlerts,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              officialAlertsNotAvailable,
-              style: TextStyle(fontSize: 11, height: 1.4, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _NodeTile extends StatelessWidget {
@@ -1581,6 +1586,7 @@ class _NodeTile extends StatelessWidget {
     required this.row,
     required this.index,
     required this.isLast,
+    required this.tripMode,
     required this.selected,
     required this.settings,
     required this.onTap,
@@ -1590,6 +1596,7 @@ class _NodeTile extends StatelessWidget {
   final NodeWxRow row;
   final int index;
   final bool isLast;
+  final bool tripMode;
   final bool selected;
   final AppSettings settings;
   final VoidCallback onTap;
@@ -1597,7 +1604,6 @@ class _NodeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final local = row.validUtc.toLocal();
     final wp = row.node.waypoint;
     final Widget leading;
     if (wp != null) {
@@ -1615,31 +1621,37 @@ class _NodeTile extends StatelessWidget {
     } else {
       leading = const Icon(Icons.circle, size: 10);
     }
+    final name = row.node.label ?? '节点 ${index + 1}';
+    final ele = row.node.elevationM == null
+        ? ''
+        : ' · ${row.node.elevationM!.toStringAsFixed(0)} m';
+    final local = row.validUtc.toLocal();
+    // 行程模式各节点时刻不同，时刻放最前；固定时刻全线相同，只在顶部显示一次。
+    final title = tripMode
+        ? '${_two(local.hour)}:${_two(local.minute)} · $name$ele'
+        : '$name · ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km$ele';
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return ListTile(
       dense: true,
+      visualDensity: VisualDensity.compact,
       selected: selected,
       selectedTileColor: Theme.of(context).colorScheme.primaryContainer
           .withValues(alpha: 0.3),
       leading: SizedBox(width: 24, child: Center(child: leading)),
-      title: Text(
-        '${row.node.label ?? '节点 ${index + 1}'} · ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km'
-        '${row.node.elevationM == null ? '' : ' · ${row.node.elevationM!.toStringAsFixed(0)} m'}',
-        style: const TextStyle(fontSize: 13),
-      ),
+      title: Text(title, style: const TextStyle(fontSize: 13)),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${_fmt(local)}（UTC ${_fmtUtc(row.validUtc)}）'
-            '${wp?.stopMinutes == null ? '' : ' · 停留 ${wp!.stopMinutes} 分钟'}'
-            '${row.sharedWithPrev ? ' · 与上一节点共享同一查询点' : ''}',
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
-          ),
           WxBriefLine(wx: row.wx, settings: settings),
+          if (wp?.stopMinutes != null)
+            Text(
+              '停留 ${wp!.stopMinutes} 分钟',
+              style: TextStyle(fontSize: 11, color: muted),
+            ),
           if (selected)
-            const Text(
+            Text(
               S.tapAgainForDetail,
-              style: TextStyle(fontSize: 10, color: Colors.grey),
+              style: TextStyle(fontSize: 11, color: muted),
             ),
         ],
       ),
@@ -1651,11 +1663,6 @@ class _NodeTile extends StatelessWidget {
       onTap: onTap,
     );
   }
-
-  String _fmt(DateTime t) =>
-      '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-  String _fmtUtc(DateTime t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 }
 
 class _TransparencyCard extends StatelessWidget {

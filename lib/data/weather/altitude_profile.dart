@@ -120,8 +120,11 @@ List<double> altitudeLevels({
     if (out.isEmpty || (e - out.last).abs() >= 10) out.add(e);
   }
   if (out.length < 3) {
-    if (base - 500 > 0) out.insert(0, base - 500);
+    // 只有 1–2 个不同海拔时补 ±500 m；补完必须重新排序
+    // （例如线路最低 78 m、节点 792 m 时补 292 m，不能排在 78 m 前面）。
+    if (base - 500 > 0) out.add(base - 500);
     out.add(base + 500);
+    out.sort();
   }
   return out;
 }

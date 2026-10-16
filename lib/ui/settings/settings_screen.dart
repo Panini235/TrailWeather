@@ -1,5 +1,3 @@
-import 'meteoblue_card.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,11 +7,13 @@ import '../../core/cache_store.dart';
 import '../../data/app_providers.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/settings/settings_repository.dart';
+import '../../data/weather/meteoblue_settings.dart';
 import '../../data/weather/weather_models.dart';
 import '../map/basemap.dart';
 import '../map/map_layers_ui.dart';
 import '../strings.dart';
 import '../departure/departure_threshold_screen.dart';
+import 'meteoblue_card.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -29,7 +29,7 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _section(context, '单位'),
+          _section(context, '显示与使用'),
           Card(
             child: Column(
               children: [
@@ -63,7 +63,6 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          _section(context, '外观'),
           Card(
             child: ListTile(
               dense: true,
@@ -89,7 +88,6 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          _section(context, '出发窗口'),
           Card(
             child: ListTile(
               leading: const Icon(Icons.tune),
@@ -103,81 +101,6 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          _section(context, '地图图层'),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.layers_outlined),
-                  title: const Text(
-                    S.mapLayers,
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    '${Basemap.fromSettings(settings).style.base.name}'
-                    '${settings.overlayLayers.isEmpty ? '' : ' + ${settings.overlayLayers.length} 个叠加层'}',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => showMapLayerSheet(context),
-                ),
-                ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.tune),
-                  title: const Text(
-                    S.manageTileSources,
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const MapSourcesPage(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _section(context, '数据源密钥'),
-          const _QweatherCredentialsCard(),
-          const MeteoblueCredentialsCard(),
-          _section(context, '天气来源'),
-          Card(
-            child: Column(
-              children: [
-                for (final p in providers)
-                  SwitchListTile(
-                    dense: true,
-                    title: Text(
-                      p.caps.displayName,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    subtitle: Text(
-                      '${p.caps.vendor} · 覆盖 ${p.caps.coverage} · 预报 ${p.caps.forecastHorizonDays} 天 · ${p.caps.requiresApiKey ? '需密钥' : '无需密钥'}',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    value: settings.enabledProviderIds.contains(
-                      p.caps.providerId,
-                    ),
-                    onChanged: (_) =>
-                        notifier.toggleProvider(p.caps.providerId),
-                  ),
-                ListTile(
-                  dense: true,
-                  title: const Text(
-                    '来源能力与授权对照',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 18),
-                  onTap: () => _showCapabilities(context, [
-                    for (final p in providers) p.caps,
-                  ]),
-                ),
-              ],
-            ),
-          ),
-          _section(context, '低耗电'),
           Card(
             child: Column(
               children: [
@@ -219,7 +142,93 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          _section(context, '使用帮助'),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.layers_outlined),
+                  title: const Text(
+                    S.mapLayers,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    '${Basemap.fromSettings(settings).style.base.name}'
+                    '${settings.overlayLayers.isEmpty ? '' : ' + ${settings.overlayLayers.length} 个叠加层'}',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showMapLayerSheet(context),
+                ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.tune),
+                  title: const Text(
+                    S.manageTileSources,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const MapSourcesPage(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _section(context, '天气来源与密钥'),
+          Card(
+            child: Column(
+              children: [
+                for (final p in providers)
+                  SwitchListTile(
+                    dense: true,
+                    title: Text(
+                      p.caps.displayName,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      '${p.caps.vendor} · 覆盖 ${p.caps.coverage} · 预报 ${p.caps.forecastHorizonDays} 天 · ${p.caps.requiresApiKey ? '需密钥' : '无需密钥'}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    value: settings.enabledProviderIds.contains(
+                      p.caps.providerId,
+                    ),
+                    onChanged: (_) =>
+                        notifier.toggleProvider(p.caps.providerId),
+                  ),
+                ListTile(
+                  dense: true,
+                  title: const Text(
+                    '来源能力与授权对照',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => _showCapabilities(context, [
+                    for (final p in providers) p.caps,
+                  ]),
+                ),
+              ],
+            ),
+          ),
+          Card(
+            child: ExpansionTile(
+              leading: const Icon(Icons.vpn_key_outlined, size: 20),
+              title: const Text('数据源密钥', style: TextStyle(fontSize: 14)),
+              subtitle: Text(
+                '和风：${settings.qweatherConfigured ? '已配置' : '未配置'} · '
+                'meteoblue：${ref.watch(meteoblueSettingsProvider).configured ? '已配置' : '未配置'}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              children: const [
+                _QweatherCredentialsCard(),
+                MeteoblueCredentialsCard(),
+              ],
+            ),
+          ),
+          _section(context, '数据与帮助'),
           Card(
             child: ListTile(
               dense: true,
@@ -233,7 +242,6 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => context.push('/onboarding'),
             ),
           ),
-          _section(context, '缓存与数据'),
           const _CacheCard(),
           Card(
             child: Column(

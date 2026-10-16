@@ -132,7 +132,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(fake.calls, 1);
     await showFirstCell(tester);
-    expect(find.textContaining('红色阈值'), findsWidgets);
+    // 格子只显示原因字（阵风 → 风），完整结论在提示与依据页。
+    expect(
+      find.descendant(
+        of: firstDepartureCell(),
+        matching: find.textContaining('风'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Tooltip && (w.message ?? '').contains('红色阈值'),
+      ),
+      findsWidgets,
+    );
     await tester.tap(firstDepartureCell());
     await tester.pumpAndSettle();
     expect(find.text('出发依据'), findsOneWidget);

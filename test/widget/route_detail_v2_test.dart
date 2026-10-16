@@ -137,6 +137,14 @@ void main() {
     await tester.tap(detailButtons.at(1));
     await tester.pumpAndSettle();
 
+    // 节点详情只保留一个“标记为”按钮，类型在二级面板里选。
+    await tester.scrollUntilVisible(
+      find.text(S.markAs),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text(S.markAs));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ActionChip, '营地'));
     await tester.pumpAndSettle();
     expect(find.text(S.markName), findsOneWidget);
@@ -162,7 +170,8 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    expect(find.text(S.reversedNote), findsOneWidget);
+    // 线路要点行标明“已反向”；完整说明在“数据说明与来源”里。
+    expect(find.textContaining('已反向'), findsOneWidget);
     await tester.scrollUntilVisible(_tileTitle('起点 · 0.0 km · 780 m'), 300);
     expect(_tileTitle('起点 · 0.0 km · 780 m'), findsOneWidget);
   });

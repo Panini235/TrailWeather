@@ -79,6 +79,16 @@ class NodeWxLegend extends StatelessWidget {
             spacing: 10,
             runSpacing: 4,
             children: [
+              // 图例说明收进提示（长按/悬停），不再在地图下方多占一行。
+              Tooltip(
+                message: S.nodeWxLegendNote,
+                triggerMode: TooltipTriggerMode.tap,
+                child: Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
               for (final c in present)
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -89,14 +99,6 @@ class NodeWxLegend extends StatelessWidget {
                   ],
                 ),
             ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            S.nodeWxLegendNote,
-            style: TextStyle(
-              fontSize: 10,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
           ),
         ],
       ),

@@ -125,6 +125,11 @@ abstract final class S {
   static const altitudeCardNote = 'Open-Meteo 按海拔统计降尺度的模型估算，非实测；▶ 为当前节点/地面海拔。';
   static const airQualityTitle = '空气质量（雾霾）';
   static const phenomenonLabel = '天气现象';
+  static const moreMetrics = '更多指标';
+  static const noHintsTriggered = '当前数据未触发任何阈值提示（这不代表安全）。';
+  static const dataNotesTitle = '数据说明与来源';
+  static const dataNotesSubtitle = '颗粒度、模型、官方预警与线路来源';
+  static const chooseSource = '选择天气来源';
   static const startPoint = '起点';
   static const endPoint = '终点';
   static const loopRoute = '环线';
