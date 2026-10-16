@@ -75,5 +75,20 @@
     "launch.css": "ca42c7bd10bf9f5c7f4c951e2a91cecd727ec8668231a52b34f8ee7a2590b095",
     "flutter_bootstrap.js": "79cb561e25b354718fc54b456c63c069405d9e49181057fb31d6118d3798e888",
     "main.dart.js": "4ca0fbbf218e52fcb63f3b9d633d86d6dc430f86463aafe467a079f03bb117a8"
+  },
+  "finalVerificationCommit": "0abf1d66dc151eace7ed065c5e36a581ec50398c",
+  "finalCi": {
+    "webApk": {
+      "runId": 38870192917,
+      "conclusion": "success"
+    },
+    "iosUnsigned": {
+      "runId": 38870196358,
+      "conclusion": "success"
+    }
+  },
+  "finalLocalChecks": {
+    "analyzeIssues": 0,
+    "testsPassed": 245
   }
 }

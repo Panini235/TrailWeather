@@ -498,10 +498,10 @@
       "deps": [
         "T-020"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "覆盖时段索引可复用已有逐时数据；7小时旧缓存在线能更新；后台错误被捕获并反馈；刷新成功通知UI。",
       "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16 实现通过本地 245 项测试与 analyze；业务提交 3384b2c 的 Web/APK CI 38862593549、iOS 无签名 CI 38862597530 成功。已补充逐节点正反向天气坐标映射验证；位置读取文案收尾等待最新 CI。"
+      "result": "2026-10-16：按真实覆盖时段复用 v3 缓存，过期结果流可刷新并向页面传递成功/失败，保留真实获取时间，空响应不覆盖可用缓存；跨午夜/冷启动/72小时预报/7小时旧缓存/缺口/并发与UI回归通过。普通缓存仍不等于 T-143 离线包。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
     },
     {
       "id": "T-141",
@@ -510,10 +510,10 @@
       "deps": [
         "T-123"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "相同节点数/总长度但坐标或顺序变化时不得复用错误bundle；按节点坐标验证正反向天气映射。",
       "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16 实现通过本地 245 项测试与 analyze；业务提交 3384b2c 的 Web/APK CI 38862593549、iOS 无签名 CI 38862597530 成功。已补充逐节点正反向天气坐标映射验证；位置读取文案收尾等待最新 CI。"
+      "result": "2026-10-16：坐标、顺序、海拔形成不可变 family 身份；实际 ProviderContainer 正反向请求逐节点核对请求坐标通过，原列表修改不改变已有键。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
     },
     {
       "id": "T-142",
@@ -522,10 +522,10 @@
       "deps": [
         "T-103"
       ],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "当前天气取打开时的当前时间；区分定位时间与天气有效时间；前后台恢复按时效刷新，离线标注旧预报。",
       "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16 实现通过本地 245 项测试与 analyze；业务提交 3384b2c 的 Web/APK CI 38862593549、iOS 无签名 CI 38862597530 成功。已补充逐节点正反向天气坐标映射验证；位置读取文案收尾等待最新 CI。"
+      "result": "2026-10-16：打开面板时取当前天气时刻；位置读取时间独立显示，原始定位采样时间尚未保存，不把它宣称为已知。前台跨小时/15分钟检查、后台停止、恢复重查；旧位置响应不覆盖新查询。生命周期及跨午夜打开面板回归通过。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
     },
     {
       "id": "T-143",
