@@ -1,0 +1,26 @@
+{
+  "metadata": [
+    {
+      "key": "flutter.offline.trips.v1.trip-1792142330190000-747738150",
+      "id": "trip-1792142330190000-747738150",
+      "storedBytes": 119887,
+      "crc32": 629158009,
+      "start": "2026-10-16T10:00:00.000Z",
+      "end": "2026-10-19T10:00:00.000Z",
+      "route": "香山—八大处穿越（示例）",
+      "nodes": 7,
+      "points": 5,
+      "fetchedAt": "2026-10-16T09:18:51.672Z"
+    }
+  ],
+  "blockedWeatherOrTileRequests": [],
+  "browserContextOffline": true,
+  "body": "返回\n离线查看\n香山—八大处穿越（示例）\n演示\n正在读取本机保存的预报，不代表实时观测；仅点击“联网更新”才请求新预报。\n来源：Open-Meteo（best_match） 预报获取于 10-16 17:18 离线包保存于 10-16 17:18\n所选时段均有数据 温度、降水量和持续风速均有值：504/504 个节点小时。缺失指标仍显示“此来源未提供”。\n部分节点经近似网格（0.10°，且海拔相差不足 100 m）合并查询，这些节点共享同一网格预报，不存在其间的差异；近似合并是请求策略，不代表天气数据的空间分辨率\n注意：Open-Meteo 的不同 models 参数属于同一服务商接口，不一定代表相互独立的证据；且不同 API 服务商也可能使用相同底层气象模型。未识别处按未知处理。\n联网更新此包\n查看天气时刻（设备时区）\n前一小时\n后一小时\n查看此节点的数据来源\n2. 距起点 1.6 km · 海拔 137 m 数据有效时刻：10-16 19:00 天气现象：局部多云 温度 16°C 体感温度 14°C 降水量 0.0 mm 降水概率 29% 持续风速 3 km/h 阵风 8 km/h 风向 西西北 湿度 40% 云量 67% 能见度 22 km 气压 1015 hPa 降雪量 0.0 cm/h 0℃ 层高度 2930 m",
+  "commit": "b51b11eda8720656fae542fba755210486895534",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "scope": "Browser reload with weather/tile endpoints intercepted, then context offline; not a proof of native airplane-mode cold start",
+  "fontLimitation": "Browser Noto fallback font fetches failed after disconnect; console preserved."
+}

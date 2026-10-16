@@ -91,7 +91,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('出发前，看懂沿途天气'), findsOneWidget);
-      expect(find.textContaining('离线行程包尚未提供'), findsOneWidget);
+      expect(find.textContaining('从首页打开离线行程包'), findsOneWidget);
+      expect(find.textContaining('离线底图尚未提供'), findsOneWidget);
+      expect(find.textContaining('离线行程包尚未提供'), findsNothing);
       expect(find.textContaining('Pro'), findsNothing);
       expect(find.textContaining('试用'), findsNothing);
       final action = find.text(importRoute ? '导入我的线路' : '先看示例线路');

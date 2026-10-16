@@ -96,7 +96,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Text(
-                  '离线行程包尚未提供。出发前请另备可离线使用的地图与资料。',
+                  '出发前可在线下载线路与预报，再从首页打开离线行程包。离线底图尚未提供，请另备地图。',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colors.onSurfaceVariant,
                     height: 1.5,

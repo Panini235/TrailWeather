@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-16",
+  "commit": "b51b11e",
+  "local": {
+    "analyze": "No issues found",
+    "testsPassed": 263,
+    "testsFailed": 0
+  },
+  "ci": {
+    "web_apk": {
+      "run": 38877163711,
+      "status": "success"
+    },
+    "ios_unsigned": {
+      "run": 38877194767,
+      "status": "success"
+    }
+  },
+  "browser": {
+    "status": "verified-with-limitations",
+    "weatherOrTileRequestsAfterRestart": 0,
+    "offlineLastHour": "2026-10-19 17:00 Asia/Shanghai",
+    "fontRequestsFailedOffline": true
+  },
+  "limits": [
+    "No iOS/Android physical device airplane-mode cold-start measurement",
+    "No offline basemap or live GPS navigation",
+    "No official warning service",
+    "Web is an engineering preview and has no guaranteed offline cold start",
+    "Overall near-full-score goal remains active"
+  ]
+}
