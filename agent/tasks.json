@@ -536,10 +536,10 @@
         "T-141",
         "T-142"
       ],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "持久化路线/航点/计划/完整可用预报与溯源；下载校验与重试；飞行模式冷启动、跨小时/午夜、24/48/72小时读取；不受普通LRU淘汰。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "A-05：目前按钮仅提示开发中；无需等待离线底图才能推进基础包。"
+      "verify": "flutter analyze --no-pub；flutter test --no-pub（offline_trip_test / offline_screens_test 与全部回归）；CI Web/APK + 无签名 iOS；原生飞行模式待真机。",
+      "result": "2026-10-16：独立离线包、24/48/72小时下载、快照/溯源、完整性与坐标校验、失败保留/重试、首页访问和零网络查看已实现。自动化与产物验收进行中；未将文件冷启动测试当成原生飞行模式真机证明。"
     },
     {
       "id": "T-144",
@@ -548,10 +548,10 @@
       "deps": [
         "T-120"
       ],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "首页快速查天气和行程更新/离线状态；详情首屏天气摘要；深浅色/360–430px/大字体可读；移除未实现微气候与绝不崩溃承诺。",
       "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "A-09/A-10/A-11：已用CI Web产物实测并保存截图。"
+      "result": "2026-10-16：首页增加离线包入口，共享天气指标改成自适应列数与自然高度，缺失文案提高对比度；离线页360px双倍字体/深浅色测试通过。其余首页天气优先顺序与全屏核验仍待完成。"
     },
     {
       "id": "T-145",

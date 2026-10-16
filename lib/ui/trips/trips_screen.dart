@@ -114,6 +114,15 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.offline_pin_outlined),
+              title: const Text('离线行程包'),
+              subtitle: const Text('查看已保存的线路与预报'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/offline'),
+            ),
+          ),
           if (trips.isEmpty)
             _EmptyTrips(
               onImport: () => context.push('/import'),

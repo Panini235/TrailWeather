@@ -6,6 +6,7 @@ import 'import/import_screen.dart';
 import 'import/incoming_file_listener.dart';
 import 'map/map_home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
+import 'offline/offline_screens.dart';
 import 'planet/planet_screen.dart';
 import 'planner/route_planner_screen.dart';
 import 'settings/settings_screen.dart';
@@ -54,6 +55,22 @@ GoRouter buildRouter() => GoRouter(
       redirect: (context, state) => state.extra is RouteDetailArgs ? null : '/',
       builder: (context, state) =>
           RouteDetailScreen(args: state.extra! as RouteDetailArgs),
+    ),
+    GoRoute(
+      path: '/offline',
+      builder: (context, state) => const OfflineTripsScreen(),
+    ),
+    GoRoute(
+      path: '/offline/new',
+      redirect: (context, state) =>
+          state.extra is OfflineDownloadArgs ? null : '/offline',
+      builder: (context, state) =>
+          OfflineDownloadScreen(args: state.extra! as OfflineDownloadArgs),
+    ),
+    GoRoute(
+      path: '/offline/:id',
+      builder: (context, state) =>
+          OfflineTripScreen(id: state.pathParameters['id']!),
     ),
     GoRoute(path: '/import', builder: (context, state) => const ImportScreen()),
     GoRoute(

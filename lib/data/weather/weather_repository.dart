@@ -1,11 +1,11 @@
 import 'dart:async' show unawaited;
-import 'dart:convert';
 
 import 'package:latlong2/latlong.dart';
 
 import '../../core/cache_store.dart';
 import '../routes/route_sampling.dart';
 import 'weather_models.dart';
+import 'weather_codec.dart';
 import 'weather_provider.dart';
 
 /// 天气仓库：编排采样节点 → 去重 → 缓存 → 请求。
@@ -210,7 +210,7 @@ class WeatherRepository {
       }
       final entry = await cache.read(CacheNs.weather, key, touch: false);
       if (entry == null) continue;
-      final source = _decode(entry.payload);
+      final source = WeatherCodec.decode(entry.payload);
       if (source == null ||
           source.providerId != parts[1] ||
           source.points.length != pointCount ||
@@ -308,14 +308,16 @@ class WeatherRepository {
           cacheKey,
           touch: false,
         );
-        final prior = previous == null ? null : _decode(previous.payload);
+        final prior = previous == null
+            ? null
+            : WeatherCodec.decode(previous.payload);
         if (_coverageCount(result, startUtc, endUtc) > 0 ||
             prior == null ||
             _coverageCount(prior, startUtc, endUtc) == 0) {
           await cache.write(
             CacheNs.weather,
             cacheKey,
-            _encode(result),
+            WeatherCodec.encode(result),
             provider.caps.recommendedCacheTtl,
           );
         }
@@ -349,142 +351,7 @@ class WeatherRepository {
         : '|ele:${elevations.map((x) => x == null ? '-' : (x / 10).round() * 10).join(',')}';
     return 'v3|$providerId|$coords|$s|$e$ele';
   }
-
-  String _encode(WxSourceResult r) {
-    final points = <Map<String, dynamic>>[];
-    for (final p in r.points) {
-      final hours = <Map<String, dynamic>>[];
-      for (final h in p.hours) {
-        final v = <String, double>{};
-        h.values.forEach((k, val) {
-          if (val != null) v['${k.index}'] = val;
-        });
-        hours.add({
-          't': h.validFromUtc.toIso8601String(),
-          'v': v,
-          's': h.symbols,
-        });
-      }
-      points.add({
-        'lat': p.lat,
-        'lon': p.lon,
-        'sunsets': [for (final t in p.dailySunsetsUtc) t.toIso8601String()],
-        'hours': hours,
-        'prov': _provToJson(p.provenance),
-      });
-    }
-    return jsonEncode({
-      'providerId': r.providerId,
-      'fetchedAt': r.fetchedAtUtc.toIso8601String(),
-      'points': points,
-    });
-  }
-
-  WxSourceResult? _decode(String raw) {
-    try {
-      final m = jsonDecode(raw) as Map<String, dynamic>;
-      final points = <WxPointForecast>[];
-      for (final pm in (m['points'] as List)) {
-        final p = pm as Map<String, dynamic>;
-        final hours = <WxHourValue>[];
-        for (final hm in (p['hours'] as List)) {
-          final h = hm as Map<String, dynamic>;
-          final vals = <WxVar, double?>{};
-          final v = (h['v'] as Map<String, dynamic>?);
-          if (v != null) {
-            for (final e in v.entries) {
-              final vi = int.parse(e.key);
-              if (vi < WxVar.values.length) {
-                vals[WxVar.values[vi]] = (e.value as num).toDouble();
-              }
-            }
-          }
-          for (final var_ in WxVar.values) {
-            vals.putIfAbsent(var_, () => null);
-          }
-          hours.add(
-            WxHourValue(
-              validFromUtc: DateTime.parse(h['t'] as String),
-              values: vals,
-              symbols: (h['s'] as Map<String, dynamic>?)
-                  ?.cast<String, String>(),
-            ),
-          );
-        }
-        points.add(
-          WxPointForecast(
-            lat: p['lat'] as double,
-            lon: p['lon'] as double,
-            hours: hours,
-            provenance: _provFromJson((p['prov'] as Map<String, dynamic>)),
-            dailySunsetsUtc: [
-              for (final t in (p['sunsets'] as List?) ?? const [])
-                DateTime.parse(t as String),
-            ],
-          ),
-        );
-      }
-      return WxSourceResult(
-        providerId: m['providerId'] as String,
-        points: points,
-        fromCache: false,
-        stale: false,
-        cachedAtUtc: null,
-        fetchedAtUtc: DateTime.parse(m['fetchedAt'] as String),
-      );
-    } catch (_) {
-      return null;
-    }
-  }
 }
-
-Map<String, dynamic> _provToJson(WxProvenance p) => {
-  'providerId': p.providerId,
-  'vendor': p.vendor,
-  'model': p.modelOrNetwork,
-  'modelKnown': p.modelKnown,
-  'rlat': p.requestLat,
-  'rlon': p.requestLon,
-  'lat': p.returnedLat,
-  'lon': p.returnedLon,
-  'loc': p.locationDetail,
-  'ele': p.elevationUsedM,
-  'g': p.granularity.index,
-  'res': p.spatialResolutionNote,
-  'k': p.dataKind.index,
-  'f': p.fetchedAtUtc.toIso8601String(),
-  'm': p.modelRunUtc?.toIso8601String(),
-  'off': p.utcOffsetSeconds,
-  'lic': p.license,
-  'attr': p.attribution,
-  'interp': p.interpolationNote,
-  'elevAdj': p.elevationAdjustNote,
-  'trace': p.traceNote,
-};
-
-WxProvenance _provFromJson(Map<String, dynamic> m) => WxProvenance(
-  providerId: m['providerId'] as String,
-  vendor: m['vendor'] as String,
-  modelOrNetwork: m['model'] as String,
-  modelKnown: m['modelKnown'] as bool? ?? false,
-  requestLat: m['rlat'] as double,
-  requestLon: m['rlon'] as double,
-  returnedLat: m['lat'] as double?,
-  returnedLon: m['lon'] as double?,
-  locationDetail: m['loc'] as String?,
-  elevationUsedM: m['ele'] as double?,
-  granularity: WxGranularity.values[m['g'] as int],
-  spatialResolutionNote: m['res'] as String?,
-  dataKind: WxDataKind.values[m['k'] as int],
-  fetchedAtUtc: DateTime.parse(m['f'] as String),
-  modelRunUtc: m['m'] == null ? null : DateTime.parse(m['m'] as String),
-  utcOffsetSeconds: m['off'] as int? ?? 0,
-  license: m['lic'] as String,
-  attribution: m['attr'] as String,
-  interpolationNote: m['interp'] as String?,
-  elevationAdjustNote: m['elevAdj'] as String?,
-  traceNote: m['trace'] as String?,
-);
 
 /// 线路天气查询结果包。
 class RouteWeatherBundle {

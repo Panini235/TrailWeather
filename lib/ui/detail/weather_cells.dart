@@ -55,7 +55,7 @@ class MissingValue extends StatelessWidget {
       S.notProvided,
       style: TextStyle(
         fontSize: 13,
-        color: Theme.of(context).disabledColor,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontStyle: FontStyle.italic,
       ),
     );
@@ -73,88 +73,99 @@ class WxVarGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final v = wx.values;
     final phen = phenomenonOf(wx);
-    final grid = GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.9,
-      children: [
+    final tiles = <Widget>[
+      WxVarTile(
+        label: WxVar.temperature.label,
+        value: v[WxVar.temperature],
+        formatter: (x) => Units.temp(x, imperial: settings.imperial),
+      ),
+      WxVarTile(
+        label: WxVar.apparentTemp.label,
+        value: v[WxVar.apparentTemp],
+        formatter: (x) => Units.temp(x, imperial: settings.imperial),
+      ),
+      WxVarTile(
+        label: WxVar.precip.label,
+        value: v[WxVar.precip],
+        formatter: (x) => Units.precipMm(x, imperial: settings.imperial),
+      ),
+      WxVarTile(
+        label: WxVar.precipProb.label,
+        value: v[WxVar.precipProb],
+        formatter: (x) => '${x.toStringAsFixed(0)}%',
+      ),
+      WxVarTile(
+        label: WxVar.windSpeed.label,
+        value: v[WxVar.windSpeed],
+        formatter: (x) => Units.windMs(x, unit: settings.windUnit),
+      ),
+      WxVarTile(
+        label: WxVar.windGust.label,
+        value: v[WxVar.windGust],
+        formatter: (x) => Units.windMs(x, unit: settings.windUnit),
+      ),
+      WxVarTile(
+        label: WxVar.windDir.label,
+        value: v[WxVar.windDir],
+        formatter: (x) => Units.windDirectionLabel(x),
+      ),
+      WxVarTile(
+        label: WxVar.humidity.label,
+        value: v[WxVar.humidity],
+        formatter: (x) => '${x.toStringAsFixed(0)}%',
+      ),
+      WxVarTile(
+        label: WxVar.cloudCover.label,
+        value: v[WxVar.cloudCover],
+        formatter: (x) => '${x.toStringAsFixed(0)}%',
+      ),
+      WxVarTile(
+        label: WxVar.visibility.label,
+        value: v[WxVar.visibility],
+        formatter: (x) => '${(x / 1000).toStringAsFixed(x < 10000 ? 1 : 0)} km',
+      ),
+      WxVarTile(
+        label: WxVar.pressure.label,
+        value: v[WxVar.pressure],
+        formatter: (x) => '${x.toStringAsFixed(0)} hPa',
+      ),
+      // 只有提供该变量的来源才显示（目前为 meteoblue），避免每个来源都多一格“未提供”。
+      if (v[WxVar.snowfall] != null)
         WxVarTile(
-          label: WxVar.temperature.label,
-          value: v[WxVar.temperature],
-          formatter: (x) => Units.temp(x, imperial: settings.imperial),
+          label: WxVar.snowfall.label,
+          value: v[WxVar.snowfall],
+          formatter: (x) => '${x.toStringAsFixed(1)} cm/h',
         ),
+      if (v[WxVar.freezingLevel] != null)
         WxVarTile(
-          label: WxVar.apparentTemp.label,
-          value: v[WxVar.apparentTemp],
-          formatter: (x) => Units.temp(x, imperial: settings.imperial),
+          label: WxVar.freezingLevel.label,
+          value: v[WxVar.freezingLevel],
+          formatter: (x) => '${x.toStringAsFixed(0)} m',
         ),
+      if (v[WxVar.snowFraction] != null)
         WxVarTile(
-          label: WxVar.precip.label,
-          value: v[WxVar.precip],
-          formatter: (x) => Units.precipMm(x, imperial: settings.imperial),
-        ),
-        WxVarTile(
-          label: WxVar.precipProb.label,
-          value: v[WxVar.precipProb],
+          label: WxVar.snowFraction.label,
+          value: v[WxVar.snowFraction],
           formatter: (x) => '${x.toStringAsFixed(0)}%',
         ),
-        WxVarTile(
-          label: WxVar.windSpeed.label,
-          value: v[WxVar.windSpeed],
-          formatter: (x) => Units.windMs(x, unit: settings.windUnit),
-        ),
-        WxVarTile(
-          label: WxVar.windGust.label,
-          value: v[WxVar.windGust],
-          formatter: (x) => Units.windMs(x, unit: settings.windUnit),
-        ),
-        WxVarTile(
-          label: WxVar.windDir.label,
-          value: v[WxVar.windDir],
-          formatter: (x) => Units.windDirectionLabel(x),
-        ),
-        WxVarTile(
-          label: WxVar.humidity.label,
-          value: v[WxVar.humidity],
-          formatter: (x) => '${x.toStringAsFixed(0)}%',
-        ),
-        WxVarTile(
-          label: WxVar.cloudCover.label,
-          value: v[WxVar.cloudCover],
-          formatter: (x) => '${x.toStringAsFixed(0)}%',
-        ),
-        WxVarTile(
-          label: WxVar.visibility.label,
-          value: v[WxVar.visibility],
-          formatter: (x) =>
-              '${(x / 1000).toStringAsFixed(x < 10000 ? 1 : 0)} km',
-        ),
-        WxVarTile(
-          label: WxVar.pressure.label,
-          value: v[WxVar.pressure],
-          formatter: (x) => '${x.toStringAsFixed(0)} hPa',
-        ),
-        // 只有提供该变量的来源才显示（目前为 meteoblue），避免每个来源都多一格“未提供”。
-        if (v[WxVar.snowfall] != null)
-          WxVarTile(
-            label: WxVar.snowfall.label,
-            value: v[WxVar.snowfall],
-            formatter: (x) => '${x.toStringAsFixed(1)} cm/h',
-          ),
-        if (v[WxVar.freezingLevel] != null)
-          WxVarTile(
-            label: WxVar.freezingLevel.label,
-            value: v[WxVar.freezingLevel],
-            formatter: (x) => '${x.toStringAsFixed(0)} m',
-          ),
-        if (v[WxVar.snowFraction] != null)
-          WxVarTile(
-            label: WxVar.snowFraction.label,
-            value: v[WxVar.snowFraction],
-            formatter: (x) => '${x.toStringAsFixed(0)}%',
-          ),
-      ],
+    ];
+    // 自适应列数与自然高度：缺失文案和大字体不能被固定比例格子裁掉。
+    final grid = LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        final columns = (constraints.maxWidth / (150 * scale)).floor().clamp(
+          1,
+          4,
+        );
+        final width = (constraints.maxWidth - (columns - 1) * 12) / columns;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final tile in tiles) SizedBox(width: width, child: tile),
+          ],
+        );
+      },
     );
     if (phen == null) return grid;
     return Column(

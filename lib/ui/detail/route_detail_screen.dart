@@ -3,6 +3,10 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../data/offline/offline_trip.dart';
+import '../offline/offline_screens.dart';
 
 import '../../core/geo.dart';
 import '../../core/units.dart';
@@ -379,22 +383,24 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.download_for_offline_outlined),
-            tooltip: '离线气象与轨迹包（开发中）',
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('离线气象与轨迹包（开发中）'),
-                content: const Text(
-                  '该功能尚未上线：当前不会下载或缓存任何离线数据，'
-                  '无信号时请勿依赖本 App 获取天气。\n\n'
-                  '已查看过的天气会按来源有效期短暂缓存，过期后会标注“旧数据”。',
+            tooltip: '下载离线行程包',
+            onPressed: () => context.push(
+              '/offline/new',
+              extra: OfflineDownloadArgs(
+                providerId: _providerId,
+                plan: OfflineTripPlan(
+                  route: route,
+                  nodes: List.unmodifiable(nodes),
+                  nodeTimesUtc: List.unmodifiable(etas),
+                  mode: _mode == TimeMode.trip
+                      ? OfflineTimeMode.trip
+                      : OfflineTimeMode.fixed,
+                  reversed: _reversed,
+                  selectedTimeUtc: query.fixedUtc,
+                  pace: _pace,
+                  startUtc: utcHour(startUtc),
+                  endUtc: utcHour(startUtc).add(const Duration(hours: 72)),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text(S.close),
-                  ),
-                ],
               ),
             ),
           ),
