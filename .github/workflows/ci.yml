@@ -54,7 +54,10 @@ jobs:
         run: flutter test
 
       - name: Web Release 构建
-        run: flutter build web --release
+        run: flutter build web --release --source-maps
+
+      - name: 补齐并验证 Web 调试映射
+        run: python3 tool/prepare_web_artifact.py --web build/web
 
       - name: Android APK 构建（release，模板 debug 签名）
         run: flutter build apk --release
