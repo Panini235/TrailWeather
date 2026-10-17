@@ -1,13 +1,14 @@
-/// 分享图里“扫码下载”的地址。
+/// 应用版本（与 pubspec.yaml 的 version 一致，由 test/unit/app_version_test.dart 保证）。
+const String kAppVersion = '0.2.0-beta.1';
+
+/// 分享图里“扫码下载”的地址：GitHub Releases 列表页。
 ///
-/// CI 构建时注入本次工作流运行页：
-/// `--dart-define=SHANQING_DOWNLOAD_URL=<server>/<repo>/actions/runs/<run_id>`；
-/// 本地构建回退到 CI 工作流列表页（长期有效）。
-/// 注意：GitHub Actions 产物需登录 GitHub 才能下载，且有保留期限；正式分发前应换成商店或固定下载页。
+/// 公开仓库的 Release 附件无需登录即可下载，也不会像 Actions 产物那样过期；
+/// 列表页包含测试版（`releases/latest` 不含预发布版本，所以不用它）。
+/// 上架商店后换成商店或固定下载页。
 const String kDownloadUrl = String.fromEnvironment(
   'SHANQING_DOWNLOAD_URL',
-  defaultValue:
-      'https://github.com/Panini235/TrailWeather/actions/workflows/ci.yml',
+  defaultValue: 'https://github.com/Panini235/TrailWeather/releases',
 );
 
 /// 分享图上的一句宣传语。

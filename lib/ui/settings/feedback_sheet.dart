@@ -18,7 +18,8 @@ String feedbackDiagnostics(
   String onOff(bool v) => v ? '开' : '关';
   return [
     '${S.appTitle} 测试版',
-    '构建：$kDownloadUrl',
+    '版本：$kAppVersion',
+    '下载：$kDownloadUrl',
     '平台：$os',
     '天气来源：${settings.enabledProviderIds.join(', ')}',
     '底图：${settings.baseLayerId}',

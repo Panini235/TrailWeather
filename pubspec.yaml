@@ -1,7 +1,7 @@
 name: trailweather
 description: "山晴：行前规划，沿途看天气"
 publish_to: "none"
-version: 0.1.0+1
+version: 0.2.0-beta.1+2
 
 environment:
   sdk: ">=3.13.0 <4.0.0"

@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/wx_http.dart';
 import 'route_models.dart';
+import '../../core/app_links.dart';
 
 /// Overpass API 适配器：按可视区域发现 OSM 徒步路线关系（relation[route=hiking]）。
 ///
@@ -29,7 +30,7 @@ class OverpassRouteSource {
   ];
 
   static const userAgent =
-      'TrailWeather/0.1.0 (github.com/Panini235/TrailWeather)';
+      'TrailWeather/$kAppVersion (github.com/Panini235/TrailWeather)';
 
   /// bbox 跨度上限（约一个城市尺度）。
   static const maxBboxSpan = 0.6;

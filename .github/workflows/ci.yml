@@ -69,7 +69,7 @@ jobs:
 
       - name: Web Release 构建
         # 分享图二维码指向本次构建页（lib/core/app_links.dart）
-        run: flutter build web --release --source-maps --dart-define=SHANQING_DOWNLOAD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: flutter build web --release --source-maps
 
       - name: 补齐并验证 Web 调试映射
         run: python3 tool/prepare_web_artifact.py --web build/web
@@ -80,7 +80,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: flutter build apk --release --dart-define=SHANQING_DOWNLOAD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: flutter build apk --release
 
       - name: 记录签名证书指纹
         run: |

@@ -119,7 +119,8 @@ void main() {
     expect(find.text(S.myTrips), findsOneWidget);
     expect(find.text(S.emptyTripsTitle), findsOneWidget);
     expect(find.widgetWithText(FilledButton, S.importRoute), findsOneWidget);
-    expect(find.text(S.planetEntry), findsOneWidget);
+    // 徒步星球线路库在测试版隐藏（B-011）。
+    expect(find.text(S.planetEntry), findsNothing);
     // 底部导航三个分支
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text(S.tabMap), findsOneWidget);

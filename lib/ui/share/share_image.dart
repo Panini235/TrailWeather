@@ -281,7 +281,7 @@ class SharePromoBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '导入轨迹，按出发时间查看沿途天气\n扫码下载（测试版构建页）',
+                  '导入轨迹，按出发时间查看沿途天气\n扫码下载测试版',
                   style: TextStyle(
                     fontSize: 11,
                     color: scheme.onPrimaryContainer,

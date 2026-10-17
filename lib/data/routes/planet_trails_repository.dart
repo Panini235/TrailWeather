@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart';
 import 'route_models.dart';
+import '../../core/features.dart';
 
 /// 徒步星球地貌类别定义。
 class TerrainCategory {
@@ -34,15 +35,23 @@ class TerrainCategory {
 
 /// 徒步星球全球经典路线仓库。
 class PlanetTrailsRepository {
+  PlanetTrailsRepository({Future<String> Function()? load, bool? enabled})
+    : _load = load ?? (() => rootBundle.loadString(assetPath)),
+      _enabled = enabled ?? kPlanetTrailsEnabled;
+
+  /// 数据文件（测试版不打包，见 `lib/core/features.dart`）。
+  static const assetPath = 'assets/planet/planet_trails.json';
+
+  final Future<String> Function() _load;
+  final bool _enabled;
   List<HikingRoute>? _cache;
 
-  /// 加载并解析所有全球经典路线。
+  /// 加载并解析所有全球经典路线；功能关闭时为空列表。
   Future<List<HikingRoute>> loadAll() async {
+    if (!_enabled) return const [];
     if (_cache != null) return _cache!;
 
-    final rawJson = await rootBundle.loadString(
-      'assets/routes/planet_trails.json',
-    );
+    final rawJson = await _load();
     final list = jsonDecode(rawJson) as List<dynamic>;
 
     final routes = <HikingRoute>[];

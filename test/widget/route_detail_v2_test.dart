@@ -137,14 +137,19 @@ void main() {
   testWidgets('穿衣卡片：切换场景、怕冷偏好会加厚保暖层并保存', (tester) async {
     final container = await _pump(tester);
     expect(find.text(S.layeringTitle), findsOneWidget);
+    // 保暖层那一行是否带“背包”标记（防护层随假数据的时刻变化，不参与断言）。
+    Finder midPacked(String name) => find.descendant(
+      of: find.ancestor(of: find.text(name), matching: find.byType(Row)).first,
+      matching: find.text(S.layeringPacked),
+    );
     // 体感全程 13°：保暖层“薄抓绒”，出发时放背包
     expect(find.text('薄抓绒'), findsOneWidget);
-    expect(find.text(S.layeringPacked), findsWidgets);
+    expect(midPacked('薄抓绒'), findsOneWidget);
 
     await tester.tap(find.textContaining('停留 '));
     await tester.pumpAndSettle();
-    // 停留时保暖层穿上：不再有“背包”标记（降水概率 60% → 防水硬壳停留时也穿）
-    expect(find.text(S.layeringPacked), findsNothing);
+    // 停留时保暖层穿上
+    expect(midPacked('薄抓绒'), findsNothing);
 
     await tester.tap(find.text(S.layeringColdy));
     await tester.pumpAndSettle();

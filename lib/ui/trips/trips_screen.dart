@@ -10,6 +10,7 @@ import '../../data/settings/settings_repository.dart';
 import '../detail/route_detail_screen.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
+import '../../core/features.dart';
 
 /// 首页“我的行程”：用户导入、手绘、收藏的线路（docs/redesign-v2.md）。
 ///
@@ -145,15 +146,17 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
           Text(S.exampleRoutes, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           for (final r in samples) _TripCard(route: r, onTap: () => _open(r)),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.public),
-              title: const Text(S.planetEntry),
-              subtitle: const Text(S.planetEntryHint),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/planet'),
+          // 徒步星球线路库：许可核实前测试版隐藏（B-011）。
+          if (kPlanetTrailsEnabled)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.public),
+                title: const Text(S.planetEntry),
+                subtitle: const Text(S.planetEntryHint),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/planet'),
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -6,6 +6,7 @@ import '../../data/routes/route_models.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 import '../../core/coord_parse.dart';
+import '../../core/features.dart';
 
 class HybridRouteSearchResults extends StatelessWidget {
   const HybridRouteSearchResults({
@@ -132,14 +133,15 @@ class HybridRouteSearchResults extends StatelessWidget {
                   padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Text(S.noDirectRoutes, style: TextStyle(fontSize: 12)),
                 ),
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.public, size: 20),
-                title: const Text('徒步星球 · 全球经典路线'),
-                subtitle: const Text('44+ 条雪山/冰川/森林/峡谷世界顶级徒步线路'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/planet'),
-              ),
+              if (kPlanetTrailsEnabled)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.public, size: 20),
+                  title: const Text('徒步星球 · 全球经典路线'),
+                  subtitle: const Text('44+ 条雪山/冰川/森林/峡谷世界顶级徒步线路'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/planet'),
+                ),
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.edit_road, size: 20),

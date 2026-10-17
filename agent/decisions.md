@@ -301,3 +301,15 @@
   - 雷达实况（RainViewer）免费版仅限个人与教育用途，暂不接入，留给用户决定。
 - 其他：网络错误改为一句人话（`fetchErrorText`），不再显示 DioException 原文。
 - 无新增依赖。
+
+## D-036 第一个测试版 0.2.0-beta.1（2026-10-17）
+- 用户要求合并到 main 并发布第一个 beta。发布前就两个许可阻塞和真机冒烟征求了用户意见，用户选择：
+  - **徒步星球线路库（B-011）测试版隐藏**：`lib/core/features.dart` 的 `kPlanetTrailsEnabled` 默认关闭，入口隐藏；
+    数据移到 `assets/planet/`，不列入 pubspec，不打包进安装包。拿到授权后加回 pubspec 并打开开关。
+  - **高德底图（B-012）保留**，在发布说明里注明尚未取得正式接入授权、正式版会申请 Key。
+  - **不做真机冒烟直接发**（手机当时无网络），在发布说明里如实写明依据。
+- 版本 `0.2.0-beta.1+2`；`kAppVersion` 与 pubspec 一致（测试保证），用于问题反馈诊断与请求 User-Agent。
+- 分享图二维码改指 Releases 列表页（公开仓库附件无需登录、不过期；`releases/latest` 不含预发布版，所以不用）；
+  CI 不再注入 Actions 运行页地址。
+- 发布方式：功能分支 `--no-ff` 合并到 main 并推送（不 force push）；用 main 上 CI 产出的正式签名 APK
+  （本地核对签名证书与版本号后）创建 GitHub 预发布版 `v0.2.0-beta.1`。iOS 本次不发布。

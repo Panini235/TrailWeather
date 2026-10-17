@@ -798,10 +798,10 @@
     "T-165",
     "T-158"
    ],
-   "status": "todo",
+   "status": "in_progress",
    "acceptance": "版本 0.2.0-beta.1 + CHANGELOG；GitHub Release 附正式签名 APK（公开发布前由用户确认）；分享图二维码改指 releases/latest；至少一台 Android 真机冒烟记录",
    "verify": "Release 页面、APK 签名指纹、真机记录",
-   "result": ""
+   "result": "2026-10-17：用户要求发布；徒步星球隐藏、高德保留并注明、不做真机冒烟（D-036）。"
   },
   {
    "id": "T-167",

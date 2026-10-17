@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'weather_models.dart';
 import 'weather_provider.dart';
+import '../../core/app_links.dart';
 
 /// MET Norway Locationforecast 2.0 (complete) 适配器。
 ///
@@ -26,7 +27,7 @@ class MetNorwayProvider extends WeatherProvider {
 
   static const _host = 'api.met.no';
   static const _userAgent =
-      'TrailWeather/0.1.0 (github.com/Panini235/TrailWeather; contact: via repository)';
+      'TrailWeather/$kAppVersion (github.com/Panini235/TrailWeather; contact: via repository)';
 
   @override
   ProviderCapabilities get caps => ProviderCapabilities(

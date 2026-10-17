@@ -16,8 +16,6 @@ import 'package:trailweather/ui/strings.dart';
 
 import '../integration/core_flow_test.dart' show IntegrationFakeProvider;
 
-
-
 class _DeniedLocationService implements LocationService {
   @override
   Future<LocationFix> currentPosition({
