@@ -186,7 +186,9 @@ class _SplashOverlayState extends ConsumerState<SplashOverlay>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _skip,
-                child: ColoredBox(
+                // 开屏盖在路由之上，没有 Scaffold：用 Material 提供文字样式与按钮墨水，
+                // 否则 Text 会落到 WidgetsApp 的报错样式（黄色双下划线，真机发现）。
+                child: Material(
                   color: background,
                   child: SafeArea(
                     child: Stack(

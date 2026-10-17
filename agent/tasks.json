@@ -757,7 +757,7 @@
       "status": "done",
       "acceptance": "引导页展示摘要与全文入口；同意项默认不勾选，未勾选不能继续；未同意前不能返回关闭；同意版本持久化，版本提升后老用户再次确认；同意前收到的外部文件不解析；App 内全文与 docs/privacy.md 一致",
       "verify": "test/widget/onboarding_screen_test.dart；test/widget/trips_shell_test.dart（首启外部文件、老用户再次确认）",
-      "result": "2026-10-16：本地 analyze 0、test 297/297"
+      "result": "2026-10-16：本地 analyze 0、test 297/297 2026-10-17 真机：首次启动显示同意框（默认不勾选），勾选后进入首页。"
     },
     {
       "id": "T-163",
@@ -767,7 +767,7 @@
       "status": "done",
       "acceptance": "地图打开时的自动定位只检查权限（已授权才定位，失败静默）；系统授权只在用户点击定位时请求；拒绝后其余功能可用",
       "verify": "test/unit/location_service_test.dart（只检查不请求）；test/widget/map_home_location_test.dart（自动=false、手动=true）",
-      "result": "2026-10-16：本地全绿"
+      "result": "2026-10-16：本地全绿 2026-10-17 真机：正式签名版打开地图不弹授权框，权限保持未授予；点击定位按钮才请求。"
     },
     {
       "id": "T-164",
@@ -811,7 +811,7 @@
       "status": "done",
       "acceptance": "系统启动页与 Flutter 首帧同底色，无白屏；当天首次完整约 1.1 秒并有“跳过动画”，再次启动 0.25 秒淡入，减少动效/低耗电静态，Web 不播；播完移除且零帧；太阳/月亮只读本地时钟",
       "verify": "test/unit/splash_art_test.dart；test/widget/splash_overlay_test.dart；临时渲染关键帧目视核对；Android 资源编译与真机观感待批次 CI 与 B-002",
-      "result": "2026-10-17：本地 analyze 0、test 308/308；关键帧渲染核对（日出、正午、夜间深色）。原生启动页资源尚未经 CI 编译，等本批 UI 重构结束一起跑。"
+      "result": "2026-10-17：本地 analyze 0、test 308/308；关键帧渲染核对（日出、正午、夜间深色）。原生启动页资源尚未经 CI 编译，等本批 UI 重构结束一起跑。 2026-10-17 真机（小米 12S，深色模式，本机 profile 构建）：系统启动页只显示底色，没有图标闪现；完整版组装顺序正确，“跳过动画”按钮可见；当天第二次打开只淡入；Android 启动页资源本机编译通过。真机发现字标落到 WidgetsApp 报错样式（黄色双下划线，开屏层没有 Material 祖先），已改用 Material 并补测试（修复前失败、修复后通过）。从点开到 Flutter 首帧约有 0.6 秒深色空白，属于引擎启动时间。"
     }
   ]
 }

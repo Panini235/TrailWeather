@@ -54,3 +54,7 @@ example/
 # Local browser verification sessions
 .playwright-cli/
 __pycache__/
+
+# 本地 flutter create 生成、未被引用的文件（CI 每次重新生成）
+/.metadata
+/web/icons/Icon-maskable-*.png

@@ -541,3 +541,12 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 **验证**：flutter analyze 0；flutter test 308/308；apply_branding 在新生成的模板工程上验证 Android 和 iOS 补丁。
 **未验证**：原生启动页资源的实际编译（等本批 CI）；真机观感（B-002）。本轮按用户要求未单独触发 CI。
 
+### Round 27 补充 — 本机 Android 工具链与真机验证
+
+- 用户选择安装 Android SDK，Xcode 暂缓（用户那边下载太慢）。命令行工具用 Homebrew 安装；platform-tools、platform 36、build-tools 36.0.0 和 NDK r28c 从腾讯云镜像分段下载，并用 Google 官方仓库的 SHA-1 逐个校验；Gradle 9.3.1 从镜像下载，用官方 SHA-256 校验；CMake 由 Gradle 按需安装。用户同意后接受了 Android SDK 许可。
+- `configure_release.py`：debug / profile 构建使用 `.dev` 应用 ID 后缀。Flutter 插件在 `android {}` 之前就按 debug 复制出 profile，所以 profile 单独设置后缀。
+- 真机验证：正式签名版冷启动 TotalTime 约 536 ms；首启隐私同意流程正常；打开地图不弹定位授权；开屏的完整版和短版都正常。真机上发现并修复了字标的报错样式。
+- `.gitignore`：忽略本地 `flutter create` 生成、未被引用的 `.metadata` 和 `Icon-maskable-*.png`。
+
+**验证**：flutter analyze 0；flutter test 309/309；本机 profile 构建通过（Android 启动页资源编译通过），在真机上逐帧核对。
+

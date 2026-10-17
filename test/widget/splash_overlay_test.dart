@@ -81,6 +81,22 @@ void main() {
     _expectIdle();
   });
 
+  testWidgets('字标使用正常文字样式（不是缺少 Material 时的黄色双下划线）', (tester) async {
+    await _pump(tester, await _prefs());
+    await tester.pump(SplashArt.fullDuration);
+    final rich = tester.widget<RichText>(
+      find.descendant(
+        of: find.byType(SplashOverlay),
+        matching: find.byWidgetPredicate(
+          (w) => w is RichText && w.text.toPlainText() == S.appTitle,
+        ),
+      ),
+    );
+    final decoration = rich.text.style?.decoration;
+    expect(decoration == null || decoration == TextDecoration.none, isTrue);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('完整版不点跳过：1.6 秒内结束', (tester) async {
     await _pump(tester, await _prefs());
     expect(await tester.pumpAndSettle(), lessThanOrEqualTo(16));
