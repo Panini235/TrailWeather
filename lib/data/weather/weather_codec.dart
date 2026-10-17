@@ -24,6 +24,7 @@ abstract final class WeatherCodec {
         'lat': p.lat,
         'lon': p.lon,
         'sunsets': [for (final t in p.dailySunsetsUtc) t.toIso8601String()],
+        'sunrises': [for (final t in p.dailySunrisesUtc) t.toIso8601String()],
         'hours': hours,
         'prov': _provToJson(p.provenance),
       });
@@ -74,6 +75,10 @@ abstract final class WeatherCodec {
             provenance: _provFromJson((p['prov'] as Map<String, dynamic>)),
             dailySunsetsUtc: [
               for (final t in (p['sunsets'] as List?) ?? const [])
+                DateTime.parse(t as String),
+            ],
+            dailySunrisesUtc: [
+              for (final t in (p['sunrises'] as List?) ?? const [])
                 DateTime.parse(t as String),
             ],
           ),

@@ -29,6 +29,7 @@ class AppSettings {
     this.privacyAcceptedVersion = 0,
     this.elevationLapseRateCorrection = true,
     this.routeMapLayerId = '',
+    this.coldSensitivity = 0,
   });
 
   /// 隐私说明版本。说明内容有实质变化时 +1，已同意旧版的用户会再次看到并确认。
@@ -98,6 +99,9 @@ class AppSettings {
   /// （等高线 / 地形晕渲，见 lib/ui/detail/detail_map.dart）。
   final String routeMapLayerId;
 
+  /// 穿衣建议的体感偏好：-1 怕冷、0 适中、1 怕热（体感阈值平移 ±3 ℃）。
+  final int coldSensitivity;
+
   AppSettings copyWith({
     DepartureThresholds? departureThresholds,
     bool? imperial,
@@ -118,6 +122,7 @@ class AppSettings {
     int? privacyAcceptedVersion,
     bool? elevationLapseRateCorrection,
     String? routeMapLayerId,
+    int? coldSensitivity,
   }) => AppSettings(
     departureThresholds: departureThresholds ?? this.departureThresholds,
     imperial: imperial ?? this.imperial,
@@ -141,6 +146,7 @@ class AppSettings {
     elevationLapseRateCorrection:
         elevationLapseRateCorrection ?? this.elevationLapseRateCorrection,
     routeMapLayerId: routeMapLayerId ?? this.routeMapLayerId,
+    coldSensitivity: coldSensitivity ?? this.coldSensitivity,
   );
 
   Map<String, dynamic> toJson() => {
@@ -163,6 +169,7 @@ class AppSettings {
     'privacyAcceptedVersion': privacyAcceptedVersion,
     'elevationLapseRateCorrection': elevationLapseRateCorrection,
     'routeMapLayerId': routeMapLayerId,
+    'coldSensitivity': coldSensitivity,
   };
 
   static AppSettings fromJson(Map<String, dynamic> m) => AppSettings(
@@ -198,6 +205,7 @@ class AppSettings {
     elevationLapseRateCorrection:
         m['elevationLapseRateCorrection'] as bool? ?? true,
     routeMapLayerId: m['routeMapLayerId'] as String? ?? '',
+    coldSensitivity: ((m['coldSensitivity'] as num?)?.toInt() ?? 0).clamp(-1, 1),
   );
 
   /// 旧版只有一个 `tiandituKey`，无法离线判断它是服务端还是浏览器端类型
@@ -260,6 +268,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   Future<void> setRouteMapLayer(String id) =>
       update(state.copyWith(routeMapLayerId: id));
+
+  Future<void> setColdSensitivity(int v) =>
+      update(state.copyWith(coldSensitivity: v.clamp(-1, 1)));
 
   Future<void> setLapseRateCorrection(bool v) =>
       update(state.copyWith(elevationLapseRateCorrection: v));

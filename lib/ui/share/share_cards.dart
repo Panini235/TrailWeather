@@ -5,7 +5,9 @@ import '../../data/routes/route_models.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/departure_windows.dart';
 import '../../data/weather/risk_rules.dart';
+import '../../data/weather/layering.dart';
 import '../detail/detail_state.dart';
+import '../detail/layering_card.dart' show LayerFigurePainter;
 import '../../data/weather/node_wx_class.dart';
 import '../../data/weather/weather_models.dart';
 import '../../data/weather/weather_phenomena.dart';
@@ -76,9 +78,15 @@ class RouteShareCard extends StatelessWidget {
     required this.sourceName,
     required this.fetchedAtUtc,
     this.layout = ShareLayout.full,
+    this.sunriseUtc,
+    this.sunsetUtc,
   });
 
   final ShareLayout layout;
+
+  /// 出发日日出、日落（行程模式且来源提供时），用于穿衣建议里的头灯判断。
+  final DateTime? sunriseUtc;
+  final DateTime? sunsetUtc;
   final HikingRoute route;
   final String timeLabel;
   final bool tripMode;
@@ -206,10 +214,17 @@ class RouteShareCard extends StatelessWidget {
       ],
     );
 
+    final plan = planLayers(
+      entries: rowsToEntries(rows),
+      sunriseUtc: sunriseUtc,
+      sunsetUtc: sunsetUtc,
+      coldSensitivity: settings.coldSensitivity,
+    );
     final body = switch (layout) {
       ShareLayout.full => [
         stats,
         hintsView,
+        ?(plan == null ? null : _gearRow(plan, muted)),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [sketch, const SizedBox(height: 6), ?profile],
@@ -258,6 +273,70 @@ class RouteShareCard extends StatelessWidget {
     );
   }
 
+  /// 穿衣一行（长图）：出发时穿着的、背包里备着的、配件；左侧小人形与 App 内一致。
+  Widget _gearRow(LayerPlan plan, Color muted) {
+    final worn = [
+      for (final l in plan.layers)
+        if (l.wear[LayerScene.start] == Wear.worn) l.name,
+    ];
+    final packed = [
+      for (final l in plan.layers)
+        if (l.wear[LayerScene.start] == Wear.packed) l.name,
+    ];
+    final wet = plan.layer(LayerKind.shell)?.name == '防水硬壳';
+    double st(LayerKind k) => switch (plan.layer(k)?.wear[LayerScene.start]) {
+      Wear.worn => 1.0,
+      Wear.packed => 0.5,
+      _ => 0.0,
+    };
+    Widget line(String head, List<String> items) => Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$head  ',
+            style: TextStyle(fontSize: 11, color: muted),
+          ),
+          TextSpan(text: items.join(' · ')),
+        ],
+      ),
+      style: const TextStyle(fontSize: 12.5, height: 1.45),
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 50,
+          child: CustomPaint(
+            painter: LayerFigurePainter(
+              states: [
+                st(LayerKind.base),
+                st(LayerKind.mid),
+                st(LayerKind.shell),
+              ],
+              shellColor: wet ? Semantic.route : const Color(0xFF5B6B78),
+              outline: const Color(0xFF121915),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (worn.isNotEmpty) line('出发穿', worn),
+              if (packed.isNotEmpty) line('背包带', packed),
+              if (plan.accessories.isNotEmpty)
+                line('配件', [
+                  for (final a in plan.accessories) accessoryLabel(a.item),
+                ]),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _stat(
     BuildContext context,
     IconData icon,
@@ -267,41 +346,48 @@ class RouteShareCard extends StatelessWidget {
   ) {
     final scheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: scheme.primary),
-              const SizedBox(width: 3),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: scheme.onSurfaceVariant,
+      // 右侧留白：横图窄栏里数值缩小后也不会挤在一起。
+      child: Padding(
+        padding: const EdgeInsets.only(right: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 14, color: scheme.primary),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            // 窄栏（横图）与大字号下等比缩小，不截断数值。
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ],
-          ),
-          // 窄栏（横图）与大字号下等比缩小，不截断数值。
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
-          ),
-          if (sub != null)
-            Text(
-              sub,
-              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
-            ),
-        ],
+            if (sub != null)
+              Text(
+                sub,
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+              ),
+          ],
+        ),
       ),
     );
   }

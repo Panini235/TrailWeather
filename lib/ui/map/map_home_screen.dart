@@ -31,6 +31,8 @@ import '../weather_refresh_clock.dart';
 import '../widgets/common.dart';
 import '../tokens.dart';
 import '../../core/coord_parse.dart';
+import '../../data/weather/weather_field.dart';
+import 'weather_map_overlay.dart';
 
 /// 地图首页：地图浏览 → 线路发现 → 进入详情。
 ///
@@ -75,6 +77,13 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   String? _myWxText;
   String? _myWxSource;
   late final WeatherRefreshClock _weatherClock;
+
+  /// 天气图（降水 / 云量 / 卫星云图）。
+  late final WeatherMapController _wxMap = WeatherMapController(
+    fieldService: ref.read(weatherFieldServiceProvider),
+    satelliteService: ref.read(satelliteFrameServiceProvider),
+    now: ref.read(weatherNowProvider),
+  );
   StreamSubscription<RouteWeatherBundle>? _myWeatherSubscription;
   int _weatherGeneration = 0;
 
@@ -98,6 +107,21 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   }
 
   Basemap get _basemap => Basemap.fromSettings(ref.read(settingsProvider));
+
+  void _reportWxView() {
+    if (!_wxMap.active) return;
+    try {
+      final cam = _mapController.camera;
+      final (s, w, n, e) = _bbox;
+      _wxMap.onView(
+        FieldBounds(south: s, west: w, north: n, east: e),
+        cam.zoom,
+        cam.size.height == 0 ? 0.5 : cam.size.width / cam.size.height,
+      );
+    } catch (_) {
+      // 地图尚未就绪：等第一次相机事件。
+    }
+  }
 
   void _onTapMap(TapPosition pos, LatLng displayPoint) {
     // 点击线路时由 PolylineLayer 的命中通知器处理，不同时弹出点位天气。
@@ -605,6 +629,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
 
   @override
   void dispose() {
+    _wxMap.dispose();
     _weatherGeneration++;
     _myWeatherSubscription?.cancel();
     _weatherClock.dispose();
@@ -651,9 +676,20 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               ),
               onMapReady: _autoLocate,
               onTap: _onTapMap,
+              // 天气图：每次相机事件都报一次视野，控制器自己去抖（拖动中不请求）。
+              onMapEvent: (_) => _reportWxView(),
             ),
             children: [
               ...basemap.tileLayers(),
+              ListenableBuilder(
+                listenable: _wxMap,
+                builder: (context, _) {
+                  final layers = weatherMapLayers(_wxMap, basemap);
+                  return layers.isEmpty
+                      ? const SizedBox.shrink()
+                      : Stack(children: layers);
+                },
+              ),
               GestureDetector(
                 behavior: HitTestBehavior.deferToChild,
                 onTap: () {
@@ -787,6 +823,14 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    WeatherMapButton(
+                      controller: _wxMap,
+                      onPressed: () {
+                        _wxMap.toggle();
+                        _reportWxView();
+                      },
+                    ),
+                    const SizedBox(height: 10),
                     const MapLayerButton(),
                     const SizedBox(height: 10),
                     FloatingActionButton.small(
@@ -813,6 +857,21 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               ),
             ),
           ),
+
+          // 底部天气图面板（选中线路时让位给线路卡）
+          if (_selected == null)
+            ListenableBuilder(
+              listenable: _wxMap,
+              builder: (context, _) => _wxMap.active
+                  ? Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                        child: WeatherMapPanel(controller: _wxMap),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
 
           // 底部选中线路卡
           if (_selected != null)

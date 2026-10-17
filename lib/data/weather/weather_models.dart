@@ -29,7 +29,27 @@ enum WxVar {
   snowfall('cm'),
 
   /// 0℃ 层海拔（Open-Meteo freezing_level_height，m）。
-  freezingLevel('m');
+  freezingLevel('m'),
+
+  /// 紫外线指数（含云量影响的预报值）。
+  uvIndex('UV'),
+
+  /// 晴空紫外线指数：假设无云时的值，不是预报值（MET 只提供这一项）。
+  uvIndexClearSky('UV'),
+
+  /// 低云量（约 2 km 以下，含雾）、中云量（约 2–6 km）、高云量（约 6 km 以上）。
+  cloudLow('%'),
+  cloudMid('%'),
+  cloudHigh('%'),
+
+  /// 2 m 露点温度；与气温之差越小越接近饱和（雾、低云）。
+  dewPoint('°C'),
+
+  /// 模式积雪深度（m）；山区为模型估计，与实际雪况可能差别很大。
+  snowDepth('m'),
+
+  /// 对流有效位能（J/kg）：大气不稳定程度，雷阵雨的潜势而非预报。
+  cape('J/kg');
 
   const WxVar(this.stdUnit);
   final String stdUnit;
@@ -49,6 +69,14 @@ enum WxVar {
     snowFraction => '降雪占比',
     snowfall => '降雪量',
     freezingLevel => '0℃ 层高度',
+    uvIndex => '紫外线',
+    uvIndexClearSky => '晴空紫外线',
+    cloudLow => '低云',
+    cloudMid => '中云',
+    cloudHigh => '高云',
+    dewPoint => '露点',
+    snowDepth => '积雪深度',
+    cape => '对流潜势',
   };
 }
 
@@ -283,6 +311,7 @@ class WxPointForecast {
     required this.hours,
     required this.provenance,
     this.dailySunsetsUtc = const [],
+    this.dailySunrisesUtc = const [],
   });
 
   final double lat;
@@ -293,12 +322,29 @@ class WxPointForecast {
   /// 逐日日落（UTC，升序；Open-Meteo daily sunset，MET 未提供 → 空）。
   final List<DateTime> dailySunsetsUtc;
 
+  /// 逐日日出（UTC，升序；来源未提供 → 空）。
+  final List<DateTime> dailySunrisesUtc;
+
   /// [utc] 之后的第一次日落（如出发后的当天日落）；来源未提供则 null。
   DateTime? nextSunsetAfter(DateTime utc) {
     for (final s in dailySunsetsUtc) {
       if (s.isAfter(utc)) return s;
     }
     return null;
+  }
+
+  /// 离 [utc] 最近、且相差不超过 12 小时的日出（即“出发那天”的日出）；
+  /// 来源未提供则 null。
+  DateTime? sunriseNear(DateTime utc) {
+    DateTime? best;
+    for (final s in dailySunrisesUtc) {
+      final d = s.difference(utc).abs();
+      if (d <= const Duration(hours: 12) &&
+          (best == null || d < best.difference(utc).abs())) {
+        best = s;
+      }
+    }
+    return best;
   }
 
   DateTime? get firstValidUtc =>

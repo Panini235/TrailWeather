@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'weather_models.dart';
 import 'weather_provider.dart';
 
-/// MET Norway Locationforecast 2.0 (compact) 适配器。
+/// MET Norway Locationforecast 2.0 (complete) 适配器。
 ///
 /// 实测与文档核验（2026-10-13，见 docs/data-sources.md）：
 /// - 免费无密钥；服务条款要求请求方以 User-Agent 标识自身；
@@ -15,7 +15,9 @@ import 'weather_provider.dart';
 /// - 浏览器禁止自定义 User-Agent（浏览器安全机制），Web 端标识能力受限，
 ///   caps.browserNotes 如实说明，Web 端实际请求可能被服务方拒绝；
 /// - 单坐标请求（无批量）；
-/// - compact 响应不提供：体感温度、降水概率、能见度、阵风（多数时段）→
+/// - complete 比 compact 多体感温度、露点、低/中/高云量、晴空紫外线（2026-10-17 实测）；
+///   紫外线只有晴空值（假设无云），记为 uvIndexClearSky，绝不当作紫外线预报；
+/// - 仍不提供：能见度、降水概率（北欧以外）、阵风（多数时段）→
 ///   相应变量保持 null，UI 显示“此来源未提供”；
 /// - 响应 geometry 为请求坐标原样，未提供实际网格中心；
 /// - meta.updated_at 可作为发布时间。
@@ -33,7 +35,7 @@ class MetNorwayProvider extends WeatherProvider {
     displayName: 'MET Norway（Locationforecast 2.0）',
     modelOrNetwork: 'HARMONIE（北欧）/ ECMWF（全球）混合，响应未标注具体模型',
     coverage: '全球（北欧区域分辨率更高）',
-    forecastHorizonDays: 3, // compact 实测约 2–3 天逐时
+    forecastHorizonDays: 3, // complete 实测约 2.5 天逐时，之后为 6 小时步长
     intervalHours: 1,
     batchCoordinates: false,
     maxPointsPerRequest: 1,
@@ -48,12 +50,18 @@ class MetNorwayProvider extends WeatherProvider {
     attribution: '天气数据：MET Norway, CC BY 4.0 / NLOD',
     supportedVars: const [
       WxVar.temperature,
+      WxVar.apparentTemp,
       WxVar.precip,
       WxVar.windSpeed,
       WxVar.windGust, // 仅部分时次提供
       WxVar.windDir,
       WxVar.humidity,
       WxVar.cloudCover,
+      WxVar.cloudLow,
+      WxVar.cloudMid,
+      WxVar.cloudHigh,
+      WxVar.dewPoint,
+      WxVar.uvIndexClearSky,
       WxVar.pressure,
     ],
     minRequestIntervalMs: 250,
@@ -76,7 +84,7 @@ class MetNorwayProvider extends WeatherProvider {
       final uri = Uri(
         scheme: 'https',
         host: _host,
-        path: '/weatherapi/locationforecast/2.0/compact',
+        path: '/weatherapi/locationforecast/2.0/complete',
         queryParameters: {
           'lat': p.latitude.toStringAsFixed(4),
           'lon': p.longitude.toStringAsFixed(4),
@@ -130,6 +138,13 @@ class MetNorwayProvider extends WeatherProvider {
       values[WxVar.humidity] = d('relative_humidity');
       values[WxVar.cloudCover] = d('cloud_area_fraction');
       values[WxVar.pressure] = d('air_pressure_at_sea_level');
+      values[WxVar.apparentTemp] = d('apparent_air_temperature');
+      values[WxVar.dewPoint] = d('dew_point_temperature');
+      values[WxVar.cloudLow] = d('cloud_area_fraction_low');
+      values[WxVar.cloudMid] = d('cloud_area_fraction_medium');
+      values[WxVar.cloudHigh] = d('cloud_area_fraction_high');
+      // 晴空值 ≠ 紫外线预报：只写入 uvIndexClearSky，uvIndex 保持 null。
+      values[WxVar.uvIndexClearSky] = d('ultraviolet_index_clear_sky');
 
       final next1 = data['next_1_hours'] as Map<String, dynamic>?;
       final n1Details = next1?['details'] as Map<String, dynamic>?;
@@ -141,7 +156,7 @@ class MetNorwayProvider extends WeatherProvider {
           (next1?['summary'] as Map<String, dynamic>?)?['symbol_code'];
       if (symbol is String) symbols['met_symbol'] = symbol;
 
-      // 本来源未提供：apparentTemp / visibility 保持 null（绝不用 0 冒充）。
+      // 本来源未提供：visibility / uvIndex 保持 null（绝不用 0 冒充）。
       hours.add(WxHourValue(validFromUtc: t, values: values, symbols: symbols));
     }
     hours.sort((a, b) => a.validFromUtc.compareTo(b.validFromUtc));
@@ -156,7 +171,7 @@ class MetNorwayProvider extends WeatherProvider {
       returnedLat: null,
       returnedLon: null,
       locationDetail: '返回坐标为请求坐标原样；实际网格中心未提供',
-      elevationUsedM: null, // compact 响应未提供来源使用海拔
+      elevationUsedM: null, // 响应未提供来源使用海拔
       granularity: caps.granularity,
       spatialResolutionNote: caps.spatialResolutionNote,
       dataKind: caps.dataKind,

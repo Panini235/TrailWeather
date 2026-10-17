@@ -37,6 +37,14 @@ class OpenMeteoProvider extends WeatherProvider {
     'surface_pressure': WxVar.pressure,
     'snowfall': WxVar.snowfall, // cm（前一小时新增雪深）
     'freezing_level_height': WxVar.freezingLevel, // m
+    'uv_index': WxVar.uvIndex, // ECMWF 等部分模型返回空 → null
+    'uv_index_clear_sky': WxVar.uvIndexClearSky,
+    'cloud_cover_low': WxVar.cloudLow,
+    'cloud_cover_mid': WxVar.cloudMid,
+    'cloud_cover_high': WxVar.cloudHigh,
+    'dew_point_2m': WxVar.dewPoint,
+    'snow_depth': WxVar.snowDepth, // m
+    'cape': WxVar.cape, // J/kg
   };
 
   @override
@@ -140,7 +148,7 @@ class OpenMeteoProvider extends WeatherProvider {
         'hourly': [..._hourlyVars.keys, 'weather_code'].join(','),
         if (elevations != null)
           'elevation': elevations.map((e) => e.round()).join(','),
-        'daily': 'sunset',
+        'daily': 'sunrise,sunset',
         'timezone': 'UTC',
         'forecast_days': '$days',
         'models': model,
@@ -234,14 +242,14 @@ class OpenMeteoProvider extends WeatherProvider {
       );
     }
 
-    // 保留每一天的日落；取哪一天由调用方按出发时间决定（不能默认取“今天”）。
-    final sunsets = <DateTime>[];
+    // 保留每一天的日出日落；取哪一天由调用方按出发时间决定（不能默认取“今天”）。
     final daily = m['daily'] as Map<String, dynamic>?;
-    final s = daily?['sunset'] as List?;
-    for (final raw in s ?? const []) {
-      final t = raw is String ? _parseUtcHour(raw) : null;
-      if (t != null) sunsets.add(t);
-    }
+    List<DateTime> dailyTimes(String key) => [
+      for (final raw in (daily?[key] as List?) ?? const [])
+        ?(raw is String ? _parseUtcHour(raw) : null),
+    ];
+    final sunsets = dailyTimes('sunset');
+    final sunrises = dailyTimes('sunrise');
 
     final prov = WxProvenance(
       providerId: caps.providerId,
@@ -277,6 +285,7 @@ class OpenMeteoProvider extends WeatherProvider {
       hours: series,
       provenance: prov,
       dailySunsetsUtc: sunsets,
+      dailySunrisesUtc: sunrises,
     );
   }
 

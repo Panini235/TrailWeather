@@ -16,6 +16,8 @@ import 'weather/meteoblue_provider.dart';
 import 'weather/meteoblue_settings.dart';
 import 'weather/open_meteo_provider.dart';
 import 'weather/qweather_provider.dart';
+import 'weather/satellite_frames.dart';
+import 'weather/weather_field.dart';
 import 'weather/weather_provider.dart';
 import 'weather/weather_repository.dart';
 
@@ -58,6 +60,15 @@ final airQualityServiceProvider = Provider<AirQualityService>(
 
 final altitudeProfileServiceProvider = Provider<AltitudeProfileService>(
   (ref) => AltitudeProfileService(),
+);
+
+/// 地图页天气图：降水/云量格点场（Open-Meteo）与卫星云图帧（NASA GIBS）。
+final weatherFieldServiceProvider = Provider<WeatherFieldService>(
+  (ref) => WeatherFieldService(),
+);
+
+final satelliteFrameServiceProvider = Provider<SatelliteFrameService>(
+  (ref) => SatelliteFrameService(),
 );
 
 /// 自动请求（线路天气、首页位置天气）用的主来源：已启用、且不是按次计费的按需来源。

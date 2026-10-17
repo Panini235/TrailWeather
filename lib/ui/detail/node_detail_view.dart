@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../core/units.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
+import '../../data/weather/wx_importance.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 import 'detail_state.dart';
 import 'environment_cards.dart';
+import 'meteogram.dart';
 import 'node_detail_sheet.dart';
 import 'node_photos.dart';
 import 'weather_cells.dart';
@@ -113,13 +114,32 @@ class _NodeDetailViewState extends State<NodeDetailView> {
         // 先回答“到这里时天气怎样”：4 个关键值放大，其余指标收进“更多指标”。
         if (wx == null)
           const GranularityNotice(text: '此来源在该时刻没有数据（超出预报范围或来源未提供）。')
-        else
+        else ...[
           KeyWeatherValues(wx: wx, settings: widget.settings),
-        if (_freezingNote(wx, node.elevationM) case final note?)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(note, style: const TextStyle(fontSize: 12)),
+          // 准备层只在触发时升上来（紫外线很高、高于 0℃ 层、低云……）。
+          if (signalsFor(wx, elevationM: node.elevationM) case final sig
+              when sig.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            WxSignalChips(signals: sig),
+          ],
+        ],
+        if (row.point case final point?) ...[
+          const SizedBox(height: 14),
+          Text(
+            S.meteogramTitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
+          const SizedBox(height: 4),
+          NodeMeteogram(
+            key: ValueKey('mg-$_idx-${row.validUtc}'),
+            point: point,
+            arrivalUtc: row.validUtc,
+            settings: widget.settings,
+          ),
+        ],
         const SizedBox(height: 10),
         AltitudeWeatherCard(
           key: ValueKey('alt-$_idx-${row.validUtc}'),
@@ -131,8 +151,20 @@ class _NodeDetailViewState extends State<NodeDetailView> {
         ),
         const SizedBox(height: 4),
         if (wx != null)
-          _fold(S.moreMetrics, WxVarGrid(wx: wx, settings: widget.settings)),
-        _fold(S.next12h, _NextHours(row: row, settings: widget.settings)),
+          _fold(
+            S.moreMetrics,
+            WxVarGrid(
+              wx: wx,
+              settings: widget.settings,
+              exclude: const {
+                WxVar.temperature,
+                WxVar.apparentTemp,
+                WxVar.precip,
+                WxVar.precipProb,
+                WxVar.windGust,
+              },
+            ),
+          ),
         _fold(
           S.airQualityTitle,
           AirQualityCard(
@@ -252,16 +284,6 @@ class _NodeDetailViewState extends State<NodeDetailView> {
     return (eles.first, eles.last);
   }
 
-  /// 节点海拔与来源 0℃ 层高度的关系（来源提供时才给出）。
-  static String? _freezingNote(WxHourValue? wx, double? nodeEle) {
-    final fz = wx?.values[WxVar.freezingLevel];
-    if (fz == null || nodeEle == null) return null;
-    final diff = nodeEle - fz;
-    return diff >= 0
-        ? '本节点（${nodeEle.toStringAsFixed(0)} m）高于 0℃ 层约 ${diff.toStringAsFixed(0)} m：可能结冰或降雪（0℃ 层为模型估计）。'
-        : '本节点（${nodeEle.toStringAsFixed(0)} m）低于 0℃ 层约 ${(-diff).toStringAsFixed(0)} m（0℃ 层为模型估计）。';
-  }
-
   static String _fmtLocal(DateTime utc) {
     final t = utc.toLocal();
     return '${t.month}月${t.day}日 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -273,83 +295,3 @@ String _shortLabel(WaypointType t) => waypointTypeLabel(t).split(' ').first;
 
 /// 默认标记名称（用户可改）。
 String defaultWaypointName(WaypointType t) => _shortLabel(t);
-
-class _NextHours extends StatelessWidget {
-  const _NextHours({required this.row, required this.settings});
-
-  final NodeWxRow row;
-  final AppSettings settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final point = row.point;
-    final from = DateTime.utc(
-      row.validUtc.year,
-      row.validUtc.month,
-      row.validUtc.day,
-      row.validUtc.hour,
-    );
-    final hours = point == null
-        ? const <WxHourValue>[]
-        : point.hours
-              .where((h) => !h.validFromUtc.isBefore(from))
-              .take(12)
-              .toList();
-    if (hours.isEmpty) {
-      return const Text('此来源没有该时段之后的逐时数据。', style: TextStyle(fontSize: 12));
-    }
-    String fmt(double? v, String Function(double) f) => v == null ? '—' : f(v);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowHeight: 28,
-        dataRowMinHeight: 26,
-        dataRowMaxHeight: 30,
-        columnSpacing: 14,
-        horizontalMargin: 4,
-        columns: [
-          const DataColumn(label: Text('')),
-          for (final h in hours)
-            DataColumn(
-              label: Text(
-                '${h.validFromUtc.toLocal().hour.toString().padLeft(2, '0')}时',
-                style: const TextStyle(fontSize: 11),
-              ),
-            ),
-        ],
-        rows: [
-          _row('温度', hours, (h) {
-            return fmt(
-              h.values[WxVar.temperature],
-              (x) => Units.temp(x, imperial: settings.imperial),
-            );
-          }),
-          _row('降水', hours, (h) {
-            return fmt(
-              h.values[WxVar.precip],
-              (x) => Units.precipMm(x, imperial: settings.imperial),
-            );
-          }),
-          _row('阵风', hours, (h) {
-            return fmt(
-              h.values[WxVar.windGust],
-              (x) => Units.windMs(x, unit: settings.windUnit),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  DataRow _row(
-    String name,
-    List<WxHourValue> hours,
-    String Function(WxHourValue) cell,
-  ) => DataRow(
-    cells: [
-      DataCell(Text(name, style: const TextStyle(fontSize: 11))),
-      for (final h in hours)
-        DataCell(Text(cell(h), style: const TextStyle(fontSize: 11))),
-    ],
-  );
-}

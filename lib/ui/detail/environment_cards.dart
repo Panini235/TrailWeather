@@ -8,6 +8,7 @@ import '../../data/settings/settings_repository.dart';
 import '../../data/weather/air_quality.dart';
 import '../../data/weather/altitude_profile.dart';
 import '../strings.dart';
+import '../widgets/common.dart';
 
 /// “同一地点不同海拔”卡片：Open-Meteo 按海拔统计降尺度的垂直剖面（模型估算，非实测）。
 ///
@@ -93,7 +94,7 @@ class _AltitudeWeatherCardState extends ConsumerState<AltitudeWeatherCard> {
                 children: [
                   header,
                   Text(
-                    '暂时无法获取：${snap.error}',
+                    '暂时无法获取：${fetchErrorText(snap.error!)}',
                     style: const TextStyle(fontSize: 12),
                   ),
                 ],
@@ -248,7 +249,7 @@ class _AirQualityCardState extends ConsumerState<AirQualityCard> {
                 const SizedBox(height: 4),
                 if (snap.hasError)
                   Text(
-                    '暂时无法获取：${snap.error}',
+                    '暂时无法获取：${fetchErrorText(snap.error!)}',
                     style: const TextStyle(fontSize: 12),
                   )
                 else if (h == null)

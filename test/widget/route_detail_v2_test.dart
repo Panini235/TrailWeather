@@ -130,8 +130,30 @@ void main() {
     await tester.tap(_tileTitle('起点 · 0.0 km'));
     await tester.pumpAndSettle();
     expect(find.text(S.markAs), findsOneWidget);
-    expect(find.text(S.next12h), findsOneWidget);
+    expect(find.text(S.meteogramTitle), findsOneWidget);
     expect(find.text(S.multiSourceCompare), findsOneWidget);
+  });
+
+  testWidgets('穿衣卡片：切换场景、怕冷偏好会加厚保暖层并保存', (tester) async {
+    final container = await _pump(tester);
+    expect(find.text(S.layeringTitle), findsOneWidget);
+    // 体感全程 13°：保暖层“薄抓绒”，出发时放背包
+    expect(find.text('薄抓绒'), findsOneWidget);
+    expect(find.text(S.layeringPacked), findsWidgets);
+
+    await tester.tap(find.textContaining('停留 '));
+    await tester.pumpAndSettle();
+    // 停留时保暖层穿上：不再有“背包”标记（降水概率 60% → 防水硬壳停留时也穿）
+    expect(find.text(S.layeringPacked), findsNothing);
+
+    await tester.tap(find.text(S.layeringColdy));
+    await tester.pumpAndSettle();
+    expect(container.read(settingsProvider).coldSensitivity, -1);
+    expect(find.text('抓绒衣'), findsOneWidget);
+
+    await tester.tap(find.text(S.layeringBasis));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('经验建议'), findsOneWidget);
   });
 
   testWidgets('把节点标为营地：保存到我的行程并出现在时间线', (tester) async {

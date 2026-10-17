@@ -1,7 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/wx_http.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/weather/weather_models.dart';
+import '../../data/weather/weather_provider.dart' show WxOutOfRange;
 import '../strings.dart';
 import '../tokens.dart';
 
@@ -426,4 +429,25 @@ class HelpText extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
   );
+}
+
+/// 把请求错误翻成一句人话（不含坐标与堆栈）；未知错误截短原文。
+String fetchErrorText(Object error) {
+  if (error is DioException) {
+    return switch (error.type) {
+      DioExceptionType.connectionError ||
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.sendTimeout => '网络不可用或连接超时',
+      DioExceptionType.badResponse =>
+        '来源返回错误（HTTP ${error.response?.statusCode ?? '?'}）',
+      DioExceptionType.cancel => '请求已取消',
+      _ => '请求失败',
+    };
+  }
+  if (error is SourceHttpException) return '来源返回错误（${error.message}）';
+  if (error is WxOutOfRange) return error.message;
+  if (error is FormatException) return '响应格式无法识别';
+  final text = error.toString();
+  return text.length > 120 ? '${text.substring(0, 120)}…' : text;
 }

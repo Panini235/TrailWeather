@@ -32,9 +32,17 @@ const openMeteoMultiPointFixture = '''
       "relative_humidity_2m": [40, 45],
       "cloud_cover": [20, 80],
       "visibility": [24000, 10000],
-      "surface_pressure": [1013, 1012]
+      "surface_pressure": [1013, 1012],
+      "uv_index": [0.25, 0.15],
+      "uv_index_clear_sky": [3.25, 3.75],
+      "cloud_cover_low": [100, 100],
+      "cloud_cover_mid": [100, 100],
+      "cloud_cover_high": [100, 98],
+      "dew_point_2m": [10.6, 10.9],
+      "snow_depth": [0.0, 0.0],
+      "cape": [0.0, 30.0]
     },
-    "daily": {"time": ["2026-10-13"], "sunset": ["2026-10-13T09:58"]}
+    "daily": {"time": ["2026-10-13"], "sunrise": ["2026-10-12T22:23"], "sunset": ["2026-10-13T09:58"]}
   },
   {
     "latitude": 40.0625,
@@ -71,16 +79,19 @@ const metNorwayFixture = '''
   "properties": {
     "meta": {
       "updated_at": "2026-10-13T11:24:26Z",
-      "units": {"air_temperature": "celsius", "wind_speed": "m/s", "precipitation_amount": "mm"}
+      "units": {"air_temperature": "celsius", "wind_speed": "m/s", "precipitation_amount": "mm", "ultraviolet_index_clear_sky": "1"}
     },
     "timeseries": [
       {
         "time": "2026-10-13T11:00:00Z",
         "data": {
           "instant": {"details": {
-            "air_temperature": 15.5, "wind_speed": 3.0,
+            "air_temperature": 15.5, "apparent_air_temperature": 14.4, "wind_speed": 3.0,
             "wind_from_direction": 273.8, "relative_humidity": 24.7,
-            "cloud_area_fraction": 0.0, "air_pressure_at_sea_level": 1022.2
+            "cloud_area_fraction": 0.0, "cloud_area_fraction_low": 0.0,
+            "cloud_area_fraction_medium": 0.0, "cloud_area_fraction_high": 0.0,
+            "dew_point_temperature": -4.6, "fog_area_fraction": 0.0,
+            "ultraviolet_index_clear_sky": 0.5, "air_pressure_at_sea_level": 1022.2
           }},
           "next_1_hours": {"summary": {"symbol_code": "clearsky_day"}, "details": {"precipitation_amount": 0.0}}
         }
@@ -149,6 +160,22 @@ void main() {
       expect(first.hours.first.values[WxVar.temperature], 12.5);
       expect(first.hours.first.values[WxVar.precipProb], 10);
       expect(first.dailySunsetsUtc, [DateTime.utc(2026, 10, 13, 9, 58)]);
+      expect(first.dailySunrisesUtc, [DateTime.utc(2026, 10, 12, 22, 23)]);
+      // 出发那天的日出：凌晨出发（日出前）同样取当天日出
+      expect(
+        first.sunriseNear(DateTime.utc(2026, 10, 12, 21)),
+        DateTime.utc(2026, 10, 12, 22, 23),
+      );
+      expect(first.sunriseNear(DateTime.utc(2026, 10, 14, 12)), isNull);
+      // 紫外线：预报值与晴空值是两个变量（阴天 0.25 vs 晴空 3.25）
+      final h0 = first.hours.first.values;
+      expect(h0[WxVar.uvIndex], 0.25);
+      expect(h0[WxVar.uvIndexClearSky], 3.25);
+      expect(h0[WxVar.cloudLow], 100);
+      expect(h0[WxVar.cloudHigh], 100);
+      expect(h0[WxVar.dewPoint], 10.6);
+      expect(h0[WxVar.snowDepth], 0.0);
+      expect(h0[WxVar.cape], 0.0);
       // 取“出发后的第一次日落”，而不是固定取第一天
       expect(
         first.nextSunsetAfter(DateTime.utc(2026, 10, 13, 1)),
@@ -171,6 +198,8 @@ void main() {
       expect(second.hours.first.values[WxVar.apparentTemp], isNull);
       expect(second.hours.first.values[WxVar.precip], isNull);
       expect(second.hours.first.values[WxVar.temperature], 11.5);
+      expect(second.hours.first.values[WxVar.uvIndex], isNull);
+      expect(second.dailySunrisesUtc, isEmpty);
     });
 
     test('缺失字段 fixture：全部保持 null，绝不为 0', () async {
@@ -283,7 +312,7 @@ void main() {
   });
 
   group('MetNorwayProvider 契约', () {
-    test('解析 compact 响应、溯源与缺失标注', () async {
+    test('解析 complete 响应、溯源与缺失标注', () async {
       Uri? seenUri;
       Map<String, String>? seenHeaders;
       final p = MetNorwayProvider(
@@ -303,6 +332,7 @@ void main() {
       // 非浏览器环境必须携带 User-Agent（服务条款要求）
       expect(seenHeaders?['User-Agent'], contains('TrailWeather'));
       expect(seenUri!.host, 'api.met.no');
+      expect(seenUri!.path, endsWith('/complete'));
 
       final pt = out.first;
       expect(pt.hours, hasLength(2));
@@ -311,10 +341,18 @@ void main() {
       expect(h0.values[WxVar.windSpeed], 3.0); // m/s 直存
       expect(h0.values[WxVar.precip], 0.0);
       expect(h0.symbols?['met_symbol'], 'clearsky_day');
-      // compact 无：体感温度 / 降水概率 / 能见度 / 气压（此 fixture 时次）
-      expect(h0.values[WxVar.apparentTemp], isNull);
+      // complete 多出的字段
+      expect(h0.values[WxVar.apparentTemp], 14.4);
+      expect(h0.values[WxVar.dewPoint], -4.6);
+      expect(h0.values[WxVar.cloudLow], 0.0);
+      // 只有晴空紫外线：不得写进紫外线预报
+      expect(h0.values[WxVar.uvIndexClearSky], 0.5);
+      expect(h0.values[WxVar.uvIndex], isNull);
+      // 仍无：降水概率 / 能见度
       expect(h0.values[WxVar.precipProb], isNull);
       expect(h0.values[WxVar.visibility], isNull);
+      // 第二时次缺体感温度 → null，不沿用上一时次
+      expect(pt.hours[1].values[WxVar.apparentTemp], isNull);
       // 第二时次有阵风
       expect(pt.hours[1].values[WxVar.windGust], 9.2);
 
@@ -345,7 +383,9 @@ void main() {
       final p = MetNorwayProvider();
       final c = p.caps;
       expect(c.requiresApiKey, isFalse);
-      expect(c.supports(WxVar.apparentTemp), isFalse);
+      expect(c.supports(WxVar.apparentTemp), isTrue);
+      expect(c.supports(WxVar.uvIndex), isFalse);
+      expect(c.supports(WxVar.uvIndexClearSky), isTrue);
       expect(c.supports(WxVar.precipProb), isFalse);
       expect(c.supports(WxVar.windGust), isTrue); // 部分时次提供
       expect(c.modelOverlapNote, contains('ECMWF'));

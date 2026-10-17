@@ -241,6 +241,40 @@ List<WxHint> computeHints({required List<NodeWeatherEntry> entries}) {
     );
   }
 
+  // ---- 紫外线（只用预报值；晴空值不是预报，不触发）----
+  double? maxUv;
+  double? uvTopEle;
+  var uvNodes = 0;
+  var uvOnSnow = false;
+  for (final e in withData) {
+    final uv = e.weather!.values[WxVar.uvIndex];
+    if (uv == null) continue;
+    if (maxUv == null || uv > maxUv) maxUv = uv;
+    if (uv >= 6) {
+      uvNodes++;
+      final ele = e.elevationM;
+      if (ele != null && (uvTopEle == null || ele > uvTopEle)) uvTopEle = ele;
+      final depth = e.weather!.values[WxVar.snowDepth];
+      if (depth != null && depth >= 0.01) uvOnSnow = true;
+    }
+  }
+  if (maxUv != null && maxUv >= 6) {
+    hints.add(
+      WxHint(
+        id: 'uv',
+        title: '紫外线${maxUv >= 8 ? '很强' : '较强'}',
+        detail:
+            '$uvNodes 个节点到达时紫外线 ≥ 6（最高约 ${maxUv.round()}）'
+            '${uvTopEle != null && uvTopEle >= 1500 ? '，高处实际可能更强' : ''}'
+            '${uvOnSnow ? '，且有积雪反光' : ''}；涂防晒、戴帽子和墨镜。',
+        basis:
+            '阈值：紫外线指数 ≥ 6（世界卫生组织“高”级）。海拔每升高约 1000 m 紫外线约增强 10%，'
+            '新雪可反射约 80%（世界卫生组织）；来源数值未按节点海拔修正。自行计算，非官方预警。',
+        level: maxUv >= 8 ? HintLevel.caution : HintLevel.info,
+      ),
+    );
+  }
+
   if (missingNodes > 0) {
     hints.add(
       WxHint(

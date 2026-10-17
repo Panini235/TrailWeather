@@ -151,7 +151,16 @@ abstract final class S {
   static const markSavedNew = '已保存到“我的行程”（含你的标记）';
   static const markTooFar = '离线路太远（超过 300 m），请在线路附近长按添加标记';
   static const longPressToMark = '长按线路附近任意位置可添加营地、休息点等标记';
-  static const next12h = '此节点未来 12 小时（当前来源）';
+  static const meteogramTitle = '未来 24 小时';
+  static const meteogramNoData = '此来源没有这一时段的逐时数据。';
+  static const meteogramTemp = '气温';
+  static const meteogramFeel = '体感';
+  static const meteogramPrecip = '降水量';
+  static const meteogramProb = '降水概率';
+  static const meteogramGust = '风向（颜色看阵风）';
+  static const signalsTitle = '需要留意';
+  static const tierPrepare = '准备';
+  static const tierReference = '参考';
   static const multiSourceCompare = '多来源对比';
   static const arrivalEstimate = '预计到达（估算）';
   static const fixedMoment = '选定时刻';
@@ -301,4 +310,44 @@ abstract final class S {
   static const feedbackOpenIssues = '去 GitHub 提交问题';
   static const feedbackIssuesNote = '提交 GitHub 问题需要登录 GitHub 账号；问题内容公开可见。';
   static const feedbackOpenFailed = '无法打开浏览器，链接已复制到剪贴板';
+
+  // 穿衣建议（洋葱法）
+  static const layeringTitle = '穿衣 · 洋葱法';
+  static const layeringNoData = '穿衣建议：此来源在选定时间没有气温，无法估计。';
+  static const layeringBasis = '依据';
+  static const layeringPacked = '背包';
+  static const layeringSensitivity = '体感偏好';
+  static const layeringColdy = '怕冷';
+  static const layeringNormal = '适中';
+  static const layeringWarmy = '怕热';
+  static const layeringDisclaimer =
+      '经验建议：按预报推算各段体感，不替代你对路况、海拔和自身状况的判断。'
+      '“停留”指沿途最冷处（山顶、垭口、午饭、等人）；出发时略凉为宜，爬升十几分钟后就会热。';
+  static const layeringShare = '穿衣';
+
+  // 天气图（地图页）
+  static const wxMapButton = '天气图';
+  static const wxMapPrecip = '降水';
+  static const wxMapCloud = '云量';
+  static const wxMapSatellite = '卫星云图';
+  static const wxMapTyphoon = '台风';
+  static const wxMapCloudAll = '全部';
+  static const wxMapCloudLow = '低云';
+  static const wxMapCloudMid = '中云';
+  static const wxMapCloudHigh = '高云';
+  static const wxMapPlay = '播放';
+  static const wxMapPause = '暂停';
+  static const wxMapLoading = '正在获取天气图…';
+  static const wxMapFailed = '天气图获取失败，稍后重试';
+  static const wxMapZoomIn = '放大到省市范围查看';
+  static const wxMapForecastNote = '模式预报 · Open-Meteo · 非雷达实况';
+  static const wxMapPrecipUnit = '前一小时降水 mm';
+  static const wxMapCloudUnit = '云量 %';
+  static const wxMapSatelliteNote = '红外云图（实况）· Himawari-9 · NASA GIBS';
+  static const wxMapSatelliteTime = '观测时间';
+  static const wxMapTyphoonNote = '路径预报 · 日本气象厅（RSMC 东京）';
+  static const wxMapInfo =
+      '降水、云量：Open-Meteo 模式预报，按网格点取值后在点间平滑显示，不是雷达或卫星实况；'
+      '降水为该时刻前一小时累计。卫星云图：日本 Himawari-9 红外通道，经 NASA GIBS 提供，'
+      '颜色越亮越冷，代表云顶越高；约 10 分钟一张，有 20–40 分钟延迟。';
 }

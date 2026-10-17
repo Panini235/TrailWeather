@@ -35,6 +35,7 @@ import '../map/map_layers_ui.dart';
 import '../map/route_camera.dart';
 import '../map/route_marks.dart';
 import 'detail_state.dart';
+import 'layering_card.dart';
 import '../share/share_cards.dart';
 import '../share/share_graphics.dart' show hintIcon;
 import '../share/share_image.dart';
@@ -432,6 +433,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
               hints: hints,
               bundle: bundleAsync.value,
               query: query,
+              sunriseUtc: tripMode
+                  ? rows.firstOrNull?.point?.sunriseNear(etas.first)
+                  : null,
+              sunsetUtc: sunset,
             ),
           ),
           IconButton(
@@ -532,6 +537,15 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                   ? null
                   : nightFrom,
             ),
+            const SizedBox(height: Space.sm),
+            // 准备层：穿什么、带什么（决策层之后、地图之前）。
+            LayeringCard(
+              rows: rows,
+              sunriseUtc: tripMode
+                  ? rows.first.point?.sunriseNear(etas.first)
+                  : null,
+              sunsetUtc: sunset,
+            ),
           ],
           const SizedBox(height: 8),
           // 第二层：地图 + 线路要点 + 沿途节点。
@@ -573,6 +587,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     required List<WxHint> hints,
     required RouteWeatherBundle? bundle,
     required RouteWeatherQuery query,
+    DateTime? sunriseUtc,
+    DateTime? sunsetUtc,
   }) {
     if (bundle == null) {
       ScaffoldMessenger.of(context)
@@ -604,6 +620,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       settings: settings,
       sourceName: source?.caps.displayName ?? _providerId,
       fetchedAtUtc: bundle.result.fetchedAtUtc,
+      sunriseUtc: sunriseUtc,
+      sunsetUtc: sunsetUtc,
     );
     Navigator.of(context).push(
       MaterialPageRoute<void>(
