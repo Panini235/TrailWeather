@@ -231,8 +231,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip(S.routeMapFitAll), findsNothing);
 
-    // 5. 滚动到天气区：节点有数据（温度文本出现）
-    await tester.scrollUntilVisible(find.text(S.routeSummary), 300);
+    // 5. 回到顶部的结论卡：节点有数据（温度文本出现）。
+    // 结论卡在已滚过的上方，向上滚找（向下找不到；CI 字体更高时也不会落在缓存区里）。
+    await tester.scrollUntilVisible(
+      find.text(S.routeSummary),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.text(S.routeSummary), findsOneWidget);
     expect(find.textContaining('°C'), findsWidgets);
