@@ -12,6 +12,8 @@
 
 ### 构建
 - [ ] CI：analyze/test/web release/apk release 全绿
+- [ ] **把 CI 产出的正式签名 APK 本身装到真机上冷启动**（不能用 debug / profile 包代替：只有 release 构建会做 R8 代码压缩；0.2.0-beta.1 因此启动即崩，见 D-038）
+- [ ] CI 依赖步骤为 `flutter pub get --enforce-lockfile`，日志里没有版本变化
 - [ ] iOS：手动触发 ios-build 工作流通过（无签名构建，产出未签名 IPA `shanqing-<版本>-ios-unsigned.ipa`，Release 说明附自签安装步骤）
 - [ ] 版本号 pubspec version 与 tag 一致
 - [ ] Android 正式签名：Secrets 已配置（`tool/create_android_keystore.sh`），CI 运行摘要显示“正式签名”且证书指纹与备案一致

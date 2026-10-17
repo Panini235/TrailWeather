@@ -1067,6 +1067,18 @@
    "acceptance": "比较 MapLibre（矢量+DEM 地形）替换 flutter_map 与“线路 3D 预览”自绘方案的包体、三端支持、数据授权与工作量，给出结论",
    "verify": "决策记录",
    "result": "2026-10-17 用户提出。"
+  },
+  {
+   "id": "T-192",
+   "p": "P0",
+   "title": "修复 0.2.0-beta.1 Android 正式包启动即崩（依赖漂移 + R8）",
+   "deps": [
+    "T-166"
+   ],
+   "status": "in_progress",
+   "acceptance": "CI 严格按 pubspec.lock 构建；启动失败有兜底页面；CI 正式签名 APK 在真机冷启动、完成引导、重启保留设置；发布 0.2.0-beta.2",
+   "verify": "真机安装 CI 正式包 + logcat 无异常",
+   "result": "2026-10-17：根因见 D-038；本地 release 模式（.rc 后缀）包在小米 12S 上启动、引导、重启均正常。"
   }
  ]
 }
