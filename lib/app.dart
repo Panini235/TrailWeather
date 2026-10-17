@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'data/settings/settings_repository.dart';
 import 'ui/router.dart';
+import 'ui/splash/splash_overlay.dart';
 import 'ui/strings.dart';
 import 'ui/theme.dart';
 
@@ -54,6 +55,8 @@ class _TrailWeatherAppState extends ConsumerState<TrailWeatherApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: ref.watch(appRouterProvider),
+      builder: (context, child) =>
+          SplashOverlay(child: child ?? const SizedBox.shrink()),
     );
   }
 }

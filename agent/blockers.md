@@ -56,3 +56,5 @@
   （`brew install --cask temurin@17`），然后运行 `bash tool/create_android_keystore.sh`，并把 `~/shanqing-release.jks` 和密码离线备份。
   在此之前 CI 产出 debug 签名 APK（运行摘要会标注），不能作为正式分发包。
 - **B-006 补充**：App 备案需要的签名公钥与 MD5 由上述脚本输出；备案、软著、商店开发者账号都由用户本人办理。
+- **B-015 已解决（2026-10-17）**：Secrets 已由用户上传，CI 38992313590 产出正式签名 APK，证书指纹与用户签名文件一致。
+

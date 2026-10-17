@@ -266,6 +266,10 @@ abstract final class S {
     ('联系我们', '测试版问题与隐私疑问可在“设置 → 问题反馈”中复制诊断信息并提交。'),
   ];
 
+  // 开屏
+  static const splashSkip = '跳过动画';
+  static const splashTagline = '出发前，看懂沿途天气';
+
   // 问题反馈
   static const feedbackTitle = '问题反馈';
   static const feedbackSubtitle = '复制诊断信息，到 GitHub 提交问题';

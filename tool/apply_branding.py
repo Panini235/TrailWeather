@@ -33,6 +33,28 @@ def verify_sources():
         ET.parse(source)
 
 
+LAUNCH_COLOR = 'LaunchBackground'
+
+
+def patch_launch_storyboard(project, check_only):
+    """iOS 启动页底色改为品牌色（Assets.xcassets/LaunchBackground，含深色），与 Flutter 开屏首帧一致。"""
+    board = project / 'ios/Runner/Base.lproj/LaunchScreen.storyboard'
+    s = board.read_text(encoding='utf-8')
+    if f'name="{LAUNCH_COLOR}"' not in s:
+        old = '<color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>'
+        if old not in s or '</dependencies>' not in s or '</resources>' not in s:
+            raise ValueError('LaunchScreen.storyboard template changed; update patch_launch_storyboard')
+        s = s.replace(old, f'<color key="backgroundColor" name="{LAUNCH_COLOR}"/>')
+        s = s.replace('</dependencies>', '    <capability name="Named colors" minToolsVersion="9.0"/>\n    </dependencies>', 1)
+        s = s.replace('</resources>', f'    <namedColor name="{LAUNCH_COLOR}">\n'
+                      '            <color red="0.953" green="0.918" blue="0.847" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>\n'
+                      '        </namedColor>\n    </resources>', 1)
+        if check_only:
+            raise ValueError('LaunchScreen.storyboard still uses the default white background')
+        board.write_text(s, encoding='utf-8')
+    ET.fromstring(s.encode('utf-8'))
+
+
 def apply(platform, project, check_only):
     source = BRAND / 'platforms' / platform
     target = project / {
@@ -59,6 +81,7 @@ def apply(platform, project, check_only):
     elif platform == 'ios':
         info = plistlib.loads((project / 'ios/Runner/Info.plist').read_bytes())
         assert info['CFBundleDisplayName'] == info['CFBundleName'] == NAME
+        patch_launch_storyboard(project, check_only)
     else:
         manifest = json.loads((project / 'web/manifest.json').read_text())
         assert manifest['name'] == manifest['short_name'] == NAME

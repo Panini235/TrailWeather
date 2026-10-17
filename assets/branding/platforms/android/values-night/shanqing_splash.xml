@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与 lib/ui/splash/splash_overlay.dart 的深色底一致 -->
+    <color name="shanqing_splash_background">#18211C</color>
+</resources>

@@ -744,10 +744,10 @@
       "p": "P0",
       "title": "Android 正式签名与发布应用 ID（app.shanqing.hiking）",
       "deps": [],
-      "status": "in_progress",
+      "status": "done",
       "acceptance": "applicationId/Bundle ID 为 app.shanqing.hiking，namespace 不变；签名文件与密码只由用户生成并存入 GitHub Secrets；CI 有 Secrets 时正式签名、无则 debug 并在摘要标注；配置了正式签名却产出 debug 签名时 CI 失败；产物应用 ID 由 verify_build_branding 校验",
       "verify": "本地 flutter create 产物上运行 configure_release.py（有/无签名两种）；CI 运行摘要的证书指纹；用户运行 tool/create_android_keystore.sh 后再跑一次 CI",
-      "result": "2026-10-16：脚本与 CI 接线完成，本地对生成工程验证通过（applicationId、signingConfigs、iOS 6 处 Bundle ID）。等用户运行签名脚本、配置 Secrets 后再验证正式签名产物，届时改为 done。"
+      "result": "2026-10-16：脚本与 CI 接线完成，本地对生成工程验证通过（applicationId、signingConfigs、iOS 6 处 Bundle ID）。等用户运行签名脚本、配置 Secrets 后再验证正式签名产物，届时改为 done。 2026-10-17：用户运行脚本上传 Secrets（首次运行因 bash 3.2 中文环境 ${VAR} 问题中断，已修复并支持复用已有签名文件）；CI 38992313590 成功，日志显示正式签名；下载产物解析 v2 签名块，证书 SHA-256 48:FE:D8:…:30:9B 与用户签名文件一致，非 debug 证书。APK 66 MB（全架构），beta 前考虑按架构拆分。"
     },
     {
       "id": "T-162",
@@ -784,10 +784,10 @@
       "p": "P0",
       "title": "UI 重构：design tokens 与“山脊天气带”视觉签名",
       "deps": [],
-      "status": "todo",
+      "status": "in_progress",
       "acceptance": "先集中定义颜色、间距、圆角、字号 token，替换硬编码颜色并通过深浅色对比度检查；详情、出发窗口、分享图共用以海拔剖面为主视觉的天气带；结论先行并带来源一致度或信心；拆分 route_detail_screen；内联中文迁入 S",
       "verify": "组件测试与无障碍 guideline；本地 Web 预览走查；docs/review-2026-10-16.md 第 7 节",
-      "result": ""
+      "result": "2026-10-17：动效基础（lib/ui/motion.dart）与开屏（T-167）完成；design tokens、山脊天气带、详情拆分待做。"
     },
     {
       "id": "T-166",
@@ -802,6 +802,16 @@
       "acceptance": "版本 0.2.0-beta.1 + CHANGELOG；GitHub Release 附正式签名 APK（公开发布前由用户确认）；分享图二维码改指 releases/latest；至少一台 Android 真机冒烟记录",
       "verify": "Release 页面、APK 签名指纹、真机记录",
       "result": ""
+    },
+    {
+      "id": "T-167",
+      "p": "P1",
+      "title": "开屏动画：观山图标组装，太阳跟随此刻、夜里换月亮",
+      "deps": [],
+      "status": "done",
+      "acceptance": "系统启动页与 Flutter 首帧同底色，无白屏；当天首次完整约 1.1 秒并有“跳过动画”，再次启动 0.25 秒淡入，减少动效/低耗电静态，Web 不播；播完移除且零帧；太阳/月亮只读本地时钟",
+      "verify": "test/unit/splash_art_test.dart；test/widget/splash_overlay_test.dart；临时渲染关键帧目视核对；Android 资源编译与真机观感待批次 CI 与 B-002",
+      "result": "2026-10-17：本地 analyze 0、test 308/308；关键帧渲染核对（日出、正午、夜间深色）。原生启动页资源尚未经 CI 编译，等本批 UI 重构结束一起跑。"
     }
   ]
 }
