@@ -798,10 +798,10 @@
     "T-165",
     "T-158"
    ],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "版本 0.2.0-beta.1 + CHANGELOG；GitHub Release 附正式签名 APK（公开发布前由用户确认）；分享图二维码改指 releases/latest；至少一台 Android 真机冒烟记录",
    "verify": "Release 页面、APK 签名指纹、真机记录",
-   "result": "2026-10-17：用户要求发布；徒步星球隐藏、高德保留并注明、不做真机冒烟（D-036）。"
+   "result": "2026-10-17：用户要求发布；徒步星球隐藏、高德保留并注明、不做真机冒烟（D-036）。2026-10-17：预发布 v0.2.0-beta.1（main da4db7a）。APK 来自 CI 39035404926，apksigner 核对证书 SHA-256 48:FE:D8:39…:30:9B，aapt：app.shanqing.hiking versionCode 2 / versionName 0.2.0-beta.1；IPA 来自 iOS 构建 39035502756，未签名，Bundle ID app.shanqing.hiking，最低 iOS 15。"
   },
   {
    "id": "T-167",
@@ -1023,10 +1023,10 @@
    "deps": [
     "T-166"
    ],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "ios-build 工作流产出 shanqing-<版本>-ios-unsigned.ipa；Release 说明写清开发者模式、自签、安装、信任与 7 天限制",
    "verify": "gh workflow run ios-build.yml；下载产物检查 Payload/Runner.app",
-   "result": ""
+   "result": "2026-10-17：shanqing-0.2.0-beta.1-ios-unsigned.ipa（9.6 MB）随预发布上传；说明含开发者模式、爱思助手自签、安装、信任与 7 天限制。iOS 显示版本号为 0.2.0.1（Flutter 对预发布后缀的转换），未在 iPhone 真机测试。"
   },
   {
    "id": "T-188",

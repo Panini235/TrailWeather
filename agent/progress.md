@@ -622,3 +622,7 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 
 **验证**：flutter analyze 0；flutter test 全部通过（新增像素级位置测试、卫星交叉淡入、时间轴过渡与回整点）。
 真机（小米 12S，profile，实时数据）：降水播放 120 Hz 满帧，build p99 5.6 ms；卫星 13 帧交叉淡入；台风、线路详情、节点时间图、分享长图（T-184 完成）。
+**CI**：PR #3 run 39034883529 通过；合并后 main run 39035404926（正式签名 APK）与 iOS 构建 39035502756（未签名 IPA）通过。
+**发布**：预发布 `v0.2.0-beta.1`（main `da4db7a`），附 `shanqing-0.2.0-beta.1.apk`（证书 SHA-256 48:FE:D8:39…:30:9B，versionCode 2）
+与 `shanqing-0.2.0-beta.1-ios-unsigned.ipa`（未签名，最低 iOS 15，系统显示版本 0.2.0.1）；说明含 iOS 自签安装步骤与文件 SHA-256（T-166、T-187 完成）。
+**观察**：OpenTopoMap 国内直连 15 s 超时；AWS Terrarium 高程瓦片 1.3 s、Open-Meteo elevation 1.0 s 可用，供 T-189 / T-190 / T-191 方案参考。
