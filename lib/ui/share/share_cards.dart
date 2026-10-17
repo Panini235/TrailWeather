@@ -12,6 +12,7 @@ import '../../data/weather/weather_phenomena.dart';
 import '../detail/node_wx_style.dart';
 import 'share_graphics.dart';
 import 'share_image.dart';
+import '../tokens.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
 
@@ -145,7 +146,7 @@ class RouteShareCard extends StatelessWidget {
           _pill(
             Icons.check_circle_outline,
             '未触发阈值提示（不代表安全）',
-            const Color(0xFF2E7D32),
+            SemanticInk.goOnLight,
           )
         else
           Wrap(
@@ -361,8 +362,8 @@ class DepartureShareCard extends StatelessWidget {
       return switch (c.level) {
         DepartureLevel.red => (scheme.errorContainer, scheme.onErrorContainer),
         DepartureLevel.yellow => (
-          const Color(0xFFFFE7A0),
-          const Color(0xFF493400),
+          Semantic.cautionContainerLight,
+          SemanticInk.cautionOnLight,
         ),
         _ =>
           c.insufficient

@@ -4,17 +4,19 @@ import 'dart:ui' show PathMetric;
 import 'package:flutter/animation.dart';
 import 'package:flutter/rendering.dart';
 
+import '../tokens.dart';
+
 /// 开屏图标“观山”（assets/branding/app-icon.svg）的分层绘制与时间编排。
 ///
 /// 坐标沿用图标的 1024 坐标系，路径与 SVG 一致，保证与启动图标同形。
 abstract final class SplashArt {
-  static const lightBackground = Color(0xFFF3EAD8);
-  static const darkBackground = Color(0xFF18211C);
-  static const sun = Color(0xFFE39441);
+  static const lightBackground = Palette.cream;
+  static const darkBackground = Palette.night;
+  static const sun = Palette.sun;
   static const moon = Color(0xFFE8C27A);
-  static const mountain = Color(0xFF384D42);
-  static const hill = Color(0xFF779078);
-  static const cream = Color(0xFFF3EAD8);
+  static const mountain = Palette.pine;
+  static const hill = Palette.sage;
+  static const cream = Palette.cream;
 
   /// 山体底边：天空（太阳/月亮）只画在它上方，升起时从山后露出。
   static const horizonY = 742.0;

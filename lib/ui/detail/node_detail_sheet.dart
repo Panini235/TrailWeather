@@ -10,6 +10,7 @@ import '../strings.dart';
 import '../widgets/common.dart';
 import 'detail_state.dart';
 import 'weather_cells.dart';
+import '../tokens.dart';
 
 /// 节点级多来源对比面板。
 ///
@@ -77,7 +78,10 @@ class _NodeComparePanelState extends ConsumerState<NodeComparePanel> {
         Text(
           '${S.validTime}：${_fmt(wantUtc)} UTC（${_fmtLocal(wantUtc)} 本地）'
           '${widget.fixedUtc != null ? '' : '（行程模式：${S.eta}，估算）'}',
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 8),
         GranularityNotice(text: S.timeAlignmentNote),
@@ -204,7 +208,10 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
                 else if (snap.hasError)
                   Text(
                     '该来源请求失败：${snap.error}',
-                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: SemanticInk.danger(context),
+                    ),
                   )
                 else if (snap.hasData)
                   ..._dataWidgets(context, snap.data!),
@@ -231,7 +238,11 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
         const SizedBox(height: 4),
         Text(
           '该来源的时间范围：${_range(point)}。${S.outOfRangeDetail}',
-          style: const TextStyle(fontSize: 11, height: 1.4, color: Colors.grey),
+          style: TextStyle(
+            fontSize: 11,
+            height: 1.4,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ];
     }
@@ -244,7 +255,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(
             '来源最近有效时次：${nearest.validFromUtc.toIso8601String().substring(5, 16)} UTC（与请求时刻相差 $diffMin 分钟）',
-            style: const TextStyle(fontSize: 11, color: Colors.orange),
+            style: TextStyle(fontSize: 11, color: SemanticInk.caution(context)),
           ),
         ),
       WxVarGrid(wx: nearest, settings: settings),
@@ -255,7 +266,10 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
         '${S.fetchedAt}：${prov.fetchedAtUtc.toIso8601String().substring(0, 16)} UTC'
         '${prov.modelRunUtc == null ? '' : ' · 起报 ${prov.modelRunUtc!.toIso8601String().substring(11, 16)} UTC'}'
         '${bundle.result.stale ? ' · ${S.staleData}' : ''}',
-        style: const TextStyle(fontSize: 10, color: Colors.grey),
+        style: TextStyle(
+          fontSize: 10,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     ];
   }

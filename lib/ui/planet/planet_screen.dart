@@ -248,7 +248,7 @@ class _PlanetRouteCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
                 ),
@@ -279,9 +279,19 @@ class _InfoChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Colors.grey.shade600),
+        Icon(
+          icon,
+          size: 14,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 2),
-        Text(text, style: TextStyle(fontSize: 11, color: Colors.grey.shade800)),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }

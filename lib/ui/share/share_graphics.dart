@@ -9,6 +9,7 @@ import '../../data/weather/node_wx_class.dart';
 import '../../data/weather/risk_rules.dart';
 import '../detail/detail_state.dart';
 import '../detail/node_wx_style.dart';
+import '../tokens.dart';
 
 /// 分享图里要编号展示的关键节点（下标），至多 [max] 个，按沿途顺序：
 /// 起点、终点、最高点、命名航点、触发红/黄阈值的节点（红优先），其余不进列表。
@@ -61,10 +62,11 @@ IconData hintIcon(WxHint h) => switch (h.id) {
   _ => Icons.info_outline,
 };
 
+/// 提示等级色：分享卡是固定浅色底，用 [SemanticInk] 的浅底文字色。
 Color hintColor(WxHint h) => switch (h.level) {
-  HintLevel.warning => const Color(0xFFC62828),
-  HintLevel.caution => const Color(0xFFE65100),
-  HintLevel.info => const Color(0xFF546E7A),
+  HintLevel.warning => SemanticInk.dangerOnLight,
+  HintLevel.caution => SemanticInk.cautionOnLight,
+  HintLevel.info => SemanticInk.infoOnLight,
 };
 
 /// 线路示意图（不含地图瓦片）：按经纬度等比例投影，北向上；
@@ -181,8 +183,8 @@ class _SketchPainter extends CustomPainter {
     // 起终点（环线合并）。
     final start = at(pts.first);
     final end = at(pts.last);
-    _tag(canvas, start, loop ? '起终' : '起', const Color(0xFF2E7D32));
-    if (!loop) _tag(canvas, end, '终', const Color(0xFFC62828));
+    _tag(canvas, start, loop ? '起终' : '起', Semantic.go);
+    if (!loop) _tag(canvas, end, '终', Semantic.danger);
   }
 
   void _badge(Canvas canvas, Offset c, String text, Color color) {

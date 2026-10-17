@@ -15,6 +15,7 @@ import '../strings.dart';
 import '../departure/departure_threshold_screen.dart';
 import 'feedback_sheet.dart';
 import 'meteoblue_card.dart';
+import '../widgets/common.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -370,9 +371,11 @@ class SettingsScreen extends ConsumerWidget {
                       if (c.modelOverlapNote != null)
                         Text(
                           c.modelOverlapNote!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                           ),
                         ),
                     ],
@@ -460,21 +463,14 @@ class _QweatherCredentialsCardState
                 const Expanded(
                   child: Text('和风天气（大陆直连推荐）', style: TextStyle(fontSize: 14)),
                 ),
-                if (settings.qweatherConfigured)
-                  const Icon(Icons.check_circle, size: 16, color: Colors.green)
-                else
-                  const Text(
-                    '未配置',
-                    style: TextStyle(fontSize: 11, color: Colors.orange),
-                  ),
+                ConfiguredStatus(configured: settings.qweatherConfigured),
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
+            const HelpText(
               '在 dev.qweather.com 控制台查看已开通服务的 API Key 与 API Host'
               '（新账号为专属域名，形如 abc123.qweatherapi.com；旧账号可用 devapi.qweather.com）。'
               '密钥仅保存在本机。未配置时该来源会显示配置指引，其余来源不受影响。',
-              style: TextStyle(fontSize: 11, height: 1.5, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             TextField(

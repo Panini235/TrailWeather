@@ -29,6 +29,7 @@ import 'route_camera.dart';
 import '../strings.dart';
 import '../weather_refresh_clock.dart';
 import '../widgets/common.dart';
+import '../tokens.dart';
 
 /// 地图首页：地图浏览 → 线路发现 → 进入详情。
 ///
@@ -531,7 +532,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                color: fix.isLastKnown ? Colors.grey : scheme.primary,
+                color: fix.isLastKnown ? Semantic.unknown : scheme.primary,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
               ),
@@ -669,10 +670,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                           ],
                           strokeWidth: r.id == selectedId ? 7 : 4,
                           color: r.id == selectedId
-                              ? const Color(0xFF1565C0)
+                              ? Semantic.route
                               : (r.isDemo
-                                    ? const Color(0xCC2E7D32)
-                                    : const Color(0xCC7B1FA2)),
+                                    ? Semantic.planetRoute
+                                    : Semantic.osmRoute),
                           borderStrokeWidth: r.id == selectedId ? 2 : 0,
                           borderColor: Colors.white,
                           hitValue: r.id,

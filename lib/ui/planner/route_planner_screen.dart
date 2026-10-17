@@ -18,6 +18,7 @@ import '../detail/route_detail_screen.dart';
 import '../map/basemap.dart';
 import '../map/map_layers_ui.dart';
 import '../widgets/common.dart';
+import '../tokens.dart';
 
 enum PlannerMode { draw, waypoint }
 
@@ -251,9 +252,9 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
               '总里程：${(_totalDistM / 1000.0).toStringAsFixed(2)} km\n'
               '航点数：${_waypoints.length} 个\n'
               '预计徒步耗时：约 ${(_estimatedDurationMin / 60).floor()} 小时 ${_estimatedDurationMin % 60} 分钟',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -330,9 +331,9 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            const HelpText(
               '可导出为标准 GPX 或 KML 格式，在两步路、奥维互动地图或户外手表中加载：',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              size: 12,
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
@@ -452,9 +453,9 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: i == 0
-                              ? Colors.green
+                              ? Semantic.go
                               : (i == displayPoints.length - 1
-                                    ? Colors.red
+                                    ? Semantic.danger
                                     : Colors.white),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.black87, width: 2),
@@ -553,9 +554,11 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 '(${_points.length} 点 / ${_waypoints.length} 航点)',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -567,7 +570,9 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                                 : '预计耗时: 约 ${(_estimatedDurationMin / 60).floor()}h ${_estimatedDurationMin % 60}m',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade700,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                         ],

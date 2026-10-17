@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 
-/// 户外高对比主题：深浅色两套。
+import 'tokens.dart';
+
+/// 户外高对比主题：深浅色两套，取色自品牌“山与天”（lib/ui/tokens.dart）。
 class AppTheme {
-  static const seed = Color(0xFF2E5D32);
+  static const seed = Palette.pine;
 
-  static ThemeData light() => _base(ColorScheme.fromSeed(seedColor: seed));
+  static ThemeData light() =>
+      _base(ColorScheme.fromSeed(seedColor: seed, surface: Palette.paper));
 
-  static ThemeData dark() =>
-      _base(ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark));
+  static ThemeData dark() => _base(
+    ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.dark,
+      surface: Palette.ink,
+    ),
+  );
 
   static ThemeData _base(ColorScheme scheme) {
     final t = ThemeData(colorScheme: scheme);

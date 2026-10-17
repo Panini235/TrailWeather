@@ -381,7 +381,10 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
                   '${S.fetchedAt}：'
                   '${provenance.fetchedAtUtc.toIso8601String().substring(0, 16)} UTC'
                   '${result.stale ? ' · ${S.staleData}' : ''}',
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             );

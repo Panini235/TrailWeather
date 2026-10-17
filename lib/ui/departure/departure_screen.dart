@@ -15,6 +15,7 @@ import '../weather_refresh_clock.dart';
 import '../share/share_cards.dart';
 import '../share/share_image.dart';
 import 'departure_threshold_screen.dart';
+import '../tokens.dart';
 
 class DepartureArgs {
   DepartureArgs({
@@ -601,8 +602,8 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
     final (background, foreground) = switch (a.level) {
       DepartureLevel.red => (colors.errorContainer, colors.onErrorContainer),
       DepartureLevel.yellow => (
-        dark ? const Color(0xFF4D3800) : const Color(0xFFFFE7A0),
-        dark ? const Color(0xFFFFE7A0) : const Color(0xFF493400),
+        dark ? Semantic.cautionContainerDark : Semantic.cautionContainerLight,
+        SemanticInk.caution(context),
       ),
       DepartureLevel.none =>
         a.insufficient

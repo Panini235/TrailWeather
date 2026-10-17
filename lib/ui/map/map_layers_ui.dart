@@ -217,12 +217,10 @@ class _TiandituKeyCardState extends ConsumerState<TiandituKeyCard> {
     super.dispose();
   }
 
-  Widget _status(bool configured) => configured
-      ? const Icon(Icons.check_circle, size: 16, color: Colors.green)
-      : const Text(
-          S.tiandituKeyNotConfigured,
-          style: TextStyle(fontSize: 11, color: Colors.orange),
-        );
+  Widget _status(bool configured) => ConfiguredStatus(
+    configured: configured,
+    missingLabel: S.tiandituKeyNotConfigured,
+  );
 
   Widget _field(
     TextEditingController c, {
@@ -265,10 +263,7 @@ class _TiandituKeyCardState extends ConsumerState<TiandituKeyCard> {
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
-              S.tiandituKeyHelp,
-              style: TextStyle(fontSize: 11, height: 1.5, color: Colors.grey),
-            ),
+            const HelpText(S.tiandituKeyHelp),
             const SizedBox(height: 4),
             Text(switch (flutterMapRequester) {
               TileRequester.nativeApp => S.tiandituUsingServerKey,
@@ -437,10 +432,7 @@ class CustomTileSourcesCard extends ConsumerWidget {
           children: [
             const Text(S.customTileSources, style: TextStyle(fontSize: 14)),
             const SizedBox(height: 4),
-            const Text(
-              S.customTileSourcesHelp,
-              style: TextStyle(fontSize: 11, height: 1.5, color: Colors.grey),
-            ),
+            const HelpText(S.customTileSourcesHelp),
             if (custom.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),

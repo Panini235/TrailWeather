@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/meteoblue_provider.dart';
 import '../../data/weather/meteoblue_settings.dart';
+import '../widgets/common.dart';
 
 /// meteoblue 密钥配置（仅存本机，不上传）与本机调用计数。
 class MeteoblueCredentialsCard extends ConsumerStatefulWidget {
@@ -61,22 +62,15 @@ class _MeteoblueCredentialsCardState
                     style: TextStyle(fontSize: 14),
                   ),
                 ),
-                if (mb.configured)
-                  const Icon(Icons.check_circle, size: 16, color: Colors.green)
-                else
-                  const Text(
-                    '未配置',
-                    style: TextStyle(fontSize: 11, color: Colors.orange),
-                  ),
+                ConfiguredStatus(configured: mb.configured),
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
+            const HelpText(
               '在 meteoblue 账户的 Weather API 页面获取 key。每次查询约 8000 credits'
               '（免费版 1 年 1000 万 ≈ 1,250 次），所以只在节点详情“多来源对比”或地图选点里'
               '点“查询此点”时才请求，按节点海拔计算；3 小时内重复查询同一点使用缓存。'
               '密钥仅保存在本机。',
-              style: TextStyle(fontSize: 11, height: 1.5, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             TextField(

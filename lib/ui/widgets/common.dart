@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/weather/weather_models.dart';
 import '../strings.dart';
+import '../tokens.dart';
 
 /// “演示数据”标签：演示内容必须一直可见地标注，不得混入真实数据不说明。
 class DemoBadge extends StatelessWidget {
@@ -13,15 +14,15 @@ class DemoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.2),
+        color: Semantic.caution.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.orange),
+        border: Border.all(color: Semantic.caution),
       ),
-      child: const Text(
+      child: Text(
         S.demoLabel,
         style: TextStyle(
           fontSize: 10,
-          color: Colors.orange,
+          color: SemanticInk.caution(context),
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -192,13 +193,15 @@ class StaleDataBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.15),
-        border: Border.all(color: Colors.amber.shade700),
-        borderRadius: BorderRadius.circular(8),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Semantic.cautionContainerDark
+            : Semantic.cautionContainerLight,
+        border: Border.all(color: Semantic.caution),
+        borderRadius: BorderRadius.circular(Radii.sm),
       ),
       child: Row(
         children: [
-          Icon(Icons.history, size: 16, color: Colors.amber.shade800),
+          Icon(Icons.history, size: 16, color: SemanticInk.caution(context)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -317,8 +320,8 @@ class DataKindChip extends StatelessWidget {
 /// 航点类型的图标与颜色（规划工坊、线路详情、地图共用）。
 (IconData, Color) waypointStyle(WaypointType type) => switch (type) {
   WaypointType.camp => (Icons.cabin, Colors.amber.shade800),
-  WaypointType.water => (Icons.water_drop, Colors.blue),
-  WaypointType.danger => (Icons.warning, Colors.red),
+  WaypointType.water => (Icons.water_drop, Semantic.cold),
+  WaypointType.danger => (Icons.warning, Semantic.danger),
   WaypointType.pass => (Icons.landscape, Colors.deepPurple),
   WaypointType.exit => (Icons.exit_to_app, Colors.teal),
   WaypointType.poi => (Icons.place, Colors.orange),
@@ -385,4 +388,42 @@ class OnDemandQueryPrompt extends StatelessWidget {
       ],
     );
   }
+}
+
+/// “已配置 / 未配置”状态：对勾或提示文字，颜色随深浅主题（设置页各密钥卡共用）。
+class ConfiguredStatus extends StatelessWidget {
+  const ConfiguredStatus({
+    super.key,
+    required this.configured,
+    this.missingLabel = '未配置',
+  });
+
+  final bool configured;
+  final String missingLabel;
+
+  @override
+  Widget build(BuildContext context) => configured
+      ? Icon(Icons.check_circle, size: 16, color: SemanticInk.go(context))
+      : Text(
+          missingLabel,
+          style: TextStyle(fontSize: 11, color: SemanticInk.caution(context)),
+        );
+}
+
+/// 卡片里的说明小字：次要文字色，深色模式下也可读。
+class HelpText extends StatelessWidget {
+  const HelpText(this.text, {super.key, this.size = 11});
+
+  final String text;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: TextStyle(
+      fontSize: size,
+      height: 1.5,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+  );
 }
