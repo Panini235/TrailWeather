@@ -626,3 +626,10 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 **发布**：预发布 `v0.2.0-beta.1`（main `da4db7a`），附 `shanqing-0.2.0-beta.1.apk`（证书 SHA-256 48:FE:D8:39…:30:9B，versionCode 2）
 与 `shanqing-0.2.0-beta.1-ios-unsigned.ipa`（未签名，最低 iOS 15，系统显示版本 0.2.0.1）；说明含 iOS 自签安装步骤与文件 SHA-256（T-166、T-187 完成）。
 **观察**：OpenTopoMap 国内直连 15 s 超时；AWS Terrarium 高程瓦片 1.3 s、Open-Meteo elevation 1.0 s 可用，供 T-189 / T-190 / T-191 方案参考。
+
+## Round 33 — 2026-10-17（紧急：Android 正式包启动即崩）
+
+**用户反馈**：Release 里下载安装的版本都卡在启动画面，adb 装的调试包没有问题。
+**根因**（D-038）：CI 依赖漂移把 shared_preferences_android 升到 2.5.0（Pigeon JNI），R8 裁掉 JNI 方法，`main()` 在 runApp 前抛异常。
+**修复**：CI / iOS 工作流严格按锁文件；启动失败兜底页面；版本 0.2.0-beta.2；发布清单要求真机冷启动正式包。
+**验证**：flutter analyze 0；flutter test 374/374；本地 release 模式包（.rc 后缀，与正式版共存）在真机启动、引导、重启正常。

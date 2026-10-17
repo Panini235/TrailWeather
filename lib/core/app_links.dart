@@ -1,5 +1,5 @@
 /// 应用版本（与 pubspec.yaml 的 version 一致，由 test/unit/app_version_test.dart 保证）。
-const String kAppVersion = '0.2.0-beta.1';
+const String kAppVersion = '0.2.0-beta.2';
 
 /// 分享图里“扫码下载”的地址：GitHub Releases 列表页。
 ///

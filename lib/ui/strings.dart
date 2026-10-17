@@ -300,6 +300,12 @@ abstract final class S {
   static const splashTagline = '出发前，看懂沿途天气';
 
   // 问题反馈
+  static const startupFailedTitle = '山晴没能启动';
+  static const startupFailedBody =
+      '读取本机设置时出错，App 无法继续。请复制下面的诊断信息，到 GitHub Issues 反馈；'
+      '也可以先到 Releases 下载最新的测试版覆盖安装。';
+  static const startupCopyDiagnostics = '复制诊断信息';
+  static const startupCopied = '已复制';
   static const feedbackTitle = '问题反馈';
   static const feedbackSubtitle = '复制诊断信息，到 GitHub 提交问题';
   static const feedbackIntro =

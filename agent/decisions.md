@@ -334,3 +334,19 @@
 
 **验证**：小米 12S profile 构建、实时数据：降水播放 120 Hz 满帧（build p50 3.4 ms、p99 5.6 ms；raster p50 3.0 ms），
 拖动地图 build p50 2.1 ms；卫星交叉淡入 build p50 2.2 ms。组件测试按像素核对格点场位置随平移缩放正确。
+
+## D-038 构建严格按锁定依赖；发布前必须在真机上冷启动正式包（2026-10-17）
+
+**事故**：0.2.0-beta.1 的 Android 正式包打开后停在启动画面。真机 logcat：`SharedPreferences.getInstance()` 抛
+`NoSuchMethodError: SharedPreferencesApiRegistrar.getAll(...)`，`main()` 在 `runApp` 之前异常，首帧从未绘制。
+**原因**：CI 的 `flutter create` 与随后的 `flutter pub get` 按 pub.dev 重新解析了传递依赖（锁文件里的地址是国内镜像，
+CI 默认源是 pub.dev），把 `shared_preferences_android` 从锁定的 2.4.28 升到 2.5.0（改为 Pigeon JNI 实现），
+release 构建的 R8 把只经 JNI 按名字调用的 Kotlin 方法裁掉了。本地 debug / profile 包用的是锁定版本、也不做 R8，
+所以开发和真机核对（profile 包）都没有暴露；发布时没有把正式包本身装到真机上。
+**决定**：
+- CI 与 iOS 工作流：`flutter create --no-pub`；依赖步骤还原锁文件、地址换成 pub.dev（内容哈希相同），
+  `flutter pub get --enforce-lockfile`，版本有任何变化即失败。
+- `main()` 初始化失败时显示原因与反馈途径（`StartupErrorApp`），不停在启动画面。
+- 发布清单新增：必须把 CI 产出的正式签名 APK 本身装到真机冷启动；本地可用临时 `applicationIdSuffix ".rc"` 的
+  release 构建先验证 R8 行为（不提交）。
+- 0.2.0-beta.1 的 Release 说明加醒目提示，改发 0.2.0-beta.2（versionCode 3）。依赖升级以后单独做，并在真机验证正式包。
