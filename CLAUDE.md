@@ -58,6 +58,8 @@ lib/ui/          screens (trips home, map, route detail, settings, import, plane
 - **Product direction:** `docs/redesign-v2.md` (track-first "weather window" app; map discovery is secondary).
 - **Incoming files ("Open with"):** Android `MainActivity.kt` (committed, `flutter create` leaves it alone) passes VIEW/SEND URIs over the `trailweather/incoming_file` MethodChannel; `IncomingFileListener` parses them with `RouteFileImport` and reuses `confirmAndSaveImportedRoute`. iOS is not wired yet.
 - **Request discipline:** no weather requests while the map is being dragged. The time slider only previews loaded data and fetches on `onChangeEnd`. Overpass rotates mirrors because the main instance often returns 504.
+- **Data tiers:** `docs/data-hierarchy.md` and `wx_importance.dart` define which variables are decision / prepare / reference data. Decision data is always shown (missing → "未提供"); prepare data surfaces as signals only when a threshold trips; reference data appears only under "更多指标". Clear-sky UV is a separate variable and never stands in for the UV forecast.
+- **Weather map (map tab):** `weather_map_overlay.dart`. Rain/cloud are Open-Meteo model fields fetched as one multi-coordinate grid (≤120 points, refetched only when the stopped view leaves the fetched area), drawn with `drawVertices`; satellite is Himawari IR via NASA GIBS; typhoon is JMA RSMC Tokyo. Label forecast vs observation explicitly.
 - **Strings:** all user-visible text goes through `S` constants in `lib/ui/strings.dart`. Do not inline UI text in business code.
 - **Tests:** source contract tests use fixtures copied from real API responses (`test/weather/`). The other suites are `test/unit`, `test/widget` and `test/integration/core_flow_test.dart`.
 

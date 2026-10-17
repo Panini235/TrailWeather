@@ -205,7 +205,10 @@ class AppSettings {
     elevationLapseRateCorrection:
         m['elevationLapseRateCorrection'] as bool? ?? true,
     routeMapLayerId: m['routeMapLayerId'] as String? ?? '',
-    coldSensitivity: ((m['coldSensitivity'] as num?)?.toInt() ?? 0).clamp(-1, 1),
+    coldSensitivity: ((m['coldSensitivity'] as num?)?.toInt() ?? 0).clamp(
+      -1,
+      1,
+    ),
   );
 
   /// 旧版只有一个 `tiandituKey`，无法离线判断它是服务端还是浏览器端类型

@@ -3,7 +3,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
+
+import 'dart:io';
+
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:trailweather/data/weather/satellite_frames.dart';
+import 'package:trailweather/data/weather/typhoon.dart';
 import 'package:trailweather/data/weather/weather_field.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
 import 'package:trailweather/ui/detail/meteogram.dart';
@@ -26,7 +31,20 @@ WeatherMapController _controller() {
       now: () => _now,
       probe: (_) async => 200,
     ),
+    typhoonService: TyphoonService(fetcher: _jmaFixture),
   );
+}
+
+/// 2026-10-17 实测的 JMA 响应（台风 Champi，test/fixtures/jma）。
+Future<String> _jmaFixture(
+  Uri uri, {
+  Map<String, String>? headers,
+  CancelToken? cancelToken,
+}) async {
+  final name = uri.path.endsWith('targetTc.json')
+      ? 'targetTc.json'
+      : 'TC2636_${uri.pathSegments.last}';
+  return File('test/fixtures/jma/$name').readAsStringSync();
 }
 
 const _view = FieldBounds(south: 39.8, west: 116.0, north: 40.2, east: 116.4);
@@ -114,6 +132,30 @@ void main() {
     expect(c.satFrames, isNotEmpty);
     expect(find.textContaining(S.wxMapSatelliteTime), findsOneWidget);
     expect(find.text(S.wxMapSatelliteNote), findsOneWidget);
+  });
+
+  testWidgets('台风：列出名称、强度、气压与移向，可定位', (tester) async {
+    final c = _controller();
+    addTearDown(c.dispose);
+    List<LatLng>? fitted;
+    c.onFitRequest = (pts) => fitted = pts;
+    c.toggle();
+    await _pumpPanel(tester, c);
+    await tester.tap(find.text(S.wxMapTyphoon));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pumpAndSettle();
+    expect(c.typhoons, hasLength(1));
+    expect(find.textContaining('Champi（2630）'), findsOneWidget);
+    expect(find.textContaining('960 hPa'), findsOneWidget);
+    expect(find.textContaining('向西'), findsOneWidget);
+    expect(find.text(S.wxMapTyphoonNote), findsOneWidget);
+    // 进入台风模式自动定位一次；点“定位”再次定位
+    expect(fitted, isNotNull);
+    fitted = null;
+    await tester.tap(find.text(S.wxMapLocate));
+    expect(fitted, isNotEmpty);
   });
 
   testWidgets('格点场图层在地图上绘制且切换时次不报错', (tester) async {

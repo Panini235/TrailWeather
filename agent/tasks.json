@@ -1,837 +1,997 @@
 {
-  "schema": "trailweather/tasks@1",
-  "note": "状态：todo|in_progress|done|blocked。本地 analyze/test 快速验证；web/apk 构建以 GitHub Actions 为准。2026-10-15 成熟度审计见 docs/maturity-audit-2026-10-15.md；历史 T-080/T-081/T-082 存在重复 ID，统计不可直接视为产品完成度。",
-  "tasks": [
-    {
-      "id": "T-001",
-      "p": "P0",
-      "title": "工程初始化与依赖三端核验",
-      "deps": [],
-      "status": "done",
-      "acceptance": "pubspec 解析、依赖版本经 pub.dev 核验、平台目录生成策略文档化",
-      "verify": "CI 第一步",
-      "result": "完成；CI 验证通过"
-    },
-    {
-      "id": "T-002",
-      "p": "P0",
-      "title": "天气统一数据模型与溯源（真实性红线）",
-      "deps": [
-        "T-001"
-      ],
-      "status": "done",
-      "acceptance": "WxProvenance 全字段；缺失 null；概率/量、阵风/风速分键",
-      "verify": "flutter test test/weather",
-      "result": "完成；契约测试通过"
-    },
-    {
-      "id": "T-003",
-      "p": "P0",
-      "title": "Open-Meteo 适配器（含批量与单位换算）",
-      "deps": [
-        "T-002"
-      ],
-      "status": "done",
-      "acceptance": "多坐标批量、km/h→m/s、elevation/offset 溯源、超窗抛 WxOutOfRange",
-      "verify": "test/weather/provider_contract_test.dart",
-      "result": "完成；发现并修复单位换算缺失"
-    },
-    {
-      "id": "T-004",
-      "p": "P0",
-      "title": "MET Norway 适配器（UA 与缺失字段如实）",
-      "deps": [
-        "T-002"
-      ],
-      "status": "done",
-      "acceptance": "UA 标识、compact 缺失字段保持 null、updated_at 作为发布时间",
-      "verify": "同上",
-      "result": "完成"
-    },
-    {
-      "id": "T-010",
-      "p": "P0",
-      "title": "地图+线路+天气核心闭环（M1）",
-      "deps": [
-        "T-003"
-      ],
-      "status": "done",
-      "acceptance": "地图选线→详情→节点天气→来源切换，CI 可构建",
-      "verify": "flutter test test/integration + CI build",
-      "result": "CI 全绿：地图选线→详情→节点天气→来源切换（run 38402622454）"
-    },
-    {
-      "id": "T-080",
-      "p": "P0",
-      "title": "首页自动定位、地图点位天气与定位按钮复用",
-      "deps": [
-        "T-010"
-      ],
-      "status": "done",
-      "acceptance": "首页一次定位成功后显示当前位置多来源天气并查询当地线路；地图点选可查天气；定位按钮请求结束后可再次使用；拒绝/永久拒绝/服务关闭/超时可恢复",
-      "verify": "flutter analyze + flutter test（99 项）+ GitHub Actions web/apk",
-      "result": "本地 analyze 0 问题、99 项测试通过；CI run 38510507584 全绿（Web/APK 产物已上传）；2026-10-15 复核：KMZ 实际未支持（zip 按文本解码），移动端文件选择器不可用 → 由 T-100 修复"
-    },
-    {
-      "id": "T-081",
-      "p": "P0",
-      "title": "混合线路搜索（本地/地点/附近 OSM/外部攻略/导入）",
-      "deps": [
-        "T-080"
-      ],
-      "status": "done",
-      "acceptance": "搜索框明确支持地点、山峰与线路；本地和已加载线路可按名称匹配；地点选择后查询附近 OSM；小红书/两步路/六只脚仅用户主动外链检索；可进入 GPX/GeoJSON 导入；不抓取外部内容",
-      "verify": "flutter analyze + flutter test（99 项）+ GitHub Actions web/apk",
-      "result": "CI run 38510507584 全绿；外链 URI 单测 2 项与混合搜索组件测试 1 项通过"
-    },
-    {
-      "id": "T-082",
-      "p": "P0",
-      "title": "商业级轨迹导入重构（解除硬限制、自适应 RDP 抽稀、KML 支持、异常海拔容错与系统关联）",
-      "deps": [
-        "T-013"
-      ],
-      "status": "done",
-      "acceptance": "上限放宽至 30MB；超过 3000 点自动进行自适应 RDP 抽稀并保留最高/最低海拔极值；异常漂移海拔自动置空不崩溃；新增 KML/KMZ 解析器（支持奥维/两步路/Google Earth 的 LineString、MultiGeometry 与 gx:Track）；扩展文件选择器与 Android/iOS 系统级文件打开关联",
-      "verify": "flutter analyze + flutter test（108 项全部通过）",
-      "result": "本地 analyze 0 问题；108/108 项测试全绿；新增 KmlImport、Geo.simplifyTrack 与对应单元测试"
-    },
-    {
-      "id": "T-011",
-      "p": "P1",
-      "title": "行程模式 ETA（跨午夜/DST 安全）",
-      "deps": [
-        "T-010"
-      ],
-      "status": "done",
-      "acceptance": "UTC 运算、爬升加时、休息分摊、无海拔降级",
-      "verify": "test/unit/eta_and_sampling_test.dart",
-      "result": "完成"
-    },
-    {
-      "id": "T-012",
-      "p": "P1",
-      "title": "节点多来源对比（对齐与重叠说明）",
-      "deps": [
-        "T-010"
-      ],
-      "status": "done",
-      "acceptance": "独立卡片、时刻差值提示、模型重叠标注",
-      "verify": "widget/集成测试",
-      "result": "完成"
-    },
-    {
-      "id": "T-013",
-      "p": "P1",
-      "title": "GPX/GeoJSON 导入（安全与限制）",
-      "deps": [
-        "T-010"
-      ],
-      "status": "done",
-      "acceptance": "2MB/5000点/范围校验/XXE 防护/损坏拒绝",
-      "verify": "test/unit/cache_and_gpx_test.dart",
-      "result": "完成"
-    },
-    {
-      "id": "T-014",
-      "p": "P1",
-      "title": "Overpass 线路发现（限流+几何拼装）",
-      "deps": [
-        "T-010"
-      ],
-      "status": "done",
-      "acceptance": "bbox 限制、镜像轮换、端点拼装不连直线",
-      "verify": "test/unit/overpass_test.dart",
-      "result": "完成；正式 route=hiking 关系与具名 path/footway/track 路径段分开标注；主站 504 仍为外部状态"
-    },
-    {
-      "id": "T-020",
-      "p": "P1",
-      "title": "缓存体系（命名空间/TTL/SWR/管理UI）",
-      "deps": [
-        "T-002"
-      ],
-      "status": "done",
-      "acceptance": "四命名空间、天气键含来源/网格/时间窗、旧数据标记",
-      "verify": "test/unit + weather_repository_test",
-      "result": "完成"
-    },
-    {
-      "id": "T-021",
-      "p": "P1",
-      "title": "设置页（单位/主题/来源/低耗电/缓存/授权/隐私）",
-      "deps": [
-        "T-020"
-      ],
-      "status": "done",
-      "acceptance": "全部首版设置项可用",
-      "verify": "代码审查+人工",
-      "result": "完成"
-    },
-    {
-      "id": "T-030",
-      "p": "P1",
-      "title": "CI 流水线（analyze/test/web/apk + 手动 iOS/smoke）",
-      "deps": [
-        "T-001"
-      ],
-      "status": "done",
-      "acceptance": "push 触发单 job 全量验证；产物上传",
-      "verify": "gh run watch",
-      "result": "CI 单 job 全绿（analyze/test/web/apk+artifacts）；iOS 手动工作流已触发"
-    },
-    {
-      "id": "T-040",
-      "p": "P2",
-      "title": "Web 端人工冒烟（浏览器实际请求）",
-      "deps": [
-        "T-030"
-      ],
-      "status": "todo",
-      "acceptance": "浏览器打开 web release，真实走一次闭环并记录 CORS/UA 表现",
-      "verify": "人工记录于 progress.md",
-      "result": "2026-10-15 部分浏览器验证：CI 38681970611 Web 产物，390×844 暗色；示例线路 Open-Meteo 天气与高德底图可加载，离线/Pro 仍为开发中。未覆盖全部来源、导入/重启/弱网，保持 todo；截图与边界见成熟度审计。 2026-10-15产品决定：Web不作为当前公开发行目标；仍可用于界面验收。新产物38699456479已验证无订阅引导、设置入口移除和旧/paywall链接返回首页。"
-    },
-    {
-      "id": "T-050",
-      "p": "P2",
-      "title": "真机性能与耗电（协议执行）",
-      "deps": [
-        "T-030"
-      ],
-      "status": "blocked",
-      "acceptance": "docs/performance.md 协议执行并记录",
-      "verify": "数据入 performance.md",
-      "result": "无真机"
-    },
-    {
-      "id": "T-060",
-      "p": "P1",
-      "title": "iOS 构建验证",
-      "deps": [
-        "T-030"
-      ],
-      "status": "done",
-      "acceptance": "手动触发 ios-build 通过",
-      "verify": "Actions 历史",
-      "result": "2026-10-15当前代码a699aca的iOS无签名release构建通过（run38699460743）；不代表签名发布或真机验收。"
-    },
-    {
-      "id": "T-220",
-      "p": "P3",
-      "title": "ARB/gen-l10n 国际化迁移（zh/en）",
-      "deps": [
-        "T-010"
-      ],
-      "status": "todo",
-      "acceptance": "文案迁入 ARB，S 类替换为生成访问器",
-      "verify": "flutter test",
-      "result": ""
-    },
-    {
-      "id": "T-310",
-      "p": "P3",
-      "title": "远期趋势产品调研（次季节/集合）",
-      "deps": [],
-      "status": "todo",
-      "acceptance": "找到合规来源并按不确定性展示，或文档化不可行",
-      "verify": "data-sources.md 更新",
-      "result": "当前诚实显示无趋势数据"
-    },
-    {
-      "id": "T-320",
-      "p": "P3",
-      "title": "官方预警接入（如 MET alerts API）",
-      "deps": [],
-      "status": "todo",
-      "acceptance": "真实接入或维持未接入标注",
-      "verify": "新适配器+测试",
-      "result": "当前如实标注未接入"
-    },
-    {
-      "id": "T-330",
-      "p": "P2",
-      "title": "分享线路链接（含敏感位置提示）",
-      "deps": [
-        "T-010"
-      ],
-      "status": "todo",
-      "acceptance": "链接编码线路或引用，含提示",
-      "verify": "人工",
-      "result": "当前提供导出 JSON"
-    },
-    {
-      "id": "T-402",
-      "p": "P2",
-      "title": "集成测试帧统计哨兵",
-      "deps": [
-        "T-030"
-      ],
-      "status": "todo",
-      "acceptance": "CI 输出慢帧比例",
-      "verify": "CI 日志",
-      "result": ""
-    },
-    {
-      "id": "T-501",
-      "p": "P3",
-      "title": "发布候选与授权/成本核验",
-      "deps": [
-        "T-040",
-        "T-050",
-        "T-060"
-      ],
-      "status": "blocked",
-      "acceptance": "release-checklist 全勾",
-      "verify": "docs 更新",
-      "result": ""
-    },
-    {
-      "id": "T-070",
-      "p": "P1",
-      "title": "大陆网络适配（高德底图+GCJ-02+和风来源）",
-      "deps": [
-        "T-030"
-      ],
-      "status": "done",
-      "acceptance": "直连实测驱动：默认底图大陆可用；和风可配置接入",
-      "verify": "flutter test（93/93）+ CI run 38408260872",
-      "result": "完成；和风真实联网待用户配置 key"
-    },
-    {
-      "id": "T-071",
-      "p": "P2",
-      "title": "和风真实联网验证（Live Smoke）",
-      "deps": [
-        "T-070"
-      ],
-      "status": "blocked",
-      "acceptance": "配置 Secrets 后 smoke 通过",
-      "verify": "live-smoke.yml",
-      "result": "需用户注册和风并配置 Secrets"
-    },
-    {
-      "id": "T-080",
-      "p": "P0",
-      "title": "商业级轨迹导入重构（大文件自适应抽稀+KML/KMZ支持+异常清洗）",
-      "deps": [
-        "T-010"
-      ],
-      "status": "done",
-      "acceptance": "解除硬限制、自适应 RDP 抽稀保证高程1:1、KML/KMZ解析、外部文件调用意图注册",
-      "verify": "CI run 38534512846 全绿",
-      "result": "完成；CI 验证通过；2026-10-15 复核：KMZ 实际未支持（zip 按文本解码），移动端文件选择器不可用 → 由 T-100 修复"
-    },
-    {
-      "id": "T-081",
-      "p": "P1",
-      "title": "融合徒步星球（trail-planet）全球经典路线库",
-      "deps": [
-        "T-080"
-      ],
-      "status": "done",
-      "acceptance": "落盘并解析 44 条全球经典神线、高程线性插值、8 大地貌分类与里程区间筛选、随机漫游",
-      "verify": "flutter test test/unit/planet_trails_test.dart test/widget/planet_screen_test.dart",
-      "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
-    },
-    {
-      "id": "T-082",
-      "p": "P1",
-      "title": "手绘路线规划工坊（Trail Studio）",
-      "deps": [
-        "T-080"
-      ],
-      "status": "done",
-      "acceptance": "地图打点画线、航点标注（营地/水源/险段/垭口）、Tobler算法耗时预估、GPX/KML双向导出、联动气象推演",
-      "verify": "flutter test test/unit/route_exporter_test.dart test/widget/route_planner_screen_test.dart",
-      "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
-    },
-    {
-      "id": "T-090",
-      "p": "P0",
-      "title": "海明商业化转化体系与 Pro 会员闭环（Onboarding 问诊 + 动态对比 + Paywall 7天试用 + 离网微气候权益）",
-      "deps": [
-        "T-081",
-        "T-082"
-      ],
-      "status": "done",
-      "acceptance": "痛点问诊/空间反差引导、主推年度套餐并享7天免费试用、终身买断与月度方案、安全退出与恢复购买、高程垂直递减率微气候计算与离线包下载",
-      "verify": "flutter analyze 0 issues + flutter test 121/121 全绿 + CI 构建",
-      "result": "完成；本地 analyze 0 issues，121 tests 100% 通过 + CI 38552136025 全绿（Web+APK）；2026-10-15 复核：4 项 Pro 权益未实现、购买为本地白送 → 由 T-101 下线虚假宣称"
-    },
-    {
-      "id": "T-100",
-      "p": "P0",
-      "title": "本地轨迹文件导入可用性修复（选择器/KMZ/统一入口）",
-      "deps": [
-        "T-080"
-      ],
-      "status": "done",
-      "acceptance": "Android/iOS 选择器不按扩展名过滤（iOS 原抛 ArgumentError、Android gpx 无 MIME 被置灰）；按内容嗅探 GPX/KML/KMZ/GeoJSON；KMZ 解压；后台 isolate 解析；告警去重；GeoJSON 超长轨迹抽稀不拒绝",
-      "verify": "flutter test test/unit/route_file_import_test.dart；本地对 example/ 4 个真实文件（gpx/kml/kml 2/kmz）全部导入 74.5 km",
-      "result": "本地 analyze 0 + test 138 全绿；真机选择器行为待 CI 产物人工验证；CI 38674705802 全绿（analyze/test/Web/APK）"
-    },
-    {
-      "id": "T-101",
-      "p": "P0",
-      "title": "Pro 权益与支付真实性整改",
-      "deps": [
-        "T-090"
-      ],
-      "status": "done",
-      "acceptance": "支付未接入时 purchase 抛错不授予 Pro、遗留本机 Pro 失效；未实现权益标“开发中”；移除“已启用/已完整离网缓存”等虚假提示、虚构原价与试用文案",
-      "verify": "test/unit/subscription_test.dart、test/widget/paywall_screen_test.dart、onboarding_screen_test.dart",
-      "result": "完成；真实支付接入登记 B-008；CI 38674705802 全绿（analyze/test/Web/APK）"
-    },
-    {
-      "id": "T-102",
-      "p": "P0",
-      "title": "天气计算逻辑修复（审查发现）",
-      "deps": [
-        "T-003"
-      ],
-      "status": "done",
-      "acceptance": "Open-Meteo 当天已过去小时可查、早于今天给出正确原因；详情默认时刻不落在过去；沿途降水按小时取最大再累加；日落取出发后第一次；节点面板本地时间与重复请求；多日行程/插值海拔标注；规划工坊配速统一；星球随机不打乱缓存；收藏星标状态；爬升显示 m",
-      "verify": "test/weather/provider_contract_test.dart、test/unit/risk_rules_test.dart",
-      "result": "完成；本地全绿；CI 38674705802 全绿（analyze/test/Web/APK）"
-    },
-    {
-      "id": "T-103",
-      "p": "P0",
-      "title": "真机体验修复：定位超时 / 定位后弹面板 / 线路地图适配 / 无效入口降级",
-      "deps": [
-        "T-100"
-      ],
-      "status": "done",
-      "acceptance": "Android 定位强制 LocationManager + medium 精度 + 上次已知位置先居中/超时回退并标注；定位成功只移动地图并显示当前位置天气小标签，点击才开面板，不自动请求 Overpass；详情小地图按全部 segments 包围盒（GCJ-02 先 toDisplay）自适配并可进入可交互全屏大图，首页选线路适配整条线路；“搜索此区域”降为线路列表次要入口、外部攻略折叠为次要入口并写明原因（底层代码与测试保留）",
-      "verify": "test/unit/location_service_test.dart、test/unit/route_camera_test.dart、test/widget/map_home_location_test.dart、test/widget/hybrid_route_search_test.dart、test/integration/core_flow_test.dart",
-      "result": "本地 analyze 0 + test 151/151 全绿；CI 38677552384 全绿（analyze/test/Web/APK）；真机定位/手势待用户确认"
-    },
-    {
-      "id": "T-120",
-      "p": "P0",
-      "title": "v2 首页改版：我的行程 + 底部导航（行程/地图/设置）",
-      "deps": [
-        "T-100"
-      ],
-      "status": "done",
-      "acceptance": "首页为我的行程（空状态引导导入/手绘、删除、示例线路与徒步星球置底）；StatefulShellRoute 三分支；地图移除已迁出的入口；路由器只创建一次；移除百度外部搜索",
-      "verify": "flutter test test/widget/trips_shell_test.dart",
-      "result": "本地 analyze 0 + test 153 全绿；CI 38678967686 全绿（含 APK 编译 MainActivity.kt）"
-    },
-    {
-      "id": "T-121",
-      "p": "P0",
-      "title": "Android“用徒步天气打开”/分享接收",
-      "deps": [
-        "T-120"
-      ],
-      "status": "done",
-      "acceptance": "VIEW/SEND intent（gpx/kml/kmz/geojson/xml/octet-stream）→ MethodChannel → 内容嗅探解析 → 统一确认保存；singleTask；已消费标记防重复导入；30MB 上限后台读取",
-      "verify": "trips_shell_test 外部传入用例 + CI APK 编译 MainActivity.kt；flutter create 不覆盖已验证（本地 scratch）",
-      "result": "真机待用户验证（两步路/奥维/微信 打开方式）；CI 38678967686 全绿（含 APK 编译 MainActivity.kt）"
-    },
-    {
-      "id": "T-122",
-      "p": "P1",
-      "title": "iOS“用徒步天气打开”",
-      "deps": [
-        "T-121"
-      ],
-      "status": "in_progress",
-      "acceptance": "AppDelegate application(_:open:options:) 读取 Inbox/安全作用域文件 → 同一 MethodChannel；Info.plist 补 KMZ/GeoJSON 文档类型",
-      "verify": "手动 iOS Build 工作流",
-      "result": "AppDelegate.swift（同一通道协议、安全作用域复制到临时目录、冷启动 pending + 确认后清除）、Info.plist 增 KMZ 文档类型与 GPX/KML/KMZ 导入类型声明；flutter create 不覆盖已验证；待 iOS 构建与真机验证；iOS 无签名构建 38910604777 成功（AppDelegate.swift 编译通过）；真机打开方式待用户确认"
-    },
-    {
-      "id": "T-130",
-      "p": "P0",
-      "title": "出发窗口（日期 × 出发时刻 格子图）",
-      "deps": [
-        "T-120"
-      ],
-      "status": "done",
-      "acceptance": "按 docs/redesign-v2.md 阈值；缺失=信息不足；每格可追溯来源与原因",
-      "verify": "本地 flutter analyze/test；CI Android/iOS 构建；docs/departure-windows.md 与 docs/verification/departure-2026-10-16/。",
-      "result": "2026-10-16：已实现日期×时刻比较、逐段逐小时检查、可追溯依据、应用出发时间与可持久化阈值；本地 analyze 0 issues、284/284 tests 通过；业务提交961a6d4；Android/Web CI 38890402736及iOS无签名CI 38890417187成功，名称/图标验证通过；APK已下载并校验。限于共享代码/组件及构建验收，真机待B-002；跨页面时间语义继续T-158。"
-    },
-    {
-      "id": "T-123",
-      "p": "P0",
-      "title": "详情页基础：方向/起终点、节点三处联动、节点详情、标记航点、导入航点",
-      "deps": [
-        "T-120"
-      ],
-      "status": "done",
-      "acceptance": "起终点标记+方向箭头+环线识别+反向行走；地图标记/海拔剖面/时间线共享选中，再点或详情按钮打开节点详情（完整天气、未来12小时、标记、多来源对比）；节点或全屏地图长按标记营地/休息点/水源/补给等（新增 rest/supply 类型，休息点停留时长计入 ETA），保存到我的行程；GPX wpt/KML Point 有名称才导入，跳过起终点与线路同名点",
-      "verify": "flutter test test/unit/route_direction_waypoints_test.dart test/widget/route_detail_v2_test.dart",
-      "result": "本地 analyze 0 + test 169 全绿；五台山 4 个示例文件均全程 74.5 km 进入分析、4 个命名航点上线；CI 38681970611 全绿"
-    },
-    {
-      "id": "T-124",
-      "p": "P0",
-      "title": "修复：多段轨迹只分析最长段",
-      "deps": [
-        "T-123"
-      ],
-      "status": "done",
-      "acceptance": "首尾相距 ≤1 km 的相邻段串联为分析路径（两步路多日 KML 三段间隔 12 m/34 m，原先只分析 31.3 km 的第二天）；更远断开段取最长链并提示",
-      "verify": "route_direction_waypoints_test 分析路径用例 + 本地真实文件核对",
-      "result": "完成；CI 38681970611 全绿"
-    },
-    {
-      "id": "T-125",
-      "p": "P0",
-      "title": "天气数据补全：按节点海拔查询、天气现象/降雪/冻结高度、空气质量、同地点不同海拔",
-      "deps": [
-        "T-123"
-      ],
-      "status": "done",
-      "acceptance": "去掉 0.1° 合并抹平海拔差（或按海拔分档）；Open-Meteo elevation 参数；weather_code/snowfall/freezing_level_height；Open-Meteo Air Quality（区域级标注）",
-      "verify": "flutter test test/weather/altitude_weather_test.dart；接口形态 2026-10-15 实测（elevation 列表、nan 行为、AQ 多点、Elevation API）",
-      "result": "本地 analyze 0 + test 228 全绿；Open-Meteo 按节点海拔降尺度（同网格海拔差≥100 m 不合并）；weather_code/snowfall/freezing_level；雷暴/降雪/雾/0℃ 层提示；同一地点不同海拔卡片；空气质量卡片（CAMS 区域级）；CI 38743636066 全绿"
-    },
-    {
-      "id": "T-140",
-      "p": "P0",
-      "title": "修复天气缓存跨小时读取与过期刷新",
-      "deps": [
-        "T-020"
-      ],
-      "status": "done",
-      "acceptance": "覆盖时段索引可复用已有逐时数据；7小时旧缓存在线能更新；后台错误被捕获并反馈；刷新成功通知UI。",
-      "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16：按真实覆盖时段复用 v3 缓存，过期结果流可刷新并向页面传递成功/失败，保留真实获取时间，空响应不覆盖可用缓存；跨午夜/冷启动/72小时预报/7小时旧缓存/缺口/并发与UI回归通过。普通缓存仍不等于 T-143 离线包。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
-    },
-    {
-      "id": "T-141",
-      "p": "P0",
-      "title": "修复线路反向/节点变化后的天气查询身份",
-      "deps": [
-        "T-123"
-      ],
-      "status": "done",
-      "acceptance": "相同节点数/总长度但坐标或顺序变化时不得复用错误bundle；按节点坐标验证正反向天气映射。",
-      "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16：坐标、顺序、海拔形成不可变 family 身份；实际 ProviderContainer 正反向请求逐节点核对请求坐标通过，原列表修改不改变已有键。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
-    },
-    {
-      "id": "T-142",
-      "p": "P0",
-      "title": "当前位置天气时刻与刷新生命周期",
-      "deps": [
-        "T-103"
-      ],
-      "status": "done",
-      "acceptance": "当前天气取打开时的当前时间；区分定位时间与天气有效时间；前后台恢复按时效刷新，离线标注旧预报。",
-      "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
-      "result": "2026-10-16：打开面板时取当前天气时刻；位置读取时间独立显示，原始定位采样时间尚未保存，不把它宣称为已知。前台跨小时/15分钟检查、后台停止、恢复重查；旧位置响应不覆盖新查询。生命周期及跨午夜打开面板回归通过。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
-    },
-    {
-      "id": "T-143",
-      "p": "P0",
-      "title": "可验证的基础离线行程包",
-      "deps": [
-        "T-140",
-        "T-141",
-        "T-142"
-      ],
-      "status": "in_progress",
-      "acceptance": "持久化路线/航点/计划/完整可用预报与溯源；下载校验与重试；飞行模式冷启动、跨小时/午夜、24/48/72小时读取；不受普通LRU淘汰。",
-      "verify": "flutter analyze --no-pub；flutter test --no-pub（offline_trip_test / offline_screens_test 与全部回归）；CI Web/APK + 无签名 iOS；原生飞行模式待真机。",
-      "result": "2026-10-16：基础离线包、24/48/72小时下载、快照/溯源、完整性与坐标校验、失败保留/重试、首页入口和无天气/地图请求查看已实现。本地 analyze 0 / 263 tests；最终 03090e2 的 Web/APK CI 38881636861 与 iOS 无签名 CI 38881655873 成功。首批同功能 b51b11e 实际浏览器下载72小时/7节点/504地点时段，页面重启后恢复并断网读到最后一小时；最终构建引导修正另行验证。原生飞行模式/强制结束/低存储/升级与24/48/72小时真实老化仍待 B-002 真机，保持 in_progress；Web 字体离线限制已记录。"
-    },
-    {
-      "id": "T-144",
-      "p": "P1",
-      "title": "天气优先的信息顺序、暗色可读性与文案整改",
-      "deps": [
-        "T-120"
-      ],
-      "status": "done",
-      "acceptance": "首页快速查天气和行程更新/离线状态；详情首屏天气摘要；深浅色/360–430px/大字体可读；移除未实现微气候与绝不崩溃承诺。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "2026-10-16：首页增加离线包入口，共享天气指标改成自适应列数与自然高度，缺失文案提高对比度；离线页360px双倍字体/深浅色测试通过。其余首页天气优先顺序与全屏核验仍待完成。 2026-10-16：详情首屏改为天气摘要与真实获取时间；缺气温不再回退0℃；出发窗口深浅色/360px/双倍字号回归已加入，本地 analyze 0、284/284 tests 通过；全应用原生可读性仍未全部验收。 961a6d4 Android/iOS构建通过，天气摘要顺序与缺温度回归通过；不视为全应用无障碍认证。；2026-10-16 信息减负轮：详情页三层（控制条+结论卡 / 地图+线路要点+紧凑节点 / 收起的数据说明与来源），节点详情先 4 个关键值、其余收起、标记合并为一个按钮，出发窗口格子先出现且一字原因，设置 9 组→3 组；修复深色模式 Chip 文字对比度与海拔档乱序；本地 analyze 0 + test 284 全绿；CI 38900673341 全绿"
-    },
-    {
-      "id": "T-145",
-      "p": "P3",
-      "title": "真实订阅后端与服务端权益契约",
-      "deps": [
-        "T-101"
-      ],
-      "status": "blocked",
-      "acceptance": "用户/订单/渠道事件/权益与幂等；验单、续费、取消未到期、退款撤权、恢复、签名离线凭证；移除本地模拟授予路径。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "2026-10-15 用户明确决定暂缓订阅，先完成移动端体验、离线、真机与授权验收。隐藏所有当前付费入口；只有用户明确重启商业化后才恢复此任务。"
-    },
-    {
-      "id": "T-146",
-      "p": "P3",
-      "title": "选定渠道的真实支付与订阅沙盒联调",
-      "deps": [
-        "T-145"
-      ],
-      "status": "blocked",
-      "acceptance": "使用真实商店/商户配置走通购买、服务端确认、续费/退款、重装恢复；价格/试用资格由渠道确认；上线前单独验收。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "2026-10-15 用户明确决定暂缓订阅，先完成移动端体验、离线、真机与授权验收。隐藏所有当前付费入口；只有用户明确重启商业化后才恢复此任务。"
-    },
-    {
-      "id": "T-147",
-      "p": "P1",
-      "title": "多日行程持久化与徒步中天气查看",
-      "deps": [
-        "T-123",
-        "T-143"
-      ],
-      "status": "todo",
-      "acceptance": "保存出发时间/方向/配速；按营地或显式估算拆日；前台定位、沿途进度与ETA、网络/定位/天气新鲜度可区分。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "A-06/A-07：已有标记与ETA，尚无完整多日/徒步中闭环。"
-    },
-    {
-      "id": "T-148",
-      "p": "P1",
-      "title": "取得离线权利后接入离线底图包",
-      "deps": [
-        "T-143"
-      ],
-      "status": "blocked",
-      "acceptance": "提供实际离线授权证据；线路走廊范围、大小、缩放级别、缺块校验与断网显示；不下载OSM公共标准瓦片做离线包。",
-      "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
-      "result": "B-009：地图商用与离线权利未确认；基础轨迹/天气离线包可先推进。"
-    },
-    {
-      "id": "T-150",
-      "p": "P0",
-      "title": "暂缓商业化：隐藏订阅并直达真实线路体验",
-      "deps": [
-        "T-101",
-        "T-120"
-      ],
-      "status": "done",
-      "acceptance": "移除设置会员入口/PRO占位与首次付费引导；旧paywall链接不能打开付费墙；导入/示例入口保存引导完成状态。",
-      "verify": "flutter analyze/test；CI38699456479；iOS38699460743；390×844浏览器验收。",
-      "result": "18be281；analyze0，171/171 tests；Web/APK+iOS无签名构建成功；截图见docs/verification/no-billing-2026-10-15/。"
-    },
-    {
-      "id": "T-151",
-      "p": "P0",
-      "title": "正式分发前完成高德接入与内置线路授权整改",
-      "deps": [],
-      "status": "blocked",
-      "acceptance": "取得本项目所需地图接入/商业/离线许可；取得徒步星球作者及上游数据复制/分发权利，或移除/替换对应数据；更新许可清单。",
-      "verify": "作者/服务商可留档授权、官方SDK/API与实际配置核对。",
-      "result": "B-011/B-012；上游公开仓库license=null，已在a699aca纠正虚假MIT声明；标签纠正没有解除分发阻塞。详见iOS优先商业化报告。"
-    },
-    {
-      "id": "T-152",
-      "p": "P2",
-      "title": "移动端品牌名称与图标候选",
-      "deps": [],
-      "status": "done",
-      "acceptance": "提供可选择的名称和原创图标，含小尺寸验证；正式替换前由用户选定并核验重名。",
-      "verify": "6组SVG/1024PNG/64PNG与对照图视觉检查。",
-      "result": "6组候选已交付；用户于2026-10-15选定“山晴”＋D，正式实施见T-153。"
-    },
-    {
-      "id": "T-153",
-      "p": "P0",
-      "title": "正式应用山晴名称与第四个D图标",
-      "deps": [
-        "T-152"
-      ],
-      "status": "done",
-      "acceptance": "Flutter/Android/iOS显示名山晴；D方案图标进入原生安装包；CI平台生成后恢复品牌资源并验证；内部身份与数据兼容。",
-      "verify": "本地analyze/test；tool/apply_branding.py临时目录校验；CI Web/APK与iOS产物品牌校验。",
-      "result": "2816d9d；本地analyze0、171/171 tests；D主图字节匹配；CI38706513896 Web/APK及实际产物品牌校验成功；iOS38706518000无签名构建与AppIcon/显示名校验成功。"
-    },
-    {
-      "id": "T-154",
-      "p": "P1",
-      "title": "地图图层（卫星/等高线/天地图/自定义图源 + 叠加）、天气节点样式、节点图片",
-      "deps": [],
-      "status": "done",
-      "acceptance": "内置高德标准/卫星/注记、天地图矢量/影像/地形/注记（用户 Key）、OpenTopoMap 等高线、Esri 卫星、OSM；底图单选 + 多叠加层与透明度；坐标系不同的叠加不渲染并说明；自定义 XYZ 图源校验与持久化；旧 basemap 设置迁移；详情页节点按阈值着色+图标+图例（缺失不着绿）；节点可从相册/相机添加图片，本机保存、可备注/删除，地图显示图片标记，Web 如实提示不支持",
-      "verify": "test/unit/tile_sources_test.dart、test/unit/node_wx_class_test.dart、test/unit/route_photos_test.dart、test/widget/map_layers_test.dart、test/integration/core_flow_test.dart",
-      "result": "本地 analyze 0 + test 189/189；CI 38733804863 全绿（analyze/test/Web/APK）；真机瓦片可达性、天地图 Key 类型、相册/相机权限待确认；3D 地图未做（需换渲染引擎）"
-    },
-    {
-      "id": "T-126",
-      "p": "P1",
-      "title": "接入 meteoblue（按需单点、按节点海拔、额度保护）",
-      "deps": [
-        "T-123"
-      ],
-      "status": "done",
-      "acceptance": "basic-1h 适配器（asl=节点轨迹海拔、pictocode→现象、snowfraction）；onDemandOnly 不参与自动请求，点击才查询；缓存 3h 且缓存键含海拔；本机请求计数；key 仅存本机（独立存储，不改 AppSettings）",
-      "verify": "flutter test test/weather/meteoblue_contract_test.dart test/widget/on_demand_source_test.dart；实测 1 次（8000 credits）",
-      "result": "本地 analyze 0 + test 199 全绿；CI 38740383191 全绿"
-    },
-    {
-      "id": "T-155",
-      "p": "P1",
-      "title": "天地图拆分服务端/浏览器端 Key，按平台选 Key，403 错误码明确提示",
-      "deps": [
-        "T-154"
-      ],
-      "status": "done",
-      "acceptance": "设置有服务端/浏览器端两个 Key；原生用服务端、Web 用浏览器端（数据层选择，可单测）；缺对应 Key 显示未配置；旧 tiandituKey 迁移到两栏并提示两栏相同；天地图 403 按 301001/301012/301013（及 418/其他）在地图与设置卡片显示明确提示；不提交真实 Key、测试不访问网络",
-      "verify": "flutter analyze；flutter test（test/unit/tile_sources_test.dart、test/unit/tianditu_test.dart、test/widget/map_layers_test.dart、test/widget/tianditu_tiles_test.dart）",
-      "result": "本地 analyze 0 + test 207/207（新增 key 选择/迁移/错误码分类/拦截 client/提示组件与 TileLayer 端到端测试）；未 push、未跑 CI；真实 Key 真机/Web 出图待用户在 App 内填写确认（B-014）；2026-10-15 已合并入 feat/robust-track-import 并随 CI 38743636066 验证"
-    },
-    {
-      "id": "T-156",
-      "p": "P1",
-      "title": "Web 入口启动恢复、基础 SEO 与可访问性实测",
-      "deps": [
-        "T-153"
-      ],
-      "status": "done",
-      "acceptance": "主题化加载/失败重试；不禁用缩放；有意义的标题、描述与首屏语义；渲染资源来自本地构建；真实 CI 产物运行 Lighthouse 并保存分数与边界，不以加载页或局部测试替代全应用验收。",
-      "verify": "Flutter 无障碍/大字体测试 + playwright-cli + Lighthouse 13.5.0",
-      "result": "CI 38862593549 产物浏览器验证通过：缩放、深浅色、失败重试、键盘导入、语义控件、本地 CanvasKit。Lighthouse 全报告与局限已记录；性能/最佳实践尚未 >=95，继续 T-157，不宣称总目标完成。"
-    },
-    {
-      "id": "T-157",
-      "p": "P3",
-      "title": "真实首屏性能与最佳实践接近满分（>=95），单独验证可交互耗时",
-      "deps": [
-        "T-156"
-      ],
-      "status": "blocked",
-      "acceptance": "保持完整 App 业务；真实发布配置下多次测量 Lighthouse 各可测类别 >=95，首帧/可交互时间独立量测；修复构建与交付问题，不通过只测加载页、屏蔽警告或关掉功能刷分。原生性能另按 T-050 验收。",
-      "verify": "docs/quality-2026-10-16.md 及后续原始报告；实际 CI 产物与正式交付配置",
-      "result": "2026-10-16：最终 03090e2 产物，两次 Lighthouse 13.5.0/mobile/simulate/gzip 实测性能44和68、可访问性100、最佳实践81、SEO100，模拟TTI16.5/16.9秒；原始报告无runtimeError/runWarnings，保留两次波动结果。真实JS source maps已加入且loader映射通过，但CanvasKit WASM无映射、Dart缺1208项sourcesContent以及SDK弃用API仍影响最佳实践；Web Noto字体断网依赖未解决。尚未达到≥95，不能把启动页LCP或局部评分当全应用完成度。详见 docs/verification/offline-2026-10-16/summary.json。 2026-10-16 用户调整目标为Android/iOS优先，Web可暂缓。本项按用户优先级暂停投入，历史分数与不足保留，不视为完成。"
-    },
-    {
-      "id": "T-158",
-      "p": "P0",
-      "title": "统一天气各页面的瞬时值与小时累计时间语义",
-      "deps": [],
-      "status": "todo",
-      "acceptance": "在统一天气模型中保留逐变量原始时次/有效区间；固定时刻、行程节点、未来小时、离线页和出发窗口一致解释；Open-Meteo前一小时降水/阵风与MET下一小时降水分别处理，不能整体平移瞬时气温；旧离线包仍可读并说明语义。",
-      "verify": "官方字段契约、跨小时边界fixture、应用出发时刻后各页面一致性回归；本地analyze/test通过后一次CI。",
-      "result": "2026-10-16：T-130已在独立评估器中正确对齐Open-Meteo累计量并保留原始时次；现有NodeWxRow/hourAt与未来小时列表仍按来源原始记录展示，需明确区间并统一查询语义，避免用户把之前一小时累计量当作当前/之后一小时。不能把本轮局部对齐声称为所有天气页面已统一整改。"
-    },
-    {
-      "id": "T-159",
-      "p": "P1",
-      "title": "分享图片：线路天气卡与多日出发窗口对比卡",
-      "deps": [
-        "T-130"
-      ],
-      "status": "done",
-      "acceptance": "预览页显示专门排版的卡片（固定宽度、浅色、无地图瓦片）；系统分享面板（微信/QQ/X/Threads 等）；卡片自带来源、获取时间、非实测/非安全评分说明；节点超过 12 个均匀抽取并注明",
-      "verify": "flutter test test/widget/share_cards_test.dart；Web 预览页实看",
-      "result": "本地 analyze 0 + test 292；CI 38910599967 全绿；2026-10-16 改版：分层（标题→三个大数字→醒目提示图标胶囊→线路示意（无地图瓦片）+海拔剖面→≤6 个编号关键节点）、宣传语+下载二维码（CI 注入本次构建页地址）；本地 test 293；CI 38916384264 全绿，日志确认二维码地址注入为本次运行页"
-    },
-    {
-      "id": "T-160",
-      "p": "P0",
-      "title": "固定时刻降水易误读：全天降水一行与时次标签",
-      "deps": [
-        "T-144"
-      ],
-      "status": "done",
-      "acceptance": "固定时刻按设备时区整天取数（滑块不再触发请求）；结论卡给出全天沿途最大降水与降水时段（Open-Meteo 前一小时语义）；摘要标签按模式区分“该时次/行程降水”；概率高而量为 0 时注明来自不同模型",
-      "verify": "flutter test test/unit/day_precip_test.dart；用户文件（蓟县歪顶坨）17 日实测：22:00 为 0.0 mm/100%，全天约 79 mm、00–21 时",
-      "result": "本地全绿；CI 38910599967 全绿"
-    },
-    {
-      "id": "T-161",
-      "p": "P0",
-      "title": "Android 正式签名与发布应用 ID（app.shanqing.hiking）",
-      "deps": [],
-      "status": "done",
-      "acceptance": "applicationId/Bundle ID 为 app.shanqing.hiking，namespace 不变；签名文件与密码只由用户生成并存入 GitHub Secrets；CI 有 Secrets 时正式签名、无则 debug 并在摘要标注；配置了正式签名却产出 debug 签名时 CI 失败；产物应用 ID 由 verify_build_branding 校验",
-      "verify": "本地 flutter create 产物上运行 configure_release.py（有/无签名两种）；CI 运行摘要的证书指纹；用户运行 tool/create_android_keystore.sh 后再跑一次 CI",
-      "result": "2026-10-16：脚本与 CI 接线完成，本地对生成工程验证通过（applicationId、signingConfigs、iOS 6 处 Bundle ID）。等用户运行签名脚本、配置 Secrets 后再验证正式签名产物，届时改为 done。 2026-10-17：用户运行脚本上传 Secrets（首次运行因 bash 3.2 中文环境 ${VAR} 问题中断，已修复并支持复用已有签名文件）；CI 38992313590 成功，日志显示正式签名；下载产物解析 v2 签名块，证书 SHA-256 48:FE:D8:…:30:9B 与用户签名文件一致，非 debug 证书。APK 66 MB（全架构），beta 前考虑按架构拆分。"
-    },
-    {
-      "id": "T-162",
-      "p": "P0",
-      "title": "首次启动隐私说明同意",
-      "deps": [],
-      "status": "done",
-      "acceptance": "引导页展示摘要与全文入口；同意项默认不勾选，未勾选不能继续；未同意前不能返回关闭；同意版本持久化，版本提升后老用户再次确认；同意前收到的外部文件不解析；App 内全文与 docs/privacy.md 一致",
-      "verify": "test/widget/onboarding_screen_test.dart；test/widget/trips_shell_test.dart（首启外部文件、老用户再次确认）",
-      "result": "2026-10-16：本地 analyze 0、test 297/297 2026-10-17 真机：首次启动显示同意框（默认不勾选），勾选后进入首页。"
-    },
-    {
-      "id": "T-163",
-      "p": "P1",
-      "title": "定位授权时机：打开地图不弹授权框",
-      "deps": [],
-      "status": "done",
-      "acceptance": "地图打开时的自动定位只检查权限（已授权才定位，失败静默）；系统授权只在用户点击定位时请求；拒绝后其余功能可用",
-      "verify": "test/unit/location_service_test.dart（只检查不请求）；test/widget/map_home_location_test.dart（自动=false、手动=true）",
-      "result": "2026-10-16：本地全绿 2026-10-17 真机：正式签名版打开地图不弹授权框，权限保持未授予；点击定位按钮才请求。"
-    },
-    {
-      "id": "T-164",
-      "p": "P1",
-      "title": "测试版问题反馈入口",
-      "deps": [],
-      "status": "done",
-      "acceptance": "设置中可复制诊断信息（构建、平台、来源、底图、开关；不含位置、线路、Key 原文），可打开 GitHub Issues；打开失败时复制链接并提示",
-      "verify": "test/unit/feedback_diagnostics_test.dart",
-      "result": "2026-10-16：本地全绿"
-    },
-    {
-      "id": "T-165",
-      "p": "P0",
-      "title": "UI 重构：design tokens 与“山脊天气带”视觉签名",
-      "deps": [],
-      "status": "in_progress",
-      "acceptance": "先集中定义颜色、间距、圆角、字号 token，替换硬编码颜色并通过深浅色对比度检查；详情、出发窗口、分享图共用以海拔剖面为主视觉的天气带；结论先行并带来源一致度或信心；拆分 route_detail_screen；内联中文迁入 S",
-      "verify": "组件测试与无障碍 guideline；本地 Web 预览走查；docs/review-2026-10-16.md 第 7 节",
-      "result": "2026-10-17：动效基础与开屏（T-167）完成；design tokens 完成（语义色、主题、深色模式灰字）；详情页拆分为 part 文件；山脊天气带取代单色剖面；结论先行与滑动数字。本地 analyze 0、test 314；真机（小米 12S 深色）核对固定时刻与行程模式（日落后夜色）。剩余：内联中文迁入 S、分享卡改用山脊天气带、来源一致度（需多来源请求，另议）。"
-    },
-    {
-      "id": "T-166",
-      "p": "P1",
-      "title": "第一个 beta：0.2.0-beta.1 与 GitHub Release",
-      "deps": [
-        "T-161",
-        "T-165",
-        "T-158"
-      ],
-      "status": "todo",
-      "acceptance": "版本 0.2.0-beta.1 + CHANGELOG；GitHub Release 附正式签名 APK（公开发布前由用户确认）；分享图二维码改指 releases/latest；至少一台 Android 真机冒烟记录",
-      "verify": "Release 页面、APK 签名指纹、真机记录",
-      "result": ""
-    },
-    {
-      "id": "T-167",
-      "p": "P1",
-      "title": "开屏动画：观山图标组装，太阳跟随此刻、夜里换月亮",
-      "deps": [],
-      "status": "done",
-      "acceptance": "系统启动页与 Flutter 首帧同底色，无白屏；当天首次完整约 1.1 秒并有“跳过动画”，再次启动 0.25 秒淡入，减少动效/低耗电静态，Web 不播；播完移除且零帧；太阳/月亮只读本地时钟",
-      "verify": "test/unit/splash_art_test.dart；test/widget/splash_overlay_test.dart；临时渲染关键帧目视核对；Android 资源编译与真机观感待批次 CI 与 B-002",
-      "result": "2026-10-17：本地 analyze 0、test 308/308；关键帧渲染核对（日出、正午、夜间深色）。原生启动页资源尚未经 CI 编译，等本批 UI 重构结束一起跑。 2026-10-17 真机（小米 12S，深色模式，本机 profile 构建）：系统启动页只显示底色，没有图标闪现；完整版组装顺序正确，“跳过动画”按钮可见；当天第二次打开只淡入；Android 启动页资源本机编译通过。真机发现字标落到 WidgetsApp 报错样式（黄色双下划线，开屏层没有 Material 祖先），已改用 Material 并补测试（修复前失败、修复后通过）。从点开到 Flutter 首帧约有 0.6 秒深色空白，属于引擎启动时间。"
-    },
-    {
-      "id": "T-168",
-      "p": "P1",
-      "title": "详情小地图：缩放、点节点、限定地形图层",
-      "deps": [],
-      "status": "done",
-      "acceptance": "双指缩放/平移与双击放大，单指滑动页面不受影响；点节点选中、再点打开详情；图层只提供跟随设置/等高线/天地图地形（无 Key 不可选），不改全局底图；自选图层加载不出时提示并可切回",
-      "verify": "test/widget/route_detail_v2_test.dart（图层面板、加载不出提示与切回）；真机：单指滑动滚动页面、双击放大、等高线超时后 10 秒提示、切回",
-      "result": "2026-10-17：本地 analyze 0、test 316；真机验证通过。双指缩放 adb 无法模拟，待用户确认手感。"
-    },
-    {
-      "id": "T-169",
-      "p": "P2",
-      "title": "瓦片缓存留住空白瓦片：高德直连偶发空白后同级别一直空白",
-      "deps": [],
-      "status": "todo",
-      "acceptance": "查明 flutter_map 8 内置缓存对异常 / 空白瓦片的处理与过期策略；必要时为高德设置更短的缓存有效期，或识别空白瓦片后不缓存；不能用伪造瓦片掩盖",
-      "verify": "可复现的步骤或测试替身；真机清除前后对比",
-      "result": "2026-10-17 真机：小地图在默认缩放下高德一直空白，全屏地图（不同缩放级别）正常，清除应用数据后恢复。"
-    }
-  ]
+ "schema": "trailweather/tasks@1",
+ "note": "状态：todo|in_progress|done|blocked。本地 analyze/test 快速验证；web/apk 构建以 GitHub Actions 为准。2026-10-15 成熟度审计见 docs/maturity-audit-2026-10-15.md；历史 T-080/T-081/T-082 存在重复 ID，统计不可直接视为产品完成度。",
+ "tasks": [
+  {
+   "id": "T-001",
+   "p": "P0",
+   "title": "工程初始化与依赖三端核验",
+   "deps": [],
+   "status": "done",
+   "acceptance": "pubspec 解析、依赖版本经 pub.dev 核验、平台目录生成策略文档化",
+   "verify": "CI 第一步",
+   "result": "完成；CI 验证通过"
+  },
+  {
+   "id": "T-002",
+   "p": "P0",
+   "title": "天气统一数据模型与溯源（真实性红线）",
+   "deps": [
+    "T-001"
+   ],
+   "status": "done",
+   "acceptance": "WxProvenance 全字段；缺失 null；概率/量、阵风/风速分键",
+   "verify": "flutter test test/weather",
+   "result": "完成；契约测试通过"
+  },
+  {
+   "id": "T-003",
+   "p": "P0",
+   "title": "Open-Meteo 适配器（含批量与单位换算）",
+   "deps": [
+    "T-002"
+   ],
+   "status": "done",
+   "acceptance": "多坐标批量、km/h→m/s、elevation/offset 溯源、超窗抛 WxOutOfRange",
+   "verify": "test/weather/provider_contract_test.dart",
+   "result": "完成；发现并修复单位换算缺失"
+  },
+  {
+   "id": "T-004",
+   "p": "P0",
+   "title": "MET Norway 适配器（UA 与缺失字段如实）",
+   "deps": [
+    "T-002"
+   ],
+   "status": "done",
+   "acceptance": "UA 标识、compact 缺失字段保持 null、updated_at 作为发布时间",
+   "verify": "同上",
+   "result": "完成"
+  },
+  {
+   "id": "T-010",
+   "p": "P0",
+   "title": "地图+线路+天气核心闭环（M1）",
+   "deps": [
+    "T-003"
+   ],
+   "status": "done",
+   "acceptance": "地图选线→详情→节点天气→来源切换，CI 可构建",
+   "verify": "flutter test test/integration + CI build",
+   "result": "CI 全绿：地图选线→详情→节点天气→来源切换（run 38402622454）"
+  },
+  {
+   "id": "T-080",
+   "p": "P0",
+   "title": "首页自动定位、地图点位天气与定位按钮复用",
+   "deps": [
+    "T-010"
+   ],
+   "status": "done",
+   "acceptance": "首页一次定位成功后显示当前位置多来源天气并查询当地线路；地图点选可查天气；定位按钮请求结束后可再次使用；拒绝/永久拒绝/服务关闭/超时可恢复",
+   "verify": "flutter analyze + flutter test（99 项）+ GitHub Actions web/apk",
+   "result": "本地 analyze 0 问题、99 项测试通过；CI run 38510507584 全绿（Web/APK 产物已上传）；2026-10-15 复核：KMZ 实际未支持（zip 按文本解码），移动端文件选择器不可用 → 由 T-100 修复"
+  },
+  {
+   "id": "T-081",
+   "p": "P0",
+   "title": "混合线路搜索（本地/地点/附近 OSM/外部攻略/导入）",
+   "deps": [
+    "T-080"
+   ],
+   "status": "done",
+   "acceptance": "搜索框明确支持地点、山峰与线路；本地和已加载线路可按名称匹配；地点选择后查询附近 OSM；小红书/两步路/六只脚仅用户主动外链检索；可进入 GPX/GeoJSON 导入；不抓取外部内容",
+   "verify": "flutter analyze + flutter test（99 项）+ GitHub Actions web/apk",
+   "result": "CI run 38510507584 全绿；外链 URI 单测 2 项与混合搜索组件测试 1 项通过"
+  },
+  {
+   "id": "T-082",
+   "p": "P0",
+   "title": "商业级轨迹导入重构（解除硬限制、自适应 RDP 抽稀、KML 支持、异常海拔容错与系统关联）",
+   "deps": [
+    "T-013"
+   ],
+   "status": "done",
+   "acceptance": "上限放宽至 30MB；超过 3000 点自动进行自适应 RDP 抽稀并保留最高/最低海拔极值；异常漂移海拔自动置空不崩溃；新增 KML/KMZ 解析器（支持奥维/两步路/Google Earth 的 LineString、MultiGeometry 与 gx:Track）；扩展文件选择器与 Android/iOS 系统级文件打开关联",
+   "verify": "flutter analyze + flutter test（108 项全部通过）",
+   "result": "本地 analyze 0 问题；108/108 项测试全绿；新增 KmlImport、Geo.simplifyTrack 与对应单元测试"
+  },
+  {
+   "id": "T-011",
+   "p": "P1",
+   "title": "行程模式 ETA（跨午夜/DST 安全）",
+   "deps": [
+    "T-010"
+   ],
+   "status": "done",
+   "acceptance": "UTC 运算、爬升加时、休息分摊、无海拔降级",
+   "verify": "test/unit/eta_and_sampling_test.dart",
+   "result": "完成"
+  },
+  {
+   "id": "T-012",
+   "p": "P1",
+   "title": "节点多来源对比（对齐与重叠说明）",
+   "deps": [
+    "T-010"
+   ],
+   "status": "done",
+   "acceptance": "独立卡片、时刻差值提示、模型重叠标注",
+   "verify": "widget/集成测试",
+   "result": "完成"
+  },
+  {
+   "id": "T-013",
+   "p": "P1",
+   "title": "GPX/GeoJSON 导入（安全与限制）",
+   "deps": [
+    "T-010"
+   ],
+   "status": "done",
+   "acceptance": "2MB/5000点/范围校验/XXE 防护/损坏拒绝",
+   "verify": "test/unit/cache_and_gpx_test.dart",
+   "result": "完成"
+  },
+  {
+   "id": "T-014",
+   "p": "P1",
+   "title": "Overpass 线路发现（限流+几何拼装）",
+   "deps": [
+    "T-010"
+   ],
+   "status": "done",
+   "acceptance": "bbox 限制、镜像轮换、端点拼装不连直线",
+   "verify": "test/unit/overpass_test.dart",
+   "result": "完成；正式 route=hiking 关系与具名 path/footway/track 路径段分开标注；主站 504 仍为外部状态"
+  },
+  {
+   "id": "T-020",
+   "p": "P1",
+   "title": "缓存体系（命名空间/TTL/SWR/管理UI）",
+   "deps": [
+    "T-002"
+   ],
+   "status": "done",
+   "acceptance": "四命名空间、天气键含来源/网格/时间窗、旧数据标记",
+   "verify": "test/unit + weather_repository_test",
+   "result": "完成"
+  },
+  {
+   "id": "T-021",
+   "p": "P1",
+   "title": "设置页（单位/主题/来源/低耗电/缓存/授权/隐私）",
+   "deps": [
+    "T-020"
+   ],
+   "status": "done",
+   "acceptance": "全部首版设置项可用",
+   "verify": "代码审查+人工",
+   "result": "完成"
+  },
+  {
+   "id": "T-030",
+   "p": "P1",
+   "title": "CI 流水线（analyze/test/web/apk + 手动 iOS/smoke）",
+   "deps": [
+    "T-001"
+   ],
+   "status": "done",
+   "acceptance": "push 触发单 job 全量验证；产物上传",
+   "verify": "gh run watch",
+   "result": "CI 单 job 全绿（analyze/test/web/apk+artifacts）；iOS 手动工作流已触发"
+  },
+  {
+   "id": "T-040",
+   "p": "P2",
+   "title": "Web 端人工冒烟（浏览器实际请求）",
+   "deps": [
+    "T-030"
+   ],
+   "status": "todo",
+   "acceptance": "浏览器打开 web release，真实走一次闭环并记录 CORS/UA 表现",
+   "verify": "人工记录于 progress.md",
+   "result": "2026-10-15 部分浏览器验证：CI 38681970611 Web 产物，390×844 暗色；示例线路 Open-Meteo 天气与高德底图可加载，离线/Pro 仍为开发中。未覆盖全部来源、导入/重启/弱网，保持 todo；截图与边界见成熟度审计。 2026-10-15产品决定：Web不作为当前公开发行目标；仍可用于界面验收。新产物38699456479已验证无订阅引导、设置入口移除和旧/paywall链接返回首页。"
+  },
+  {
+   "id": "T-050",
+   "p": "P2",
+   "title": "真机性能与耗电（协议执行）",
+   "deps": [
+    "T-030"
+   ],
+   "status": "blocked",
+   "acceptance": "docs/performance.md 协议执行并记录",
+   "verify": "数据入 performance.md",
+   "result": "无真机"
+  },
+  {
+   "id": "T-060",
+   "p": "P1",
+   "title": "iOS 构建验证",
+   "deps": [
+    "T-030"
+   ],
+   "status": "done",
+   "acceptance": "手动触发 ios-build 通过",
+   "verify": "Actions 历史",
+   "result": "2026-10-15当前代码a699aca的iOS无签名release构建通过（run38699460743）；不代表签名发布或真机验收。"
+  },
+  {
+   "id": "T-220",
+   "p": "P3",
+   "title": "ARB/gen-l10n 国际化迁移（zh/en）",
+   "deps": [
+    "T-010"
+   ],
+   "status": "todo",
+   "acceptance": "文案迁入 ARB，S 类替换为生成访问器",
+   "verify": "flutter test",
+   "result": ""
+  },
+  {
+   "id": "T-310",
+   "p": "P3",
+   "title": "远期趋势产品调研（次季节/集合）",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "找到合规来源并按不确定性展示，或文档化不可行",
+   "verify": "data-sources.md 更新",
+   "result": "当前诚实显示无趋势数据"
+  },
+  {
+   "id": "T-320",
+   "p": "P3",
+   "title": "官方预警接入（如 MET alerts API）",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "真实接入或维持未接入标注",
+   "verify": "新适配器+测试",
+   "result": "当前如实标注未接入"
+  },
+  {
+   "id": "T-330",
+   "p": "P2",
+   "title": "分享线路链接（含敏感位置提示）",
+   "deps": [
+    "T-010"
+   ],
+   "status": "todo",
+   "acceptance": "链接编码线路或引用，含提示",
+   "verify": "人工",
+   "result": "当前提供导出 JSON"
+  },
+  {
+   "id": "T-402",
+   "p": "P2",
+   "title": "集成测试帧统计哨兵",
+   "deps": [
+    "T-030"
+   ],
+   "status": "todo",
+   "acceptance": "CI 输出慢帧比例",
+   "verify": "CI 日志",
+   "result": ""
+  },
+  {
+   "id": "T-501",
+   "p": "P3",
+   "title": "发布候选与授权/成本核验",
+   "deps": [
+    "T-040",
+    "T-050",
+    "T-060"
+   ],
+   "status": "blocked",
+   "acceptance": "release-checklist 全勾",
+   "verify": "docs 更新",
+   "result": ""
+  },
+  {
+   "id": "T-070",
+   "p": "P1",
+   "title": "大陆网络适配（高德底图+GCJ-02+和风来源）",
+   "deps": [
+    "T-030"
+   ],
+   "status": "done",
+   "acceptance": "直连实测驱动：默认底图大陆可用；和风可配置接入",
+   "verify": "flutter test（93/93）+ CI run 38408260872",
+   "result": "完成；和风真实联网待用户配置 key"
+  },
+  {
+   "id": "T-071",
+   "p": "P2",
+   "title": "和风真实联网验证（Live Smoke）",
+   "deps": [
+    "T-070"
+   ],
+   "status": "blocked",
+   "acceptance": "配置 Secrets 后 smoke 通过",
+   "verify": "live-smoke.yml",
+   "result": "需用户注册和风并配置 Secrets"
+  },
+  {
+   "id": "T-080",
+   "p": "P0",
+   "title": "商业级轨迹导入重构（大文件自适应抽稀+KML/KMZ支持+异常清洗）",
+   "deps": [
+    "T-010"
+   ],
+   "status": "done",
+   "acceptance": "解除硬限制、自适应 RDP 抽稀保证高程1:1、KML/KMZ解析、外部文件调用意图注册",
+   "verify": "CI run 38534512846 全绿",
+   "result": "完成；CI 验证通过；2026-10-15 复核：KMZ 实际未支持（zip 按文本解码），移动端文件选择器不可用 → 由 T-100 修复"
+  },
+  {
+   "id": "T-081",
+   "p": "P1",
+   "title": "融合徒步星球（trail-planet）全球经典路线库",
+   "deps": [
+    "T-080"
+   ],
+   "status": "done",
+   "acceptance": "落盘并解析 44 条全球经典神线、高程线性插值、8 大地貌分类与里程区间筛选、随机漫游",
+   "verify": "flutter test test/unit/planet_trails_test.dart test/widget/planet_screen_test.dart",
+   "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
+  },
+  {
+   "id": "T-082",
+   "p": "P1",
+   "title": "手绘路线规划工坊（Trail Studio）",
+   "deps": [
+    "T-080"
+   ],
+   "status": "done",
+   "acceptance": "地图打点画线、航点标注（营地/水源/险段/垭口）、Tobler算法耗时预估、GPX/KML双向导出、联动气象推演",
+   "verify": "flutter test test/unit/route_exporter_test.dart test/widget/route_planner_screen_test.dart",
+   "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
+  },
+  {
+   "id": "T-090",
+   "p": "P0",
+   "title": "海明商业化转化体系与 Pro 会员闭环（Onboarding 问诊 + 动态对比 + Paywall 7天试用 + 离网微气候权益）",
+   "deps": [
+    "T-081",
+    "T-082"
+   ],
+   "status": "done",
+   "acceptance": "痛点问诊/空间反差引导、主推年度套餐并享7天免费试用、终身买断与月度方案、安全退出与恢复购买、高程垂直递减率微气候计算与离线包下载",
+   "verify": "flutter analyze 0 issues + flutter test 121/121 全绿 + CI 构建",
+   "result": "完成；本地 analyze 0 issues，121 tests 100% 通过 + CI 38552136025 全绿（Web+APK）；2026-10-15 复核：4 项 Pro 权益未实现、购买为本地白送 → 由 T-101 下线虚假宣称"
+  },
+  {
+   "id": "T-100",
+   "p": "P0",
+   "title": "本地轨迹文件导入可用性修复（选择器/KMZ/统一入口）",
+   "deps": [
+    "T-080"
+   ],
+   "status": "done",
+   "acceptance": "Android/iOS 选择器不按扩展名过滤（iOS 原抛 ArgumentError、Android gpx 无 MIME 被置灰）；按内容嗅探 GPX/KML/KMZ/GeoJSON；KMZ 解压；后台 isolate 解析；告警去重；GeoJSON 超长轨迹抽稀不拒绝",
+   "verify": "flutter test test/unit/route_file_import_test.dart；本地对 example/ 4 个真实文件（gpx/kml/kml 2/kmz）全部导入 74.5 km",
+   "result": "本地 analyze 0 + test 138 全绿；真机选择器行为待 CI 产物人工验证；CI 38674705802 全绿（analyze/test/Web/APK）"
+  },
+  {
+   "id": "T-101",
+   "p": "P0",
+   "title": "Pro 权益与支付真实性整改",
+   "deps": [
+    "T-090"
+   ],
+   "status": "done",
+   "acceptance": "支付未接入时 purchase 抛错不授予 Pro、遗留本机 Pro 失效；未实现权益标“开发中”；移除“已启用/已完整离网缓存”等虚假提示、虚构原价与试用文案",
+   "verify": "test/unit/subscription_test.dart、test/widget/paywall_screen_test.dart、onboarding_screen_test.dart",
+   "result": "完成；真实支付接入登记 B-008；CI 38674705802 全绿（analyze/test/Web/APK）"
+  },
+  {
+   "id": "T-102",
+   "p": "P0",
+   "title": "天气计算逻辑修复（审查发现）",
+   "deps": [
+    "T-003"
+   ],
+   "status": "done",
+   "acceptance": "Open-Meteo 当天已过去小时可查、早于今天给出正确原因；详情默认时刻不落在过去；沿途降水按小时取最大再累加；日落取出发后第一次；节点面板本地时间与重复请求；多日行程/插值海拔标注；规划工坊配速统一；星球随机不打乱缓存；收藏星标状态；爬升显示 m",
+   "verify": "test/weather/provider_contract_test.dart、test/unit/risk_rules_test.dart",
+   "result": "完成；本地全绿；CI 38674705802 全绿（analyze/test/Web/APK）"
+  },
+  {
+   "id": "T-103",
+   "p": "P0",
+   "title": "真机体验修复：定位超时 / 定位后弹面板 / 线路地图适配 / 无效入口降级",
+   "deps": [
+    "T-100"
+   ],
+   "status": "done",
+   "acceptance": "Android 定位强制 LocationManager + medium 精度 + 上次已知位置先居中/超时回退并标注；定位成功只移动地图并显示当前位置天气小标签，点击才开面板，不自动请求 Overpass；详情小地图按全部 segments 包围盒（GCJ-02 先 toDisplay）自适配并可进入可交互全屏大图，首页选线路适配整条线路；“搜索此区域”降为线路列表次要入口、外部攻略折叠为次要入口并写明原因（底层代码与测试保留）",
+   "verify": "test/unit/location_service_test.dart、test/unit/route_camera_test.dart、test/widget/map_home_location_test.dart、test/widget/hybrid_route_search_test.dart、test/integration/core_flow_test.dart",
+   "result": "本地 analyze 0 + test 151/151 全绿；CI 38677552384 全绿（analyze/test/Web/APK）；真机定位/手势待用户确认"
+  },
+  {
+   "id": "T-120",
+   "p": "P0",
+   "title": "v2 首页改版：我的行程 + 底部导航（行程/地图/设置）",
+   "deps": [
+    "T-100"
+   ],
+   "status": "done",
+   "acceptance": "首页为我的行程（空状态引导导入/手绘、删除、示例线路与徒步星球置底）；StatefulShellRoute 三分支；地图移除已迁出的入口；路由器只创建一次；移除百度外部搜索",
+   "verify": "flutter test test/widget/trips_shell_test.dart",
+   "result": "本地 analyze 0 + test 153 全绿；CI 38678967686 全绿（含 APK 编译 MainActivity.kt）"
+  },
+  {
+   "id": "T-121",
+   "p": "P0",
+   "title": "Android“用徒步天气打开”/分享接收",
+   "deps": [
+    "T-120"
+   ],
+   "status": "done",
+   "acceptance": "VIEW/SEND intent（gpx/kml/kmz/geojson/xml/octet-stream）→ MethodChannel → 内容嗅探解析 → 统一确认保存；singleTask；已消费标记防重复导入；30MB 上限后台读取",
+   "verify": "trips_shell_test 外部传入用例 + CI APK 编译 MainActivity.kt；flutter create 不覆盖已验证（本地 scratch）",
+   "result": "真机待用户验证（两步路/奥维/微信 打开方式）；CI 38678967686 全绿（含 APK 编译 MainActivity.kt）"
+  },
+  {
+   "id": "T-122",
+   "p": "P1",
+   "title": "iOS“用徒步天气打开”",
+   "deps": [
+    "T-121"
+   ],
+   "status": "in_progress",
+   "acceptance": "AppDelegate application(_:open:options:) 读取 Inbox/安全作用域文件 → 同一 MethodChannel；Info.plist 补 KMZ/GeoJSON 文档类型",
+   "verify": "手动 iOS Build 工作流",
+   "result": "AppDelegate.swift（同一通道协议、安全作用域复制到临时目录、冷启动 pending + 确认后清除）、Info.plist 增 KMZ 文档类型与 GPX/KML/KMZ 导入类型声明；flutter create 不覆盖已验证；待 iOS 构建与真机验证；iOS 无签名构建 38910604777 成功（AppDelegate.swift 编译通过）；真机打开方式待用户确认"
+  },
+  {
+   "id": "T-130",
+   "p": "P0",
+   "title": "出发窗口（日期 × 出发时刻 格子图）",
+   "deps": [
+    "T-120"
+   ],
+   "status": "done",
+   "acceptance": "按 docs/redesign-v2.md 阈值；缺失=信息不足；每格可追溯来源与原因",
+   "verify": "本地 flutter analyze/test；CI Android/iOS 构建；docs/departure-windows.md 与 docs/verification/departure-2026-10-16/。",
+   "result": "2026-10-16：已实现日期×时刻比较、逐段逐小时检查、可追溯依据、应用出发时间与可持久化阈值；本地 analyze 0 issues、284/284 tests 通过；业务提交961a6d4；Android/Web CI 38890402736及iOS无签名CI 38890417187成功，名称/图标验证通过；APK已下载并校验。限于共享代码/组件及构建验收，真机待B-002；跨页面时间语义继续T-158。"
+  },
+  {
+   "id": "T-123",
+   "p": "P0",
+   "title": "详情页基础：方向/起终点、节点三处联动、节点详情、标记航点、导入航点",
+   "deps": [
+    "T-120"
+   ],
+   "status": "done",
+   "acceptance": "起终点标记+方向箭头+环线识别+反向行走；地图标记/海拔剖面/时间线共享选中，再点或详情按钮打开节点详情（完整天气、未来12小时、标记、多来源对比）；节点或全屏地图长按标记营地/休息点/水源/补给等（新增 rest/supply 类型，休息点停留时长计入 ETA），保存到我的行程；GPX wpt/KML Point 有名称才导入，跳过起终点与线路同名点",
+   "verify": "flutter test test/unit/route_direction_waypoints_test.dart test/widget/route_detail_v2_test.dart",
+   "result": "本地 analyze 0 + test 169 全绿；五台山 4 个示例文件均全程 74.5 km 进入分析、4 个命名航点上线；CI 38681970611 全绿"
+  },
+  {
+   "id": "T-124",
+   "p": "P0",
+   "title": "修复：多段轨迹只分析最长段",
+   "deps": [
+    "T-123"
+   ],
+   "status": "done",
+   "acceptance": "首尾相距 ≤1 km 的相邻段串联为分析路径（两步路多日 KML 三段间隔 12 m/34 m，原先只分析 31.3 km 的第二天）；更远断开段取最长链并提示",
+   "verify": "route_direction_waypoints_test 分析路径用例 + 本地真实文件核对",
+   "result": "完成；CI 38681970611 全绿"
+  },
+  {
+   "id": "T-125",
+   "p": "P0",
+   "title": "天气数据补全：按节点海拔查询、天气现象/降雪/冻结高度、空气质量、同地点不同海拔",
+   "deps": [
+    "T-123"
+   ],
+   "status": "done",
+   "acceptance": "去掉 0.1° 合并抹平海拔差（或按海拔分档）；Open-Meteo elevation 参数；weather_code/snowfall/freezing_level_height；Open-Meteo Air Quality（区域级标注）",
+   "verify": "flutter test test/weather/altitude_weather_test.dart；接口形态 2026-10-15 实测（elevation 列表、nan 行为、AQ 多点、Elevation API）",
+   "result": "本地 analyze 0 + test 228 全绿；Open-Meteo 按节点海拔降尺度（同网格海拔差≥100 m 不合并）；weather_code/snowfall/freezing_level；雷暴/降雪/雾/0℃ 层提示；同一地点不同海拔卡片；空气质量卡片（CAMS 区域级）；CI 38743636066 全绿"
+  },
+  {
+   "id": "T-140",
+   "p": "P0",
+   "title": "修复天气缓存跨小时读取与过期刷新",
+   "deps": [
+    "T-020"
+   ],
+   "status": "done",
+   "acceptance": "覆盖时段索引可复用已有逐时数据；7小时旧缓存在线能更新；后台错误被捕获并反馈；刷新成功通知UI。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
+   "result": "2026-10-16：按真实覆盖时段复用 v3 缓存，过期结果流可刷新并向页面传递成功/失败，保留真实获取时间，空响应不覆盖可用缓存；跨午夜/冷启动/72小时预报/7小时旧缓存/缺口/并发与UI回归通过。普通缓存仍不等于 T-143 离线包。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
+  },
+  {
+   "id": "T-141",
+   "p": "P0",
+   "title": "修复线路反向/节点变化后的天气查询身份",
+   "deps": [
+    "T-123"
+   ],
+   "status": "done",
+   "acceptance": "相同节点数/总长度但坐标或顺序变化时不得复用错误bundle；按节点坐标验证正反向天气映射。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
+   "result": "2026-10-16：坐标、顺序、海拔形成不可变 family 身份；实际 ProviderContainer 正反向请求逐节点核对请求坐标通过，原列表修改不改变已有键。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
+  },
+  {
+   "id": "T-142",
+   "p": "P0",
+   "title": "当前位置天气时刻与刷新生命周期",
+   "deps": [
+    "T-103"
+   ],
+   "status": "done",
+   "acceptance": "当前天气取打开时的当前时间；区分定位时间与天气有效时间；前后台恢复按时效刷新，离线标注旧预报。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK 与 iOS 无签名构建",
+   "result": "2026-10-16：打开面板时取当前天气时刻；位置读取时间独立显示，原始定位采样时间尚未保存，不把它宣称为已知。前台跨小时/15分钟检查、后台停止、恢复重查；旧位置响应不覆盖新查询。生命周期及跨午夜打开面板回归通过。 本地 analyze 0、245/245 tests；最终业务提交 0abf1d6，Web/APK CI 38870192917 与 iOS 无签名 CI 38870196358 均成功；真机仍待验证。"
+  },
+  {
+   "id": "T-143",
+   "p": "P0",
+   "title": "可验证的基础离线行程包",
+   "deps": [
+    "T-140",
+    "T-141",
+    "T-142"
+   ],
+   "status": "in_progress",
+   "acceptance": "持久化路线/航点/计划/完整可用预报与溯源；下载校验与重试；飞行模式冷启动、跨小时/午夜、24/48/72小时读取；不受普通LRU淘汰。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub（offline_trip_test / offline_screens_test 与全部回归）；CI Web/APK + 无签名 iOS；原生飞行模式待真机。",
+   "result": "2026-10-16：基础离线包、24/48/72小时下载、快照/溯源、完整性与坐标校验、失败保留/重试、首页入口和无天气/地图请求查看已实现。本地 analyze 0 / 263 tests；最终 03090e2 的 Web/APK CI 38881636861 与 iOS 无签名 CI 38881655873 成功。首批同功能 b51b11e 实际浏览器下载72小时/7节点/504地点时段，页面重启后恢复并断网读到最后一小时；最终构建引导修正另行验证。原生飞行模式/强制结束/低存储/升级与24/48/72小时真实老化仍待 B-002 真机，保持 in_progress；Web 字体离线限制已记录。"
+  },
+  {
+   "id": "T-144",
+   "p": "P1",
+   "title": "天气优先的信息顺序、暗色可读性与文案整改",
+   "deps": [
+    "T-120"
+   ],
+   "status": "done",
+   "acceptance": "首页快速查天气和行程更新/离线状态；详情首屏天气摘要；深浅色/360–430px/大字体可读；移除未实现微气候与绝不崩溃承诺。",
+   "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+   "result": "2026-10-16：首页增加离线包入口，共享天气指标改成自适应列数与自然高度，缺失文案提高对比度；离线页360px双倍字体/深浅色测试通过。其余首页天气优先顺序与全屏核验仍待完成。 2026-10-16：详情首屏改为天气摘要与真实获取时间；缺气温不再回退0℃；出发窗口深浅色/360px/双倍字号回归已加入，本地 analyze 0、284/284 tests 通过；全应用原生可读性仍未全部验收。 961a6d4 Android/iOS构建通过，天气摘要顺序与缺温度回归通过；不视为全应用无障碍认证。；2026-10-16 信息减负轮：详情页三层（控制条+结论卡 / 地图+线路要点+紧凑节点 / 收起的数据说明与来源），节点详情先 4 个关键值、其余收起、标记合并为一个按钮，出发窗口格子先出现且一字原因，设置 9 组→3 组；修复深色模式 Chip 文字对比度与海拔档乱序；本地 analyze 0 + test 284 全绿；CI 38900673341 全绿"
+  },
+  {
+   "id": "T-145",
+   "p": "P3",
+   "title": "真实订阅后端与服务端权益契约",
+   "deps": [
+    "T-101"
+   ],
+   "status": "blocked",
+   "acceptance": "用户/订单/渠道事件/权益与幂等；验单、续费、取消未到期、退款撤权、恢复、签名离线凭证；移除本地模拟授予路径。",
+   "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+   "result": "2026-10-15 用户明确决定暂缓订阅，先完成移动端体验、离线、真机与授权验收。隐藏所有当前付费入口；只有用户明确重启商业化后才恢复此任务。"
+  },
+  {
+   "id": "T-146",
+   "p": "P3",
+   "title": "选定渠道的真实支付与订阅沙盒联调",
+   "deps": [
+    "T-145"
+   ],
+   "status": "blocked",
+   "acceptance": "使用真实商店/商户配置走通购买、服务端确认、续费/退款、重装恢复；价格/试用资格由渠道确认；上线前单独验收。",
+   "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+   "result": "2026-10-15 用户明确决定暂缓订阅，先完成移动端体验、离线、真机与授权验收。隐藏所有当前付费入口；只有用户明确重启商业化后才恢复此任务。"
+  },
+  {
+   "id": "T-147",
+   "p": "P1",
+   "title": "多日行程持久化与徒步中天气查看",
+   "deps": [
+    "T-123",
+    "T-143"
+   ],
+   "status": "todo",
+   "acceptance": "保存出发时间/方向/配速；按营地或显式估算拆日；前台定位、沿途进度与ETA、网络/定位/天气新鲜度可区分。",
+   "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+   "result": "A-06/A-07：已有标记与ETA，尚无完整多日/徒步中闭环。"
+  },
+  {
+   "id": "T-148",
+   "p": "P1",
+   "title": "取得离线权利后接入离线底图包",
+   "deps": [
+    "T-143"
+   ],
+   "status": "blocked",
+   "acceptance": "提供实际离线授权证据；线路走廊范围、大小、缩放级别、缺块校验与断网显示；不下载OSM公共标准瓦片做离线包。",
+   "verify": "按 docs/maturity-audit-2026-10-15.md 验收；修复后本地 analyze/test，构建在 CI。",
+   "result": "B-009：地图商用与离线权利未确认；基础轨迹/天气离线包可先推进。"
+  },
+  {
+   "id": "T-150",
+   "p": "P0",
+   "title": "暂缓商业化：隐藏订阅并直达真实线路体验",
+   "deps": [
+    "T-101",
+    "T-120"
+   ],
+   "status": "done",
+   "acceptance": "移除设置会员入口/PRO占位与首次付费引导；旧paywall链接不能打开付费墙；导入/示例入口保存引导完成状态。",
+   "verify": "flutter analyze/test；CI38699456479；iOS38699460743；390×844浏览器验收。",
+   "result": "18be281；analyze0，171/171 tests；Web/APK+iOS无签名构建成功；截图见docs/verification/no-billing-2026-10-15/。"
+  },
+  {
+   "id": "T-151",
+   "p": "P0",
+   "title": "正式分发前完成高德接入与内置线路授权整改",
+   "deps": [],
+   "status": "blocked",
+   "acceptance": "取得本项目所需地图接入/商业/离线许可；取得徒步星球作者及上游数据复制/分发权利，或移除/替换对应数据；更新许可清单。",
+   "verify": "作者/服务商可留档授权、官方SDK/API与实际配置核对。",
+   "result": "B-011/B-012；上游公开仓库license=null，已在a699aca纠正虚假MIT声明；标签纠正没有解除分发阻塞。详见iOS优先商业化报告。"
+  },
+  {
+   "id": "T-152",
+   "p": "P2",
+   "title": "移动端品牌名称与图标候选",
+   "deps": [],
+   "status": "done",
+   "acceptance": "提供可选择的名称和原创图标，含小尺寸验证；正式替换前由用户选定并核验重名。",
+   "verify": "6组SVG/1024PNG/64PNG与对照图视觉检查。",
+   "result": "6组候选已交付；用户于2026-10-15选定“山晴”＋D，正式实施见T-153。"
+  },
+  {
+   "id": "T-153",
+   "p": "P0",
+   "title": "正式应用山晴名称与第四个D图标",
+   "deps": [
+    "T-152"
+   ],
+   "status": "done",
+   "acceptance": "Flutter/Android/iOS显示名山晴；D方案图标进入原生安装包；CI平台生成后恢复品牌资源并验证；内部身份与数据兼容。",
+   "verify": "本地analyze/test；tool/apply_branding.py临时目录校验；CI Web/APK与iOS产物品牌校验。",
+   "result": "2816d9d；本地analyze0、171/171 tests；D主图字节匹配；CI38706513896 Web/APK及实际产物品牌校验成功；iOS38706518000无签名构建与AppIcon/显示名校验成功。"
+  },
+  {
+   "id": "T-154",
+   "p": "P1",
+   "title": "地图图层（卫星/等高线/天地图/自定义图源 + 叠加）、天气节点样式、节点图片",
+   "deps": [],
+   "status": "done",
+   "acceptance": "内置高德标准/卫星/注记、天地图矢量/影像/地形/注记（用户 Key）、OpenTopoMap 等高线、Esri 卫星、OSM；底图单选 + 多叠加层与透明度；坐标系不同的叠加不渲染并说明；自定义 XYZ 图源校验与持久化；旧 basemap 设置迁移；详情页节点按阈值着色+图标+图例（缺失不着绿）；节点可从相册/相机添加图片，本机保存、可备注/删除，地图显示图片标记，Web 如实提示不支持",
+   "verify": "test/unit/tile_sources_test.dart、test/unit/node_wx_class_test.dart、test/unit/route_photos_test.dart、test/widget/map_layers_test.dart、test/integration/core_flow_test.dart",
+   "result": "本地 analyze 0 + test 189/189；CI 38733804863 全绿（analyze/test/Web/APK）；真机瓦片可达性、天地图 Key 类型、相册/相机权限待确认；3D 地图未做（需换渲染引擎）"
+  },
+  {
+   "id": "T-126",
+   "p": "P1",
+   "title": "接入 meteoblue（按需单点、按节点海拔、额度保护）",
+   "deps": [
+    "T-123"
+   ],
+   "status": "done",
+   "acceptance": "basic-1h 适配器（asl=节点轨迹海拔、pictocode→现象、snowfraction）；onDemandOnly 不参与自动请求，点击才查询；缓存 3h 且缓存键含海拔；本机请求计数；key 仅存本机（独立存储，不改 AppSettings）",
+   "verify": "flutter test test/weather/meteoblue_contract_test.dart test/widget/on_demand_source_test.dart；实测 1 次（8000 credits）",
+   "result": "本地 analyze 0 + test 199 全绿；CI 38740383191 全绿"
+  },
+  {
+   "id": "T-155",
+   "p": "P1",
+   "title": "天地图拆分服务端/浏览器端 Key，按平台选 Key，403 错误码明确提示",
+   "deps": [
+    "T-154"
+   ],
+   "status": "done",
+   "acceptance": "设置有服务端/浏览器端两个 Key；原生用服务端、Web 用浏览器端（数据层选择，可单测）；缺对应 Key 显示未配置；旧 tiandituKey 迁移到两栏并提示两栏相同；天地图 403 按 301001/301012/301013（及 418/其他）在地图与设置卡片显示明确提示；不提交真实 Key、测试不访问网络",
+   "verify": "flutter analyze；flutter test（test/unit/tile_sources_test.dart、test/unit/tianditu_test.dart、test/widget/map_layers_test.dart、test/widget/tianditu_tiles_test.dart）",
+   "result": "本地 analyze 0 + test 207/207（新增 key 选择/迁移/错误码分类/拦截 client/提示组件与 TileLayer 端到端测试）；未 push、未跑 CI；真实 Key 真机/Web 出图待用户在 App 内填写确认（B-014）；2026-10-15 已合并入 feat/robust-track-import 并随 CI 38743636066 验证"
+  },
+  {
+   "id": "T-156",
+   "p": "P1",
+   "title": "Web 入口启动恢复、基础 SEO 与可访问性实测",
+   "deps": [
+    "T-153"
+   ],
+   "status": "done",
+   "acceptance": "主题化加载/失败重试；不禁用缩放；有意义的标题、描述与首屏语义；渲染资源来自本地构建；真实 CI 产物运行 Lighthouse 并保存分数与边界，不以加载页或局部测试替代全应用验收。",
+   "verify": "Flutter 无障碍/大字体测试 + playwright-cli + Lighthouse 13.5.0",
+   "result": "CI 38862593549 产物浏览器验证通过：缩放、深浅色、失败重试、键盘导入、语义控件、本地 CanvasKit。Lighthouse 全报告与局限已记录；性能/最佳实践尚未 >=95，继续 T-157，不宣称总目标完成。"
+  },
+  {
+   "id": "T-157",
+   "p": "P3",
+   "title": "真实首屏性能与最佳实践接近满分（>=95），单独验证可交互耗时",
+   "deps": [
+    "T-156"
+   ],
+   "status": "blocked",
+   "acceptance": "保持完整 App 业务；真实发布配置下多次测量 Lighthouse 各可测类别 >=95，首帧/可交互时间独立量测；修复构建与交付问题，不通过只测加载页、屏蔽警告或关掉功能刷分。原生性能另按 T-050 验收。",
+   "verify": "docs/quality-2026-10-16.md 及后续原始报告；实际 CI 产物与正式交付配置",
+   "result": "2026-10-16：最终 03090e2 产物，两次 Lighthouse 13.5.0/mobile/simulate/gzip 实测性能44和68、可访问性100、最佳实践81、SEO100，模拟TTI16.5/16.9秒；原始报告无runtimeError/runWarnings，保留两次波动结果。真实JS source maps已加入且loader映射通过，但CanvasKit WASM无映射、Dart缺1208项sourcesContent以及SDK弃用API仍影响最佳实践；Web Noto字体断网依赖未解决。尚未达到≥95，不能把启动页LCP或局部评分当全应用完成度。详见 docs/verification/offline-2026-10-16/summary.json。 2026-10-16 用户调整目标为Android/iOS优先，Web可暂缓。本项按用户优先级暂停投入，历史分数与不足保留，不视为完成。"
+  },
+  {
+   "id": "T-158",
+   "p": "P0",
+   "title": "统一天气各页面的瞬时值与小时累计时间语义",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "在统一天气模型中保留逐变量原始时次/有效区间；固定时刻、行程节点、未来小时、离线页和出发窗口一致解释；Open-Meteo前一小时降水/阵风与MET下一小时降水分别处理，不能整体平移瞬时气温；旧离线包仍可读并说明语义。",
+   "verify": "官方字段契约、跨小时边界fixture、应用出发时刻后各页面一致性回归；本地analyze/test通过后一次CI。",
+   "result": "2026-10-16：T-130已在独立评估器中正确对齐Open-Meteo累计量并保留原始时次；现有NodeWxRow/hourAt与未来小时列表仍按来源原始记录展示，需明确区间并统一查询语义，避免用户把之前一小时累计量当作当前/之后一小时。不能把本轮局部对齐声称为所有天气页面已统一整改。"
+  },
+  {
+   "id": "T-159",
+   "p": "P1",
+   "title": "分享图片：线路天气卡与多日出发窗口对比卡",
+   "deps": [
+    "T-130"
+   ],
+   "status": "done",
+   "acceptance": "预览页显示专门排版的卡片（固定宽度、浅色、无地图瓦片）；系统分享面板（微信/QQ/X/Threads 等）；卡片自带来源、获取时间、非实测/非安全评分说明；节点超过 12 个均匀抽取并注明",
+   "verify": "flutter test test/widget/share_cards_test.dart；Web 预览页实看",
+   "result": "本地 analyze 0 + test 292；CI 38910599967 全绿；2026-10-16 改版：分层（标题→三个大数字→醒目提示图标胶囊→线路示意（无地图瓦片）+海拔剖面→≤6 个编号关键节点）、宣传语+下载二维码（CI 注入本次构建页地址）；本地 test 293；CI 38916384264 全绿，日志确认二维码地址注入为本次运行页"
+  },
+  {
+   "id": "T-160",
+   "p": "P0",
+   "title": "固定时刻降水易误读：全天降水一行与时次标签",
+   "deps": [
+    "T-144"
+   ],
+   "status": "done",
+   "acceptance": "固定时刻按设备时区整天取数（滑块不再触发请求）；结论卡给出全天沿途最大降水与降水时段（Open-Meteo 前一小时语义）；摘要标签按模式区分“该时次/行程降水”；概率高而量为 0 时注明来自不同模型",
+   "verify": "flutter test test/unit/day_precip_test.dart；用户文件（蓟县歪顶坨）17 日实测：22:00 为 0.0 mm/100%，全天约 79 mm、00–21 时",
+   "result": "本地全绿；CI 38910599967 全绿"
+  },
+  {
+   "id": "T-161",
+   "p": "P0",
+   "title": "Android 正式签名与发布应用 ID（app.shanqing.hiking）",
+   "deps": [],
+   "status": "done",
+   "acceptance": "applicationId/Bundle ID 为 app.shanqing.hiking，namespace 不变；签名文件与密码只由用户生成并存入 GitHub Secrets；CI 有 Secrets 时正式签名、无则 debug 并在摘要标注；配置了正式签名却产出 debug 签名时 CI 失败；产物应用 ID 由 verify_build_branding 校验",
+   "verify": "本地 flutter create 产物上运行 configure_release.py（有/无签名两种）；CI 运行摘要的证书指纹；用户运行 tool/create_android_keystore.sh 后再跑一次 CI",
+   "result": "2026-10-16：脚本与 CI 接线完成，本地对生成工程验证通过（applicationId、signingConfigs、iOS 6 处 Bundle ID）。等用户运行签名脚本、配置 Secrets 后再验证正式签名产物，届时改为 done。 2026-10-17：用户运行脚本上传 Secrets（首次运行因 bash 3.2 中文环境 ${VAR} 问题中断，已修复并支持复用已有签名文件）；CI 38992313590 成功，日志显示正式签名；下载产物解析 v2 签名块，证书 SHA-256 48:FE:D8:…:30:9B 与用户签名文件一致，非 debug 证书。APK 66 MB（全架构），beta 前考虑按架构拆分。"
+  },
+  {
+   "id": "T-162",
+   "p": "P0",
+   "title": "首次启动隐私说明同意",
+   "deps": [],
+   "status": "done",
+   "acceptance": "引导页展示摘要与全文入口；同意项默认不勾选，未勾选不能继续；未同意前不能返回关闭；同意版本持久化，版本提升后老用户再次确认；同意前收到的外部文件不解析；App 内全文与 docs/privacy.md 一致",
+   "verify": "test/widget/onboarding_screen_test.dart；test/widget/trips_shell_test.dart（首启外部文件、老用户再次确认）",
+   "result": "2026-10-16：本地 analyze 0、test 297/297 2026-10-17 真机：首次启动显示同意框（默认不勾选），勾选后进入首页。"
+  },
+  {
+   "id": "T-163",
+   "p": "P1",
+   "title": "定位授权时机：打开地图不弹授权框",
+   "deps": [],
+   "status": "done",
+   "acceptance": "地图打开时的自动定位只检查权限（已授权才定位，失败静默）；系统授权只在用户点击定位时请求；拒绝后其余功能可用",
+   "verify": "test/unit/location_service_test.dart（只检查不请求）；test/widget/map_home_location_test.dart（自动=false、手动=true）",
+   "result": "2026-10-16：本地全绿 2026-10-17 真机：正式签名版打开地图不弹授权框，权限保持未授予；点击定位按钮才请求。"
+  },
+  {
+   "id": "T-164",
+   "p": "P1",
+   "title": "测试版问题反馈入口",
+   "deps": [],
+   "status": "done",
+   "acceptance": "设置中可复制诊断信息（构建、平台、来源、底图、开关；不含位置、线路、Key 原文），可打开 GitHub Issues；打开失败时复制链接并提示",
+   "verify": "test/unit/feedback_diagnostics_test.dart",
+   "result": "2026-10-16：本地全绿"
+  },
+  {
+   "id": "T-165",
+   "p": "P0",
+   "title": "UI 重构：design tokens 与“山脊天气带”视觉签名",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "先集中定义颜色、间距、圆角、字号 token，替换硬编码颜色并通过深浅色对比度检查；详情、出发窗口、分享图共用以海拔剖面为主视觉的天气带；结论先行并带来源一致度或信心；拆分 route_detail_screen；内联中文迁入 S",
+   "verify": "组件测试与无障碍 guideline；本地 Web 预览走查；docs/review-2026-10-16.md 第 7 节",
+   "result": "2026-10-17：动效基础与开屏（T-167）完成；design tokens 完成（语义色、主题、深色模式灰字）；详情页拆分为 part 文件；山脊天气带取代单色剖面；结论先行与滑动数字。本地 analyze 0、test 314；真机（小米 12S 深色）核对固定时刻与行程模式（日落后夜色）。剩余：内联中文迁入 S、分享卡改用山脊天气带、来源一致度（需多来源请求，另议）。"
+  },
+  {
+   "id": "T-166",
+   "p": "P1",
+   "title": "第一个 beta：0.2.0-beta.1 与 GitHub Release",
+   "deps": [
+    "T-161",
+    "T-165",
+    "T-158"
+   ],
+   "status": "todo",
+   "acceptance": "版本 0.2.0-beta.1 + CHANGELOG；GitHub Release 附正式签名 APK（公开发布前由用户确认）；分享图二维码改指 releases/latest；至少一台 Android 真机冒烟记录",
+   "verify": "Release 页面、APK 签名指纹、真机记录",
+   "result": ""
+  },
+  {
+   "id": "T-167",
+   "p": "P1",
+   "title": "开屏动画：观山图标组装，太阳跟随此刻、夜里换月亮",
+   "deps": [],
+   "status": "done",
+   "acceptance": "系统启动页与 Flutter 首帧同底色，无白屏；当天首次完整约 1.1 秒并有“跳过动画”，再次启动 0.25 秒淡入，减少动效/低耗电静态，Web 不播；播完移除且零帧；太阳/月亮只读本地时钟",
+   "verify": "test/unit/splash_art_test.dart；test/widget/splash_overlay_test.dart；临时渲染关键帧目视核对；Android 资源编译与真机观感待批次 CI 与 B-002",
+   "result": "2026-10-17：本地 analyze 0、test 308/308；关键帧渲染核对（日出、正午、夜间深色）。原生启动页资源尚未经 CI 编译，等本批 UI 重构结束一起跑。 2026-10-17 真机（小米 12S，深色模式，本机 profile 构建）：系统启动页只显示底色，没有图标闪现；完整版组装顺序正确，“跳过动画”按钮可见；当天第二次打开只淡入；Android 启动页资源本机编译通过。真机发现字标落到 WidgetsApp 报错样式（黄色双下划线，开屏层没有 Material 祖先），已改用 Material 并补测试（修复前失败、修复后通过）。从点开到 Flutter 首帧约有 0.6 秒深色空白，属于引擎启动时间。"
+  },
+  {
+   "id": "T-168",
+   "p": "P1",
+   "title": "详情小地图：缩放、点节点、限定地形图层",
+   "deps": [],
+   "status": "done",
+   "acceptance": "双指缩放/平移与双击放大，单指滑动页面不受影响；点节点选中、再点打开详情；图层只提供跟随设置/等高线/天地图地形（无 Key 不可选），不改全局底图；自选图层加载不出时提示并可切回",
+   "verify": "test/widget/route_detail_v2_test.dart（图层面板、加载不出提示与切回）；真机：单指滑动滚动页面、双击放大、等高线超时后 10 秒提示、切回",
+   "result": "2026-10-17：本地 analyze 0、test 316；真机验证通过。双指缩放 adb 无法模拟，待用户确认手感。"
+  },
+  {
+   "id": "T-169",
+   "p": "P2",
+   "title": "瓦片缓存留住空白瓦片：高德直连偶发空白后同级别一直空白",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "查明 flutter_map 8 内置缓存对异常 / 空白瓦片的处理与过期策略；必要时为高德设置更短的缓存有效期，或识别空白瓦片后不缓存；不能用伪造瓦片掩盖",
+   "verify": "可复现的步骤或测试替身；真机清除前后对比",
+   "result": "2026-10-17 真机：小地图在默认缩放下高德一直空白，全屏地图（不同缩放级别）正常，清除应用数据后恢复。"
+  },
+  {
+   "id": "T-170",
+   "p": "P1",
+   "title": "风向显示改为八方位加度数",
+   "deps": [],
+   "status": "done",
+   "acceptance": "120° 显示“东南风 120°”而不是“东东南”；数值不变",
+   "verify": "test/unit/units_test.dart",
+   "result": "2026-10-17：根因是十六方位叫法，非数据错误；已改。"
+  },
+  {
+   "id": "T-171",
+   "p": "P1",
+   "title": "地图搜索支持经纬度直接查天气",
+   "deps": [],
+   "status": "done",
+   "acceptance": "十进制、方位字母、中文方位、度分秒、经度在前均可识别；输入坐标不发给地名搜索",
+   "verify": "test/unit/coord_parse_test.dart、test/widget/hybrid_route_search_test.dart",
+   "result": "2026-10-17 完成。"
+  },
+  {
+   "id": "T-172",
+   "p": "P1",
+   "title": "分享示意图重画与三种版式",
+   "deps": [],
+   "status": "done",
+   "acceptance": "节点位置准确、编号连续、徽章不压线不重叠；长图/简图/横图可切换",
+   "verify": "test/widget/share_cards_test.dart；真机 2026-10-17 三种版式截图核对",
+   "result": "2026-10-17 完成；横图数值挤在一起已修（右侧留白）。"
+  },
+  {
+   "id": "T-173",
+   "p": "P2",
+   "title": "小地图等高线图源：天地图地形优先",
+   "deps": [],
+   "status": "done",
+   "acceptance": "国内可用的地形图层排第一，无 Key 时引导填写；海外图源标注",
+   "verify": "test/widget/route_detail_v2_test.dart（图层面板）",
+   "result": "2026-10-17 完成（D-034）。"
+  },
+  {
+   "id": "T-174",
+   "p": "P2",
+   "title": "微信/QQ/微博分享显示“来自山晴”",
+   "deps": [],
+   "status": "blocked",
+   "acceptance": "拿到各平台 AppID 后走官方 SDK 分享，没有时退回系统分享",
+   "verify": "真机分享到微信/QQ 看到来源尾巴",
+   "result": "需要用户本人在微信开放平台、QQ 互联、微博开放平台注册并通过审核（包名 app.shanqing.hiking，签名 MD5 已提供）。X / Threads 无此机制。"
+  },
+  {
+   "id": "T-175",
+   "p": "P1",
+   "title": "数据层级与紫外线、分层云量等新变量",
+   "deps": [],
+   "status": "done",
+   "acceptance": "决策/准备/参考三层；新变量缺失为 null；晴空紫外线与紫外线预报分开；紫外线提示",
+   "verify": "test/unit/wx_importance_test.dart、test/weather/provider_contract_test.dart（MET complete、Open-Meteo 新字段）",
+   "result": "2026-10-17 完成（D-035）。"
+  },
+  {
+   "id": "T-176",
+   "p": "P1",
+   "title": "洋葱穿衣建议",
+   "deps": [
+    "T-175"
+   ],
+   "status": "done",
+   "acceptance": "出发/行进/停留三场景；每层穿着或背包；配件；怕冷怕热偏好；缺数据逐项说明；分享长图带穿衣一行",
+   "verify": "test/unit/layering_test.dart、test/widget/route_detail_v2_test.dart；Web 实测",
+   "result": "2026-10-17 完成；真机（离线缓存数据）与 Web（实时数据）核对。"
+  },
+  {
+   "id": "T-177",
+   "p": "P1",
+   "title": "节点气象时间图",
+   "deps": [
+    "T-175"
+   ],
+   "status": "done",
+   "acceptance": "24 小时云层/气温体感/降水量与概率/风/紫外线/夜色/到达时刻；点按看数值；不插值",
+   "verify": "test/widget/weather_map_test.dart（时间图）；真机与 Web 截图",
+   "result": "2026-10-17 完成。"
+  },
+  {
+   "id": "T-178",
+   "p": "P1",
+   "title": "地图降水图、云量图（模式预报，可播放）",
+   "deps": [],
+   "status": "done",
+   "acceptance": "停下才请求、范围内复用；48 小时可播放；标注模式预报非雷达；缩放过小不请求",
+   "verify": "test/unit/weather_field_test.dart、test/widget/weather_map_test.dart；Web 实时数据核对",
+   "result": "2026-10-17 完成；真机待手机联网后核对（T-184）。"
+  },
+  {
+   "id": "T-179",
+   "p": "P2",
+   "title": "卫星云图（Himawari 红外实况）",
+   "deps": [],
+   "status": "done",
+   "acceptance": "只用真实存在的时次；显示观测时间；注明 NASA GIBS",
+   "verify": "test/unit/weather_field_test.dart（帧选择）；Web 实测",
+   "result": "2026-10-17 完成。"
+  },
+  {
+   "id": "T-180",
+   "p": "P2",
+   "title": "台风路径（日本气象厅）",
+   "deps": [],
+   "status": "done",
+   "acceptance": "活跃台风的实况、过去路径、预报路径与概率圆、风区；无台风时如实说明；风速口径注明",
+   "verify": "test/unit/typhoon_test.dart（实测 fixture）、test/widget/weather_map_test.dart；Web 实测",
+   "result": "2026-10-17 完成（台风 Champi 2630）。"
+  },
+  {
+   "id": "T-181",
+   "p": "P2",
+   "title": "节点是否在云中 / 云海：气压层湿度",
+   "deps": [
+    "T-175"
+   ],
+   "status": "todo",
+   "acceptance": "用气压层相对湿度与位势高度判断节点海拔处是否饱和，标注为估算",
+   "verify": "契约测试 + 真机",
+   "result": ""
+  },
+  {
+   "id": "T-182",
+   "p": "P3",
+   "title": "分钟级降水临近预报（中国）",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "核实和风套餐；出发前两小时降水",
+   "verify": "",
+   "result": ""
+  },
+  {
+   "id": "T-183",
+   "p": "P3",
+   "title": "雷达实况图层",
+   "deps": [],
+   "status": "blocked",
+   "acceptance": "找到授权允许的雷达数据源",
+   "verify": "",
+   "result": "RainViewer 免费版仅限个人/教育用途；中央气象台雷达无开放授权。需用户决定。"
+  },
+  {
+   "id": "T-184",
+   "p": "P1",
+   "title": "天气图、穿衣卡、时间图真机核对",
+   "deps": [
+    "T-176",
+    "T-177",
+    "T-178"
+   ],
+   "status": "todo",
+   "acceptance": "真机实时数据下逐项截图核对，含播放与卫星云图流量",
+   "verify": "真机",
+   "result": "2026-10-17：手机当时无网络（默认网络为 none），先在 Web 上用实时数据核对。"
+  }
+ ]
 }

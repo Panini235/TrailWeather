@@ -9,15 +9,18 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../data/weather/satellite_frames.dart';
+import '../../data/weather/typhoon.dart';
 import '../../data/weather/weather_field.dart';
 import '../motion.dart';
 import '../strings.dart';
 import '../tokens.dart';
 import '../widgets/common.dart';
 import 'basemap.dart';
+import 'typhoon_layer.dart';
 
-/// 天气图模式：降水与云量是模式预报格点场；卫星云图是观测（实况）。
-enum WxMapMode { precip, cloud, satellite }
+/// 天气图模式：降水与云量是模式预报格点场；卫星云图是观测（实况）；
+/// 台风是日本气象厅的实况与路径预报。
+enum WxMapMode { precip, cloud, satellite, typhoon }
 
 /// 地图页“天气图”的状态（D-035）。
 ///
@@ -27,11 +30,16 @@ class WeatherMapController extends ChangeNotifier {
   WeatherMapController({
     required this.fieldService,
     required this.satelliteService,
+    required this.typhoonService,
     DateTime Function()? now,
   }) : _now = now ?? (() => DateTime.now().toUtc());
 
   final WeatherFieldService fieldService;
   final SatelliteFrameService satelliteService;
+  final TyphoonService typhoonService;
+
+  /// 地图页设置：把视野移到这些点（台风“定位”）。
+  void Function(List<LatLng> points)? onFitRequest;
   final DateTime Function() _now;
 
   /// 格点场的最小缩放级别：再小就是全国以上，80 个格点太稀，不如不画。
@@ -52,6 +60,11 @@ class WeatherMapController extends ChangeNotifier {
   bool satLoading = false;
   Object? satError;
 
+  List<Typhoon>? typhoons;
+  bool tyLoading = false;
+  Object? tyError;
+  DateTime? _tyFetchedAt;
+
   Timer? _play;
   Timer? _debounce;
   FieldBounds? _view;
@@ -64,9 +77,11 @@ class WeatherMapController extends ChangeNotifier {
   FieldVar get fieldVar =>
       mode == WxMapMode.precip ? FieldVar.precip : cloudVar;
 
-  int get frameCount => mode == WxMapMode.satellite
-      ? satFrames.length
-      : (grid?.timesUtc.length ?? 0);
+  int get frameCount => switch (mode) {
+    WxMapMode.satellite => satFrames.length,
+    WxMapMode.typhoon => 0,
+    _ => grid?.timesUtc.length ?? 0,
+  };
   int get frameIndex => mode == WxMapMode.satellite ? satIndex : timeIndex;
 
   void toggle() {
@@ -143,12 +158,42 @@ class WeatherMapController extends ChangeNotifier {
 
   Future<void> _ensure() async {
     if (!active) return;
-    if (mode == WxMapMode.satellite) {
-      await _ensureSatellite();
-    } else {
-      await _ensureField();
+    switch (mode) {
+      case WxMapMode.satellite:
+        await _ensureSatellite();
+      case WxMapMode.typhoon:
+        await _ensureTyphoons();
+      case WxMapMode.precip || WxMapMode.cloud:
+        await _ensureField();
     }
   }
+
+  /// 台风数据 30 分钟内复用（JMA 约 3–6 小时更新一次）。
+  Future<void> _ensureTyphoons() async {
+    if (tyLoading) return;
+    final at = _tyFetchedAt;
+    if (typhoons != null &&
+        at != null &&
+        _now().difference(at) < const Duration(minutes: 30)) {
+      return;
+    }
+    tyLoading = true;
+    tyError = null;
+    _notify();
+    try {
+      typhoons = await typhoonService.active();
+      _tyFetchedAt = _now();
+      final first = typhoons!.firstOrNull;
+      if (first != null) onFitRequest?.call(first.allPoints);
+    } catch (e) {
+      tyError = e;
+    } finally {
+      tyLoading = false;
+      _notify();
+    }
+  }
+
+  void fitTyphoon(Typhoon t) => onFitRequest?.call(t.allPoints);
 
   Future<void> _ensureField() async {
     final view = _view;
@@ -232,6 +277,9 @@ class WeatherMapController extends ChangeNotifier {
 /// 地图图层：格点场或卫星瓦片。放在底图之上、线路之下。
 List<Widget> weatherMapLayers(WeatherMapController c, Basemap basemap) {
   if (!c.active) return const [];
+  if (c.mode == WxMapMode.typhoon) {
+    return typhoonLayers(c.typhoons ?? const [], basemap);
+  }
   if (c.mode == WxMapMode.satellite) {
     final frames = c.satFrames;
     if (frames.isEmpty) return const [];
@@ -263,7 +311,7 @@ List<Widget> weatherMapLayers(WeatherMapController c, Basemap basemap) {
   ];
 }
 
-/// 格点场渲染：格点按 4 倍细分做双线性平滑（只为显示），三角网逐顶点着色。
+/// 格点场渲染：格点按 6 倍细分做双线性平滑（只为显示），三角网逐顶点着色。
 /// 切换时次时新旧两帧交叉淡入（减少动效时直接替换）；数值本身不在时次间插值。
 class WeatherFieldLayer extends StatefulWidget {
   const WeatherFieldLayer({
@@ -285,7 +333,7 @@ class WeatherFieldLayer extends StatefulWidget {
 
 class _WeatherFieldLayerState extends State<WeatherFieldLayer>
     with SingleTickerProviderStateMixin {
-  static const _k = 4;
+  static const _k = 6;
   late final AnimationController _fade = AnimationController(
     vsync: this,
     duration: Motion.base,
@@ -383,9 +431,10 @@ typedef FieldColorOf = Color Function(double v);
 FieldColorOf fieldColor(FieldVar v) =>
     v == FieldVar.precip ? precipColor : cloudColor;
 
+// 低端拉长过渡（0.05 → 0.6 mm 渐显），雨区边缘不随细分网格出现台阶。
 const precipStops = <(double, Color)>[
-  (0.1, Color(0x0078BEFA)),
-  (0.3, Color(0x7378BEFA)),
+  (0.05, Color(0x0078BEFA)),
+  (0.6, Color(0x7378BEFA)),
   (1, Color(0x9A3C8CE6)),
   (3, Color(0xB01E5AC8)),
   (8, Color(0xBF783CBE)),
@@ -405,7 +454,8 @@ const cloudStops = <(double, Color)>[
 Color cloudColor(double pct) => _ramp(cloudStops, pct);
 
 Color _ramp(List<(double, Color)> stops, double x) {
-  if (x.isNaN || x < stops.first.$1) return const Color(0x00000000);
+  // 低于下限用首色的透明版本：与相邻顶点插值时不会带出灰黑色边。
+  if (x.isNaN || x < stops.first.$1) return stops.first.$2.withValues(alpha: 0);
   for (var i = 1; i < stops.length; i++) {
     final (x1, c1) = stops[i];
     if (x <= x1) {
@@ -486,7 +536,11 @@ class _FieldPainter extends CustomPainter {
       final colors = Int32List(values.length);
       for (var i = 0; i < values.length; i++) {
         final col = colorOf(values[i]);
-        colors[i] = col.withValues(alpha: col.a * alpha).toARGB32();
+        // 外圈半个格距内渐隐：换新格点场前视野超出范围时，边界不是一条硬线。
+        final r = i ~/ fc, c = i % fc;
+        final edge = math.min(math.min(r, c), math.min(fr - 1 - r, fc - 1 - c));
+        final fadeEdge = (edge / (k / 2)).clamp(0.0, 1.0);
+        colors[i] = col.withValues(alpha: col.a * alpha * fadeEdge).toARGB32();
       }
       canvas.drawVertices(
         ui.Vertices.raw(
@@ -557,7 +611,11 @@ class WeatherMapPanel extends StatelessWidget {
     final small = TextStyle(fontSize: 11, color: muted);
     final sat = c.mode == WxMapMode.satellite;
     final n = c.frameCount;
-    final busy = sat ? c.satLoading : c.loading;
+    final busy = switch (c.mode) {
+      WxMapMode.satellite => c.satLoading,
+      WxMapMode.typhoon => c.tyLoading,
+      _ => c.loading,
+    };
     final err = sat ? c.satError : c.error;
 
     Widget chip(WxMapMode m, String label, IconData icon) => ChoiceChip(
@@ -623,6 +681,7 @@ class WeatherMapPanel extends StatelessWidget {
                         S.wxMapSatellite,
                         Icons.satellite_alt_outlined,
                       ),
+                      chip(WxMapMode.typhoon, S.wxMapTyphoon, Icons.cyclone),
                     ],
                   ),
                 ),
@@ -664,7 +723,9 @@ class WeatherMapPanel extends StatelessWidget {
                   onSelectionChanged: (v) => c.setCloudVar(v.first),
                 ),
               ),
-            if (!sat && c.tooWide)
+            if (c.mode == WxMapMode.typhoon)
+              _TyphoonBody(controller: c, small: small)
+            else if (!sat && c.tooWide)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(S.wxMapZoomIn, style: small),
@@ -743,7 +804,9 @@ class WeatherMapPanel extends StatelessWidget {
                 ],
                 Expanded(
                   child: Text(
-                    sat
+                    c.mode == WxMapMode.typhoon
+                        ? S.wxMapTyphoonNote
+                        : sat
                         ? S.wxMapSatelliteNote
                         : '${S.wxMapForecastNote}'
                               '${c.grid == null ? '' : ' · 格点约 ${c.grid!.spacingKm.round()} km'}',
@@ -765,6 +828,88 @@ class WeatherMapPanel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 台风模式：每个活跃台风一行（名称、强度、气压、风速、移向），点“定位”移到台风。
+class _TyphoonBody extends StatelessWidget {
+  const _TyphoonBody({required this.controller, required this.small});
+
+  final WeatherMapController controller;
+  final TextStyle small;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final list = c.typhoons;
+    if (list == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: c.tyError != null
+            ? Text(
+                '${S.wxMapFailed}（${fetchErrorText(c.tyError!)}）',
+                style: small,
+              )
+            : Text(S.wxMapLoading, style: small),
+      );
+    }
+    if (list.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Text(S.wxMapNoTyphoon, style: small),
+      );
+    }
+    String fmtTime(DateTime utc) {
+      final t = utc.toLocal();
+      return '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final t in list)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                const Icon(Icons.cyclone, size: 22, color: Semantic.danger),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${t.categoryLabel} ${t.title}'
+                        '${t.intensityLabel == null ? '' : ' · ${t.intensityLabel}'}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        [
+                          if (t.pressureHpa != null)
+                            '${t.pressureHpa!.round()} hPa',
+                          if (t.maxWindMs != null)
+                            '最大风速 ${t.maxWindMs!.round()} m/s',
+                          if (t.course != null)
+                            '向${t.course}${t.speedKmh == null ? '' : ' ${t.speedKmh!.round()} km/h'}',
+                        ].join(' · '),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      Text('发布 ${fmtTime(t.issueUtc)}', style: small),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => c.fitTyphoon(t),
+                  child: const Text(S.wxMapLocate),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

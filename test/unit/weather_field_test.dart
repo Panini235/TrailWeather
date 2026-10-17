@@ -30,10 +30,10 @@ void main() {
     test('竖屏多行、横屏多列，总数不超过上限', () {
       final (c1, r1) = gridShape(0.5);
       expect(r1, greaterThan(c1));
-      expect(c1 * r1, lessThanOrEqualTo(80));
+      expect(c1 * r1, lessThanOrEqualTo(120));
       final (c2, r2) = gridShape(2);
       expect(c2, greaterThan(r2));
-      expect(c2 * r2, lessThanOrEqualTo(80));
+      expect(c2 * r2, lessThanOrEqualTo(120));
     });
   });
 

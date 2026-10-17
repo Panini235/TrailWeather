@@ -44,11 +44,11 @@
 | 缓存 TTL | 30 min（自定） |
 | 限制 | 非商业免费额度有调用上限（官方文档），实现分批 + 最小间隔 600ms + 退避 |
 
-### 2. MET Norway Locationforecast 2.0 (compact)
+### 2. MET Norway Locationforecast 2.0 (complete，2026-10-17 起；此前为 compact)
 
 | 项 | 内容 |
 | --- | --- |
-| 端点 | `https://api.met.no/weatherapi/locationforecast/2.0/compact`（实测 200） |
+| 端点 | `https://api.met.no/weatherapi/locationforecast/2.0/complete`（实测 200，国内直连约 1.6 s） |
 | 密钥 | 不需要，但**服务条款要求 User-Agent 标识自身**（已内置） |
 | CORS | `Access-Control-Allow-Origin: *`（实测） |
 | Web 标识 | 当前MET条款允许低流量浏览器以Origin标识；移动端应使用有效User-Agent和联系方式。旧能力文案过于保守，待后续统一调整；生产端仍需缓存和流量治理 |
@@ -56,7 +56,9 @@
 | 时效 | compact 实测约 2–3 天逐时（以 3 天标注） |
 | 批量 | 不支持（单坐标/请求）；实现最小间隔 250ms |
 | 响应溯源 | `meta.updated_at`（作为发布时间）；响应几何为请求坐标原样（不冒充实际网格坐标）；不提供来源使用海拔 |
-| 缺失字段（实测） | 体感温度、降水概率、能见度、多数时次的阵风 → UI 显示“此来源未提供” |
+| complete 多出的字段（2026-10-17 实测） | 体感温度 `apparent_air_temperature`、露点、低/中/高云量、雾面积比、**晴空**紫外线 `ultraviolet_index_clear_sky` |
+| 缺失字段（实测） | 能见度、降水概率（北欧以外）、多数时次的阵风 → UI 显示“此来源未提供” |
+| 紫外线 | 只有晴空值（假设无云），记为 `uvIndexClearSky`，**不写入紫外线预报**；只在“晴空可达”的提示里出现，不触发紫外线提示 |
 | 空间分辨率 | 来源文档：北欧 HARMONIE 约 2.5 km，其他区域 ECMWF 约 9–22 km，随区域与时效变化；响应不携带网格信息 |
 | 授权 | NLOD 2.0 / CC BY 4.0 |
 | 署名 | “天气数据：MET Norway, CC BY 4.0 / NLOD” |
@@ -96,6 +98,26 @@
   1500 / 2500 / 3058 m 为 14.8 / 8.2 / 4.6 ℃）；地面海拔用 Elevation API `/v1/elevation`（90 m 高程模型）。
 - **合并策略**：按海拔计算的来源只合并“同 0.1° 网格且海拔差 <100 m”的节点，避免山脊与山谷合成一个点。
 
+### 1d. Open-Meteo 补充（2026-10-17：紫外线、分层云量、露点、积雪、对流潜势、日出）
+
+- 新增逐时变量（实测 best_match 返回值）：`uv_index`（含云量影响）、`uv_index_clear_sky`（晴空值）、
+  `cloud_cover_low / mid / high`（低云约 2 km 以下含雾、中云约 2–6 km、高云约 6 km 以上）、`dew_point_2m`、
+  `snow_depth`（m，模式积雪）、`cape`（J/kg）；`daily=sunrise,sunset`。
+- **实测：阴天时预报值与晴空值差很多**（北京 2026-10-17 午间 0.25 vs 3.75），两者必须分开。
+- `models=ecmwf_ifs025` 的 `uv_index` 全为 null → “此来源未提供”。
+- 传 `elevation` 时，气温与露点按同一递减率平移（相对湿度不变，实测 100 / 1000 / 2500 m 三档 RH 均 97%），
+  所以“露点差”反映的是网格而不是节点海拔，不能据此判断节点是否在云中；判断云中需要气压层湿度（未接入，T-181）。
+- 紫外线未按节点海拔修正：说明里注明“海拔每升高约 1000 m 紫外线约增强 10%、新雪反射约 80%”（世界卫生组织）。
+
+### 1e. 天气图：Open-Meteo 格点场（降水 / 云量，D-035）
+
+- 同一端点多坐标批量：视野（外扩 15%，最小 0.45° × 0.6°）内按墨卡托等距取最多 120 个格点，
+  `hourly=precipitation,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high`，`forecast_hours=48`。
+- 实测（2026-10-17，国内直连）：77 个点约 1.6 s、约 160 KB；时间从当前整点开始。
+- 这是**模式预报**，不是雷达或卫星实况；格点之间只做显示用的双线性平滑；降水为该时刻前一小时累计。
+- 请求纪律：地图停下 500 ms 后、视野超出已取范围才请求；30 分钟内复用；缩放小于 5 级不请求。
+- 额度：多坐标按坐标数计次（非商业免费额度按 IP），一次刷新约 80–120 次。
+
 ### 1c. Open-Meteo Air Quality（CAMS）
 
 - `air-quality-api.open-meteo.com/v1/air-quality`，`hourly=pm2_5,pm10,us_aqi`；中国区域为 CAMS 全球预报，
@@ -127,6 +149,36 @@ docs.meteoblue.com 逐时 pictogram 表）。
 
 **pictocode**：basic-1h 使用逐时编码表（1–35），日数据为另一套（1–25），不能混用；映射见
 `lib/data/weather/weather_phenomena.dart`。
+- 紫外线：basic-1h 的 `uvindex` 记为紫外线预报（2026-10-17）。文档未说明是否计入云量；若实为晴空值则偏高，方向上不会低估风险。
+
+### 5. 卫星云图：Himawari-9 红外（NASA GIBS，D-035）
+
+| 项 | 内容 |
+| --- | --- |
+| 端点 | `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Himawari_AHI_Band13_Clean_Infrared/default/{时间}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png` |
+| 国内直连 | 2026-10-17 实测可用，单块瓦片约 0.7 s；CORS `*`；支持 HEAD |
+| 数据 | 日本 Himawari-9 AHI 第 13 通道（10.4 µm 红外），约 10 分钟一张，延迟 20–40 分钟，偶有缺失时次（404）；最大原生级别 6（约 2 km） |
+| 实况/预报 | **观测（实况）**，界面写“观测 HH:mm” |
+| 授权 | NASA 开放数据；GIBS 要求注明“imagery provided by services from NASA's Global Imagery Browse Services (GIBS), part of NASA's ESDIS”；Himawari 原始数据来自日本气象厅，GIBS 页面未单列商用条款（商用前需向 earthdata-support@nasa.gov 确认） |
+| 用法 | 并行 HEAD 探测近 3 小时每 10 分钟的时次，只用存在的时次；每 30 分钟一帧，最多 7 帧 |
+
+### 6. 台风：日本气象厅（RSMC 东京，D-035）
+
+| 项 | 内容 |
+| --- | --- |
+| 端点 | `https://www.jma.go.jp/bosai/typhoon/data/targetTc.json`、`/{TCxxxx}/forecast.json`、`/{TCxxxx}/specifications.json` |
+| 国内直连 | 2026-10-17 实测可用（约 0.2 s）；CORS `*` |
+| 内容 | 西北太平洋与南海热带气旋的实况、过去路径、12–120 小时路径预报、70% 概率圆、大风区与暴风区 |
+| 口径 | 风速为 **10 分钟平均**（中央气象台为 2 分钟平均，不能直接比较）；预报圆是中心落点 70% 概率圆，不是风圈 |
+| 授权 | 气象厅网站内容按政府标准利用规约 2.0 可转载，须注明出处，与 CC BY 4.0 兼容；数值数据本身不受著作权保护 |
+| 风险 | 气象厅网站自用 JSON，结构未公开说明，可能变化；解析失败如实报错 |
+
+### 候选未接入：雷达实况与分钟级降水
+
+- RainViewer 公共 API：2026-10-17 实测国内直连可用、有华北雷达拼图，但免费版**仅限个人与教育用途**、最大缩放 7 级、
+  无临近预报与卫星；数据所有者可随时要求撤下。本应用含付费计划，暂不接入（T-183，需用户决定授权方案）。
+- 中央气象台雷达拼图：没有开放授权，不抓取。
+- 和风天气分钟级降水（中国 1 km、2 小时）：已接入和风，但套餐是否包含待核实（T-182）。
 
 ## 其他数据服务
 

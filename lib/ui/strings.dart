@@ -344,10 +344,14 @@ abstract final class S {
   static const wxMapPrecipUnit = '前一小时降水 mm';
   static const wxMapCloudUnit = '云量 %';
   static const wxMapSatelliteNote = '红外云图（实况）· Himawari-9 · NASA GIBS';
-  static const wxMapSatelliteTime = '观测时间';
-  static const wxMapTyphoonNote = '路径预报 · 日本气象厅（RSMC 东京）';
+  static const wxMapSatelliteTime = '观测';
+  static const wxMapTyphoonNote = '日本气象厅（RSMC 东京）· 风速为 10 分钟平均 · 圆为 70% 概率圆';
+  static const wxMapNoTyphoon = '日本气象厅目前没有发布西北太平洋与南海的热带气旋信息。';
+  static const wxMapLocate = '定位';
   static const wxMapInfo =
       '降水、云量：Open-Meteo 模式预报，按网格点取值后在点间平滑显示，不是雷达或卫星实况；'
       '降水为该时刻前一小时累计。卫星云图：日本 Himawari-9 红外通道，经 NASA GIBS 提供，'
-      '颜色越亮越冷，代表云顶越高；约 10 分钟一张，有 20–40 分钟延迟。';
+      '颜色越亮越冷，代表云顶越高；约 10 分钟一张，有 20–40 分钟延迟。'
+      '台风：日本气象厅（西北太平洋区域专业气象中心）实况与路径预报，风速为 10 分钟平均，'
+      '与中央气象台的 2 分钟平均不同；虚线圆是中心落点的 70% 概率圆，不是风圈。';
 }

@@ -107,10 +107,10 @@ double _latOfMercY(double y) =>
     (2 * math.atan(math.exp(y)) - math.pi / 2) * 180 / math.pi;
 
 /// 按视野宽高比分配格点数（总数不超过 [maxPoints]）。
-(int cols, int rows) gridShape(double aspect, {int maxPoints = 80}) {
+(int cols, int rows) gridShape(double aspect, {int maxPoints = 120}) {
   final a = aspect.clamp(0.25, 4.0);
-  var cols = math.sqrt(maxPoints * a).round().clamp(4, 14);
-  var rows = (maxPoints / cols).floor().clamp(4, 14);
+  var cols = math.sqrt(maxPoints * a).round().clamp(4, 16);
+  var rows = (maxPoints / cols).floor().clamp(4, 16);
   while (cols * rows > maxPoints) {
     rows--;
   }

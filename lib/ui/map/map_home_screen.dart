@@ -82,8 +82,26 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   late final WeatherMapController _wxMap = WeatherMapController(
     fieldService: ref.read(weatherFieldServiceProvider),
     satelliteService: ref.read(satelliteFrameServiceProvider),
+    typhoonService: ref.read(typhoonServiceProvider),
     now: ref.read(weatherNowProvider),
-  );
+  )..onFitRequest = _fitPoints;
+
+  /// 把视野移到一组业务坐标（台风“定位”）；底部留出面板高度。
+  void _fitPoints(List<LatLng> points) {
+    if (!mounted || points.isEmpty) return;
+    try {
+      _mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: [for (final p in points) _basemap.toDisplay(p)],
+          padding: const EdgeInsets.fromLTRB(40, 120, 70, 260),
+          maxZoom: 8,
+        ),
+      );
+    } catch (_) {
+      // 地图尚未就绪。
+    }
+  }
+
   StreamSubscription<RouteWeatherBundle>? _myWeatherSubscription;
   int _weatherGeneration = 0;
 
