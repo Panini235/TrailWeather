@@ -12,7 +12,7 @@
 
 ### 构建
 - [ ] CI：analyze/test/web release/apk release 全绿
-- [ ] iOS：手动触发 ios-build 工作流通过（无签名构建）
+- [ ] iOS：手动触发 ios-build 工作流通过（无签名构建，产出未签名 IPA `shanqing-<版本>-ios-unsigned.ipa`，Release 说明附自签安装步骤）
 - [ ] 版本号 pubspec version 与 tag 一致
 - [ ] Android 正式签名：Secrets 已配置（`tool/create_android_keystore.sh`），CI 运行摘要显示“正式签名”且证书指纹与备案一致
 - [ ] 应用 ID `app.shanqing.hiking`（`tool/configure_release.py`；CI 的 verify_build_branding 校验 APK / iOS）

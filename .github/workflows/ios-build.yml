@@ -1,6 +1,6 @@
 name: iOS Build (manual)
 
-# iOS 构建需要 macOS/Xcode 与签名证书；默认不在每次 push 触发（节省 runner 分钟）。
+# iOS 无签名构建 + 未签名 IPA（自签安装用）；需要 macOS runner，默认不在每次 push 触发（节省 runner 分钟）。
 # 手动触发：Actions → iOS Build (manual) → Run workflow
 on:
   workflow_dispatch:
@@ -34,15 +34,22 @@ jobs:
       - name: 依赖
         run: flutter pub get
 
-      - name: iOS 构建（无签名，仅验证可编译）
-        # 分享图二维码指向本次构建页（lib/core/app_links.dart）
-        run: flutter build ios --release --no-codesign --dart-define=SHANQING_DOWNLOAD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: iOS 构建（无签名）
+        run: flutter build ios --release --no-codesign
 
       - name: 验证 iOS 名称与图标资源
         run: python3 tool/verify_build_branding.py --ios-app build/ios/iphoneos/Runner.app
 
+      - name: 打包未签名 IPA（测试者用自己的 Apple ID 自签安装，见 docs/user-guide.md）
+        run: |
+          VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+          mkdir -p build/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ipa/Payload/
+          (cd build/ipa && zip -qry "shanqing-${VERSION}-ios-unsigned.ipa" Payload)
+          ls -la build/ipa
+
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
-          name: ios-release-nocodesign
-          path: build/ios/iphoneos/Runner.app
+          name: ios-unsigned-ipa
+          path: build/ipa/*.ipa

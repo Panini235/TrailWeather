@@ -1,131 +1,83 @@
-# 山晴
+<p align="center">
+  <img src="assets/branding/app-icon.png" width="96" alt="山晴图标">
+</p>
 
-面向徒步爱好者的天气 App：在地图上发现徒步线路 → 查看线路沿途天气 →
-按出发时间分析各路段天气 → 比较多个天气来源。
+<h1 align="center">山晴</h1>
 
-**最高产品原则：数据真实性。** 请求坐标不等于数据实际对应位置；网格预报不是点位实测；
-缺失数据不显示为 0；不同来源不默认平均。详见 `docs/data-sources.md` 与 `docs/acceptance.md`。
+<p align="center"><b>出发前，看懂沿途天气</b></p>
 
-## 平台
+<p align="center">
+  给徒步的人用的行前天气工具 · Android / iOS · 公开测试版
+</p>
 
-- Android / iOS / Web（Flutter，纯 Dart 地图方案 flutter_map 三端一致）
-- 默认中文界面；文案集中于 `lib/ui/strings.dart`，可迁移 ARB（见 `docs/architecture.md`）
+<p align="center">
+  <a href="https://github.com/Panini235/TrailWeather/releases">下载测试版</a> ·
+  <a href="docs/user-guide.md">使用文档</a> ·
+  <a href="CHANGELOG.md">更新记录</a> ·
+  <a href="https://github.com/Panini235/TrailWeather/issues">问题反馈</a>
+</p>
 
-## 环境要求
+<p align="center">
+  <img src="docs/images/route-detail.jpg" width="180" alt="线路详情：结论、海拔剖面与穿衣建议">
+  <img src="docs/images/node-meteogram.jpg" width="180" alt="节点详情：24 小时气象图">
+  <img src="docs/images/satellite.jpg" width="180" alt="卫星云图">
+  <img src="docs/images/typhoon.jpg" width="180" alt="台风路径">
+  <img src="docs/images/share-card.jpg" width="180" alt="分享图片">
+</p>
 
-- Flutter stable（CI 使用 **3.47.7**，Dart 3.13.5）
-- Android：JDK 17 + Android SDK（CI 用 GitHub runner 自带）
-- iOS：macOS + Xcode（本仓库 CI 提供手动触发的 iOS 构建工作流）
-- Web：无额外要求
+## 一条线路，按你走到的时间看天气
 
-## 平台目录说明（重要）
+导入 GPX / KML / KMZ / GeoJSON（或从两步路、奥维、微信里“用山晴打开”），选好出发时间和配速，
+山晴估算你走到每一段的时刻，把那个时刻、那个位置的预报摆在一起：哪一段有风、哪一段要下雨、山顶冷不冷。
 
-仓库**不提交** android/ ios/ 的模板目录，避免与 Flutter 版本错配。
-仅提交定制文件：
+- **结论先行**：最要紧的提示放在最上面；海拔剖面上用颜色标出哪一段有风雨。
+- **穿衣建议（洋葱法）**：出发、行进、停留三个场景，每层是穿着还是放背包，配件一眼看清；可选“怕冷 / 怕热”。
+- **节点详情**：到达时的气温与体感、阵风、降水量与概率；需要留意的信号（紫外线、0℃ 层、低云、湿冷）；
+  一张 24 小时气象图把云、温度、降水、风和紫外线叠在一起。
+- **天气图**：降水和云量（模式预报，48 小时连续播放）、卫星云图（实况，10 分钟一张）、台风路径。
+- **多来源对比**：Open-Meteo、ECMWF、MET Norway，以及自备 Key 的和风天气、meteoblue。
+- **出发窗口**：未来几天哪个出发时间更合适，阈值可以自己调。
+- **离线行程包**：出发前下载线路和预报，山里没信号也能看。
+- **分享图片**：长图 / 简图 / 横图三种版式。
 
-- `android/app/src/main/AndroidManifest.xml`（权限、中文应用名）
-- `ios/Runner/Info.plist`（中文显示名、定位用途说明）
-- `web/`（中文标题、manifest）
+## 只说数据能说的话
 
-其余平台文件在构建前由 `flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .`
-生成（CI 已内置此步骤）。生成后运行 `python3 tool/apply_branding.py --platforms android web`
-应用正式名称与图标；iOS工作流对应使用 `--platforms ios`。详见 `docs/branding.md`。
-再运行 `python3 tool/configure_release.py --platform android`（或 `ios`）把应用 ID 设为
-`app.shanqing.hiking`；Kotlin 包路径与 namespace 仍为 `dev.trailweather.trailweather`。
+- 所有天气都是**预报，不是实测**；提示按公开阈值计算，**不是官方预警，也不是安全评分**。
+- 缺失的数据显示“此来源未提供”，从不当成 0；超出预报范围就写“无数据”，不外推。
+- 每个数值都标注来源、模式、网格位置和更新时间；不同来源并排比较，不偷偷取平均。
+- 不需要注册账号，不内置统计、广告或崩溃上报 SDK，线路和设置只保存在本机。
 
-### Android 正式签名
+## 数据来源
 
-签名文件与密码只由维护者本人生成和保管，不进仓库。首次配置运行
-`bash tool/create_android_keystore.sh`（需要 JDK 17 与已登录的 `gh`）：生成
-`~/shanqing-release.jks`，上传 4 个 GitHub Secrets（`ANDROID_KEYSTORE_BASE64`、
-`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`），并打印证书指纹与公钥。
-CI 有这些 Secrets 时用正式签名构建 APK，没有时退回 debug 签名并在运行摘要中标注。
-
-## 运行
-
-```bash
-flutter create --platforms=android,web --org dev.trailweather --project-name trailweather .
-python3 tool/apply_branding.py --platforms android web
-python3 tool/configure_release.py --platform android
-flutter pub get
-flutter run            # 选择设备/浏览器
-```
-
-## 测试
-
-```bash
-flutter test                       # 全部（fixture 契约测试，不联网）
-flutter test test/weather          # 来源契约
-flutter test test/integration      # 核心闭环
-```
-
-真实联网 smoke（消耗外部配额，手动执行）：GitHub Actions → “Live Smoke (manual)”。
-
-## 构建
-
-```bash
-flutter build web --release
-flutter build apk --release        # 使用模板 debug 签名，非发布签名
-flutter build ios --release --no-codesign   # 需 macOS/Xcode
-```
-
-CI（push 到 main 自动触发）：analyze → test → web release → apk release，产物上传 Artifacts。
-iOS 构建为手动工作流（节省 runner 分钟）。
-
-## 配置
-
-默认来源无需密钥；和风天气为可选来源，需要用户自己的 API Host 与 Key（仅存本机）。预留网关等变量见 `.env.example`。
-
-## 故障排查
-
-| 现象 | 处理 |
+| 内容 | 来源 |
 | --- | --- |
-| `flutter create` 覆盖了我的平台定制 | 不会覆盖已存在文件；定制文件在仓库中 |
-| 地图瓦片不显示 | 默认高德瓦片（大陆直连）；海外网络可在 设置→地图底图 切换为 OSM |
-| 和风天气显示“未配置” | 在 设置→数据源密钥 填入和风 API Host 与 Key（dev.qweather.com 免费注册） |
-| MET Norway 在 Web 失败 | 浏览器禁止自定义 User-Agent（服务条款要求标识），已在来源能力中标注 |
-| “搜索此区域”失败 | Overpass 公共镜像过载（504）常见；稍后重试，App 内置镜像轮换 |
-| Android 定位无权限 | 首页会请求一次前台定位；拒绝后仍可点选地图查天气。永久拒绝可点“打开设置”；定位按钮每次请求结束后恢复可用 |
+| 沿途预报（默认） | [Open-Meteo](https://open-meteo.com)（best_match，可切换 ECMWF） |
+| 其他预报来源 | MET Norway；和风天气、meteoblue（需自己的 Key） |
+| 降水 / 云量天气图 | Open-Meteo 模式预报格点 |
+| 卫星云图 | Himawari-9 红外，经 [NASA GIBS](https://gibs.earthdata.nasa.gov) |
+| 台风 | 日本气象厅（RSMC 东京） |
+| 空气质量 | CAMS，经 Open-Meteo |
+| 底图 | 高德、天地图、OpenStreetMap、OpenTopoMap 等 |
 
-## 目录导览
+各来源的授权、分辨率和限制见 [docs/data-sources.md](docs/data-sources.md)。
 
-```
-lib/
-  core/            地理计算、单位换算、HTTP（限流退避）、TTL 缓存
-  data/weather/    统一数据模型（溯源）、Open-Meteo、MET Norway、仓库、ETA、风险规则
-  data/routes/     线路模型、GPX/GeoJSON 导入、Overpass、示例线路
-  data/settings/   设置与收藏（shared_preferences）
-  ui/              地图首页 / 线路详情 / 节点对比 / 设置 / 导入
-docs/              产品、架构、数据源、验收、性能、隐私、发布清单、许可证
-agent/             任务状态、进度、阻塞项、决策记录
-test/              单元 / 来源契约(fixture) / 组件 / 集成
-```
+## 下载
 
-详细文档入口：`docs/product.md`（产品）、`docs/architecture.md`（架构）、
-`docs/data-sources.md`（数据源与授权）、`docs/acceptance.md`（验收矩阵）、
-`agent/tasks.json`（任务状态）。
+在 [Releases](https://github.com/Panini235/TrailWeather/releases) 下载：
 
-## 当前状态
+- **Android**：`.apk` 安装包，允许“安装未知应用”后直接安装。
+- **iOS**：未签名的 `.ipa`，需要用爱思助手等工具以自己的 Apple ID 自签后安装，
+  步骤见 [使用文档 · iOS 安装](docs/user-guide.md#ios自签安装)。
 
-2026-10-15：个人开发者、iOS优先、Android兼容；Web暂停作为公开发行产品，保留工程验证能力。
-当前免注册、不展示订阅。首次引导直接导入或查看示例线路，设置会员入口已移除，旧付费链接返回首页。
+这是测试版：功能还在调整，已知问题见 [更新记录](CHANGELOG.md)。遇到问题请在
+“设置 → 问题反馈”复制诊断信息后到 [Issues](https://github.com/Panini235/TrailWeather/issues) 反馈。
 
-业务提交 `2816d9d`：正式名称“山晴”＋第四个D图标；本地 analyze 0 issues、171项测试通过；
-CI **38706513896**（Web/APK）与 **38706518000**（iOS release --no-codesign）成功，包含实际产物的名称与图标资源校验。
-iOS无签名构建不能替代真机验收或商店发布。
+## 文档
 
-天气缓存/离线可靠性仍按任务推进。高德接入授权和内置徒步星球目录许可未解决，
-不宣称可正式商用分发。详见 `docs/ios-first-commercialization-2026-10-15.md`、
-`agent/blockers.md`。正式名称已选定“山晴”、图标为第四个D方案，资源与构建说明见 `docs/branding.md`；历史候选保留在 `design/brand-options/2026-10-15/`。
+- [使用文档](docs/user-guide.md)：安装、导入线路、看懂线路详情、天气图、离线与分享、常见问题
+- [开发文档](docs/development.md)：环境、构建、签名、测试与 CI
+- [数据来源与授权](docs/data-sources.md) · [数据分级](docs/data-hierarchy.md) · [隐私说明](docs/privacy.md)
 
-## 本地开发
+## 技术
 
-已配置本地 Flutter 3.47.7（`~/flutter-sdk`，flutter-io.cn 镜像，无模拟器）：
-
-```bash
-export PATH="$HOME/flutter-sdk/bin:$PATH"
-export PUB_HOSTED_URL=https://pub.flutter-io.cn
-export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-flutter pub get && flutter analyze && flutter test   # 全绿后再推送，减少 CI 次数
-flutter run -d chrome                                  # 本地跑 Web 端
-```
+Flutter（Android / iOS / Web 一套代码），地图为 flutter_map。
