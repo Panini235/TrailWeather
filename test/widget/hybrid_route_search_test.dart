@@ -11,7 +11,12 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/map/hybrid_route_search.dart';
 import 'package:trailweather/ui/map/map_home_screen.dart';
+import 'package:trailweather/ui/map/point_weather_sheet.dart';
 import 'package:trailweather/ui/strings.dart';
+
+import '../integration/core_flow_test.dart' show IntegrationFakeProvider;
+
+
 
 class _DeniedLocationService implements LocationService {
   @override
@@ -26,21 +31,26 @@ class _DeniedLocationService implements LocationService {
 }
 
 class _FakeGeocodeService extends GeocodeService {
+  int calls = 0;
+
   @override
   Future<List<PlaceSuggestion>> search(
     String query, {
     String language = 'zh',
     int count = 8,
-  }) async => const [
-    PlaceSuggestion(
-      name: '香山公园',
-      admin: '北京市',
-      country: '中国',
-      lat: 39.9907,
-      lon: 116.1862,
-      timezone: 'Asia/Shanghai',
-    ),
-  ];
+  }) async {
+    calls++;
+    return const [
+      PlaceSuggestion(
+        name: '香山公园',
+        admin: '北京市',
+        country: '中国',
+        lat: 39.9907,
+        lon: 116.1862,
+        timezone: 'Asia/Shanghai',
+      ),
+    ];
+  }
 }
 
 class _FakeRouteSource extends OverpassRouteSource {
@@ -170,5 +180,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(routes.calls, 1);
     expect(find.text('已加载 1 条 OSM 线路。'), findsOneWidget);
+  });
+
+  testWidgets('输入经纬度：结果最上方给出坐标，不请求地名搜索，点击打开该点天气', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final geocode = _FakeGeocodeService();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          prefsProvider.overrideWithValue(preferences),
+          locationServiceProvider.overrideWithValue(_DeniedLocationService()),
+          geocodeServiceProvider.overrideWithValue(geocode),
+          overpassRouteSourceProvider.overrideWithValue(_FakeRouteSource()),
+          localRoutesProvider.overrideWithValue(const []),
+          weatherProvidersProvider.overrideWithValue([
+            IntegrationFakeProvider(),
+          ]),
+        ],
+        child: const MaterialApp(home: MapHomeScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '116.17，39.99');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    expect(geocode.calls, 0);
+    expect(find.textContaining('39.99000, 116.17000'), findsOneWidget);
+    expect(find.textContaining(S.coordinateSwappedNote), findsOneWidget);
+
+    await tester.tap(find.textContaining('39.99000, 116.17000'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PointWeatherSheet), findsOneWidget);
+    expect(find.textContaining('39.99000, 116.17000'), findsWidgets);
   });
 }

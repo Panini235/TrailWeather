@@ -23,7 +23,11 @@ abstract final class S {
   static const emptyRoutes = '当前区域没有线路';
 
   // 地图首页
-  static const searchHint = '搜索地点、山峰或徒步线路';
+  static const searchHint = '搜索地点、山峰、线路或经纬度';
+  static const coordinateResult = '经纬度';
+  static const coordinateNote =
+      '按 WGS-84（GPS、两步路、奥维）解析；来自高德等国内地图的坐标约偏几百米，对天气格点影响很小。';
+  static const coordinateSwappedNote = '已按“经度, 纬度”顺序识别。';
   static const hybridSearchTitle = '混合线路搜索';
   static const directRoutes = '可直接分析的线路';
   static const placeCandidates = '地点候选';

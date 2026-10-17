@@ -5,6 +5,7 @@ import '../../data/geocode.dart';
 import '../../data/routes/route_models.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
+import '../../core/coord_parse.dart';
 
 class HybridRouteSearchResults extends StatelessWidget {
   const HybridRouteSearchResults({
@@ -17,6 +18,8 @@ class HybridRouteSearchResults extends StatelessWidget {
     required this.onPlaceTap,
     required this.onImportTap,
     required this.onClose,
+    this.coordinate,
+    this.onCoordinateTap,
   });
 
   final String query;
@@ -27,6 +30,10 @@ class HybridRouteSearchResults extends StatelessWidget {
   final ValueChanged<PlaceSuggestion> onPlaceTap;
   final VoidCallback onImportTap;
   final VoidCallback onClose;
+
+  /// 搜索词被识别为经纬度时：放在结果最上方，点击查看该点天气。
+  final ParsedCoordinate? coordinate;
+  final ValueChanged<ParsedCoordinate>? onCoordinateTap;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +63,28 @@ class HybridRouteSearchResults extends StatelessWidget {
                 ),
               ),
               if (searching) const LinearProgressIndicator(minHeight: 2),
+              if (coordinate case final c?)
+                ListTile(
+                  leading: const Icon(Icons.gps_fixed, size: 22),
+                  title: Text(
+                    '${S.coordinateResult} '
+                    '${c.point.latitude.toStringAsFixed(5)}, '
+                    '${c.point.longitude.toStringAsFixed(5)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    [
+                      S.selectedPointWeather,
+                      if (c.swapped) S.coordinateSwappedNote,
+                      S.coordinateNote,
+                    ].join(' · '),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: onCoordinateTap == null
+                      ? null
+                      : () => onCoordinateTap!(c),
+                ),
               if (routes.isNotEmpty) ...[
                 const _SectionTitle(
                   icon: Icons.route_outlined,
@@ -95,7 +124,10 @@ class HybridRouteSearchResults extends StatelessWidget {
                     onTap: () => onPlaceTap(place),
                   ),
               ],
-              if (!searching && routes.isEmpty && places.isEmpty)
+              if (!searching &&
+                  coordinate == null &&
+                  routes.isEmpty &&
+                  places.isEmpty)
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Text(S.noDirectRoutes, style: TextStyle(fontSize: 12)),

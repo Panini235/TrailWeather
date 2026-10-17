@@ -30,6 +30,7 @@ import '../strings.dart';
 import '../weather_refresh_clock.dart';
 import '../widgets/common.dart';
 import '../tokens.dart';
+import '../../core/coord_parse.dart';
 
 /// 地图首页：地图浏览 → 线路发现 → 进入详情。
 ///
@@ -63,6 +64,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   List<HikingRoute> _routeMatches = const [];
   String _searchQuery = '';
   bool _searching = false;
+
+  /// 搜索词被识别为经纬度时的坐标（不再发起地名搜索）。
+  ParsedCoordinate? _coordinate;
   bool _locating = false;
   bool _autoLocateStarted = false;
   LatLng? _weatherPoint;
@@ -264,12 +268,16 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       _clearSearch();
       return;
     }
+    final coordinate = parseCoordinate(query);
     setState(() {
       _searchQuery = query;
-      _routeMatches = _matchRoutes(query);
+      _coordinate = coordinate;
+      _routeMatches = coordinate == null ? _matchRoutes(query) : const [];
       _places = const [];
-      _searching = true;
+      _searching = coordinate == null;
     });
+    // 经纬度直接查天气，不把坐标发给地名搜索。
+    if (coordinate != null) return;
     try {
       final places = await ref.read(geocodeServiceProvider).search(query);
       if (!mounted || _searchQuery != query) return;
@@ -307,6 +315,17 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     );
   }
 
+  /// 经纬度搜索：地图移到该点并打开该点天气（与点选地图同一流程）。
+  void _selectCoordinate(ParsedCoordinate c) {
+    _clearSearch(clearSelected: false);
+    try {
+      _mapController.move(_basemap.toDisplay(c.point), 12);
+    } catch (_) {
+      // 地图尚未就绪时忽略；仍打开该点天气。
+    }
+    _selectWeatherPoint(c.point, label: S.coordinateResult);
+  }
+
   /// 让整条线路落在视野内（避开顶部搜索栏、右侧按钮与底部线路卡）。
   void _fitRoute(HikingRoute route) {
     final fit = routeCameraFit(
@@ -339,6 +358,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       _places = const [];
       _routeMatches = const [];
       _searching = false;
+      _coordinate = null;
       if (clearSelected) _selected = null;
     });
   }
@@ -749,6 +769,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                       onPlaceTap: _selectSearchPlace,
                       onImportTap: () => context.push('/import'),
                       onClose: () => _clearSearch(clearSelected: false),
+                      coordinate: _coordinate,
+                      onCoordinateTap: _selectCoordinate,
                     ),
                   const TiandituErrorBanner(margin: EdgeInsets.only(top: 6)),
                 ],
