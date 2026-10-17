@@ -14,6 +14,8 @@
 - [ ] CI：analyze/test/web release/apk release 全绿
 - [ ] iOS：手动触发 ios-build 工作流通过（无签名构建）
 - [ ] 版本号 pubspec version 与 tag 一致
+- [ ] Android 正式签名：Secrets 已配置（`tool/create_android_keystore.sh`），CI 运行摘要显示“正式签名”且证书指纹与备案一致
+- [ ] 应用 ID `app.shanqing.hiking`（`tool/configure_release.py`；CI 的 verify_build_branding 校验 APK / iOS）
 
 ### 数据与授权
 - [ ] docs/data-sources.md 全表复核（限额/条款可能变化）
@@ -29,13 +31,16 @@
 - [ ] 定位拒绝路径可用
 
 ### 合规与安全
-- [ ] 隐私政策页面与实际行为一致（docs/privacy.md）
+- [ ] 隐私政策页面与实际行为一致（docs/privacy.md 与 App 内 S.privacySections）
+- [x] 首次启动隐私同意（不默认勾选；同意前不处理外部文件）
+- [x] 打开地图不弹定位授权，授权只在用户点击定位时请求
 - [ ] 无密钥入库（.gitignore 生效）
 - [ ] GPX/XML 解析无外部实体（xml 包默认，已测）
 - [ ] 商店素材与说明不使用“最准确/绝对安全”表述
 
 ### 运维
 - [ ] 崩溃监控方案（当前无后端，需先决策：无监控发布 or 接入自托管）
+- [x] 用户反馈入口（设置 → 问题反馈：复制诊断信息 + GitHub Issues）
 - [ ] 回滚：商店版本回退流程 + git tag
 
 ## 回滚策略

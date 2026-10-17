@@ -1,8 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/wx_http.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/weather/weather_models.dart';
+import '../../data/weather/weather_provider.dart' show WxOutOfRange;
 import '../strings.dart';
+import '../tokens.dart';
 
 /// “演示数据”标签：演示内容必须一直可见地标注，不得混入真实数据不说明。
 class DemoBadge extends StatelessWidget {
@@ -13,15 +17,15 @@ class DemoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.2),
+        color: Semantic.caution.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.orange),
+        border: Border.all(color: Semantic.caution),
       ),
-      child: const Text(
+      child: Text(
         S.demoLabel,
         style: TextStyle(
           fontSize: 10,
-          color: Colors.orange,
+          color: SemanticInk.caution(context),
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -115,6 +119,69 @@ class GranularityNotice extends StatelessWidget {
   }
 }
 
+/// 新鲜度、刷新状态与覆盖缺口独立展示；失败不等同于已确认断网。
+class WeatherCacheNotice extends StatelessWidget {
+  const WeatherCacheNotice({super.key, required this.result, this.onRetry});
+  final WxSourceResult result;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!result.fromCache && !result.partialCoverage) {
+      return const SizedBox.shrink();
+    }
+    final scheme = Theme.of(context).colorScheme;
+    final time = result.fetchedAtUtc.toLocal();
+    final fetched =
+        '${time.month}月${time.day}日 '
+        '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
+    final messages = <String>[
+      if (result.fromCache) '${result.stale ? '旧预报' : '已保存的预报'} · 获取于 $fetched',
+      if (result.refreshing) '正在更新，先显示已保存的数据。',
+      if (result.refreshFailed) '更新失败，继续显示已保存的数据，请稍后重试。',
+      if (result.partialCoverage) '部分时段未覆盖；缺失时段显示“此来源未提供”。',
+      if (result.stale) '已超过来源建议的缓存时效，请勿当作刚更新的天气。',
+    ];
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              messages.join('\n'),
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: scheme.onSurface,
+              ),
+            ),
+            if (result.refreshing)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(),
+              ),
+            if (result.refreshFailed && onRetry != null)
+              TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('重新更新'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 过期缓存提示（stale-while-revalidate 状态必须可见）。
 class StaleDataBanner extends StatelessWidget {
   const StaleDataBanner({super.key, required this.cachedAtUtc});
@@ -129,17 +196,19 @@ class StaleDataBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.15),
-        border: Border.all(color: Colors.amber.shade700),
-        borderRadius: BorderRadius.circular(8),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Semantic.cautionContainerDark
+            : Semantic.cautionContainerLight,
+        border: Border.all(color: Semantic.caution),
+        borderRadius: BorderRadius.circular(Radii.sm),
       ),
       child: Row(
         children: [
-          Icon(Icons.history, size: 16, color: Colors.amber.shade800),
+          Icon(Icons.history, size: 16, color: SemanticInk.caution(context)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${S.staleData}（${S.cachedAt} $mins 分钟前）：${S.staleDataDetail}',
+              '${S.staleData}（${S.cachedAt} $mins 分钟前）：已超过来源建议的缓存时效。',
               style: const TextStyle(fontSize: 12),
             ),
           ),
@@ -254,8 +323,8 @@ class DataKindChip extends StatelessWidget {
 /// 航点类型的图标与颜色（规划工坊、线路详情、地图共用）。
 (IconData, Color) waypointStyle(WaypointType type) => switch (type) {
   WaypointType.camp => (Icons.cabin, Colors.amber.shade800),
-  WaypointType.water => (Icons.water_drop, Colors.blue),
-  WaypointType.danger => (Icons.warning, Colors.red),
+  WaypointType.water => (Icons.water_drop, Semantic.cold),
+  WaypointType.danger => (Icons.warning, Semantic.danger),
   WaypointType.pass => (Icons.landscape, Colors.deepPurple),
   WaypointType.exit => (Icons.exit_to_app, Colors.teal),
   WaypointType.poi => (Icons.place, Colors.orange),
@@ -322,4 +391,63 @@ class OnDemandQueryPrompt extends StatelessWidget {
       ],
     );
   }
+}
+
+/// “已配置 / 未配置”状态：对勾或提示文字，颜色随深浅主题（设置页各密钥卡共用）。
+class ConfiguredStatus extends StatelessWidget {
+  const ConfiguredStatus({
+    super.key,
+    required this.configured,
+    this.missingLabel = '未配置',
+  });
+
+  final bool configured;
+  final String missingLabel;
+
+  @override
+  Widget build(BuildContext context) => configured
+      ? Icon(Icons.check_circle, size: 16, color: SemanticInk.go(context))
+      : Text(
+          missingLabel,
+          style: TextStyle(fontSize: 11, color: SemanticInk.caution(context)),
+        );
+}
+
+/// 卡片里的说明小字：次要文字色，深色模式下也可读。
+class HelpText extends StatelessWidget {
+  const HelpText(this.text, {super.key, this.size = 11});
+
+  final String text;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: TextStyle(
+      fontSize: size,
+      height: 1.5,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+  );
+}
+
+/// 把请求错误翻成一句人话（不含坐标与堆栈）；未知错误截短原文。
+String fetchErrorText(Object error) {
+  if (error is DioException) {
+    return switch (error.type) {
+      DioExceptionType.connectionError ||
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.sendTimeout => '网络不可用或连接超时',
+      DioExceptionType.badResponse =>
+        '来源返回错误（HTTP ${error.response?.statusCode ?? '?'}）',
+      DioExceptionType.cancel => '请求已取消',
+      _ => '请求失败',
+    };
+  }
+  if (error is SourceHttpException) return '来源返回错误（${error.message}）';
+  if (error is WxOutOfRange) return error.message;
+  if (error is FormatException) return '响应格式无法识别';
+  final text = error.toString();
+  return text.length > 120 ? '${text.substring(0, 120)}…' : text;
 }

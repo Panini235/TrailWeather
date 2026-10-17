@@ -103,6 +103,16 @@ class CacheStore {
     }
   }
 
+  /// 仅枚举条目身份，不触碰 LRU。用于查找已保存的覆盖时段。
+  List<String> keys(String ns, {String prefix = ''}) {
+    final namespace = 'cache.$ns.';
+    return _prefs
+        .getKeys()
+        .where((key) => key.startsWith('$namespace$prefix'))
+        .map((key) => key.substring(namespace.length))
+        .toList();
+  }
+
   Future<int> entryCount(String ns) async {
     final prefix = 'cache.$ns.';
     return _prefs.getKeys().where((k) => k.startsWith(prefix)).length;

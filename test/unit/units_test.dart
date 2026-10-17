@@ -29,12 +29,21 @@ void main() {
   });
 
   test('风向十六方位', () {
-    expect(Units.windDirectionLabel(0), '北');
-    expect(Units.windDirectionLabel(90), '东');
-    expect(Units.windDirectionLabel(180), '南');
-    expect(Units.windDirectionLabel(270), '西');
-    expect(Units.windDirectionLabel(45), '东北');
-    expect(Units.windDirectionLabel(360), '北');
+    expect(Units.windDirectionLabel(0), '北风 0°');
+    expect(Units.windDirectionLabel(90), '东风 90°');
+    expect(Units.windDirectionLabel(180), '南风 180°');
+    expect(Units.windDirectionLabel(270), '西风 270°');
+    expect(Units.windDirectionLabel(45), '东北风 45°');
+    expect(Units.windDirectionLabel(360), '北风 0°');
+    // 用户反馈：东南向（120°上下）不能显示成十六方位的“东东南”。
+    expect(Units.windDirectionLabel(120), '东南风 120°');
+    expect(Units.windDirectionLabel(332), '西北风 332°');
+    // 八方位边界：每个方位 ±22.5°。
+    expect(Units.windDirectionLabel(112.4), '东风 112°');
+    expect(Units.windDirectionLabel(112.5), '东南风 113°');
+    expect(Units.windDirectionLabel(337.5), '北风 338°');
+    expect(Units.windDirectionLabel(359.6), '北风 0°');
+    expect(Units.windDirectionLabel(-45), '西北风 315°');
   });
 
   test('蒲福风级', () {

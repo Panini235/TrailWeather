@@ -63,6 +63,7 @@ void main() {
       expect(h0[WxVar.windGust], isNull); // basic-1h 不含阵风
       expect(h0[WxVar.visibility], isNull);
       expect(h0[WxVar.pressure], 1017.94);
+      expect(h0[WxVar.uvIndex], 1);
       expect(pt.hours[0].validFromUtc, DateTime.utc(2026, 10, 15, 0));
 
       final h1 = pt.hours[1];

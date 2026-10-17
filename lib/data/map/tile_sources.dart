@@ -5,12 +5,60 @@
 /// 坐标系不同的叠加层会整体错位约 100–700 m，因此不允许叠加。
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 enum TileDatum { wgs84, gcj02 }
 
 enum TileCategory { standard, satellite, terrain, annotation, custom }
 
 /// 天地图 Key 在 URL 模板中的占位符。
 const tiandituKeyPlaceholder = '{tk}';
+
+/// 瓦片请求的发起方。
+///
+/// 天地图按 User-Agent 是否含 “Mozilla” 判定请求是否来自浏览器，并据此校验
+/// Key 的“应用类型”（2026-10-15 实测，见 docs/data-sources.md）：浏览器端 Key
+/// 只接受浏览器请求，服务端 Key 只接受非浏览器请求。
+enum TileRequester {
+  /// Android/iOS 上的 flutter_map：UA 为 `flutter_map (<包名>)`，需“服务端” Key。
+  nativeApp,
+
+  /// 浏览器内（Flutter Web、将来的 3D WebView）：UA 含 Mozilla 且无法改写，
+  /// 需“浏览器端” Key。
+  browser,
+}
+
+/// 本平台 2D 地图（flutter_map）请求瓦片时的发起方。
+const flutterMapRequester = kIsWeb
+    ? TileRequester.browser
+    : TileRequester.nativeApp;
+
+/// 用户自行申请的两种天地图 Key（仅保存在本机）。
+class TiandituKeys {
+  const TiandituKeys({this.server = '', this.browser = ''});
+
+  /// “服务端”类型：原生 App（Android/iOS）的 flutter_map 使用。
+  final String server;
+
+  /// “浏览器端”类型：Flutter Web 与将来的 3D WebView 使用。
+  final String browser;
+
+  /// 按请求发起方选 Key；未填写返回空串。
+  String forRequester(TileRequester r) => switch (r) {
+    TileRequester.nativeApp => server,
+    TileRequester.browser => browser,
+  }.trim();
+
+  /// 两栏填了同一个值。天地图 Key 只有一种应用类型，此时必有一端返回 403。
+  bool get sameValueInBoth =>
+      server.trim().isNotEmpty && server.trim() == browser.trim();
+}
+
+/// 缺少 [r] 对应天地图 Key 时的名称，用于回退/不可用原因。
+String tiandituKeyName(TileRequester r) => switch (r) {
+  TileRequester.nativeApp => '天地图服务端 Key',
+  TileRequester.browser => '天地图浏览器端 Key',
+};
 
 class TileSourceDef {
   const TileSourceDef({
@@ -46,6 +94,7 @@ class TileSourceDef {
   bool get needsTiandituKey => urlTemplate.contains(tiandituKeyPlaceholder);
 
   /// 解析为 flutter_map 可用的模板；需要天地图 Key 而未填写时返回 null。
+  /// [tiandituKey] 是已按发起方选好的 Key（见 [TiandituKeys.forRequester]）。
   String? resolvedTemplate({required String tiandituKey}) {
     if (!needsTiandituKey) return urlTemplate;
     final key = tiandituKey.trim();
@@ -86,7 +135,7 @@ class TileSourceDef {
 }
 
 const _amapNote = '高德直连瓦片：国内访问快；正式接入与授权范围待核验（见 docs/licenses.md）。';
-const _tdtNote = '天地图：需在设置中填写你自己在天地图开放平台申请的 Key。';
+const _tdtNote = '天地图：需在设置中填写你自己在天地图开放平台申请的 Key（App 用服务端 Key，网页版用浏览器端 Key）。';
 const _overseasNote = '服务部署在海外，国内网络常常加载缓慢或失败。';
 const _tdtSub = ['0', '1', '2', '3', '4', '5', '6', '7'];
 const _tdtAttr = '© 天地图（国家地理信息公共服务平台）';
@@ -269,15 +318,17 @@ TileSourceDef? findTileSource(String id, List<TileSourceDef> custom) {
 String? overlayBlockReason(
   TileSourceDef base,
   TileSourceDef overlay, {
-  required String tiandituKey,
+  required TiandituKeys tiandituKeys,
+  required TileRequester requester,
 }) {
   if (overlay.id == base.id) return '已作为底图使用';
   if (overlay.datum != base.datum) {
     return '坐标系与当前底图不同（${datumLabel(overlay.datum)} / '
         '${datumLabel(base.datum)}），叠加会错位约 100–700 m';
   }
-  if (overlay.resolvedTemplate(tiandituKey: tiandituKey) == null) {
-    return '需先在设置中填写天地图 Key';
+  final key = tiandituKeys.forRequester(requester);
+  if (overlay.resolvedTemplate(tiandituKey: key) == null) {
+    return '需先在设置中填写${tiandituKeyName(requester)}';
   }
   return null;
 }
@@ -304,14 +355,22 @@ class ResolvedMapStyle {
   final String? baseFallbackReason;
 
   TileDatum get datum => base.datum;
+
+  /// 是否有图层在请求天地图（用于判断天地图错误提示是否与当前地图相关）。
+  bool get usesTianditu =>
+      base.needsTiandituKey || overlays.any((o) => o.$1.needsTiandituKey);
 }
 
+/// 解析图层组合。[requester] 决定天地图用哪种 Key（见 [TileRequester]）；
+/// UI 传 [flutterMapRequester]，测试显式传入。
 ResolvedMapStyle resolveMapStyle({
   required String baseLayerId,
   required List<OverlaySelection> overlays,
   required List<TileSourceDef> custom,
-  required String tiandituKey,
+  required TiandituKeys tiandituKeys,
+  required TileRequester requester,
 }) {
+  final tiandituKey = tiandituKeys.forRequester(requester);
   final fallback = builtInTileSources.firstWhere(
     (s) => s.id == defaultBaseLayerId,
   );
@@ -322,7 +381,7 @@ ResolvedMapStyle resolveMapStyle({
   } else if (base.overlayOnly) {
     reason = '注记层不能作为底图，已回退到默认底图';
   } else if (base.resolvedTemplate(tiandituKey: tiandituKey) == null) {
-    reason = '未填写天地图 Key，已回退到默认底图';
+    reason = '未填写${tiandituKeyName(requester)}，已回退到默认底图';
   }
   if (reason != null) base = fallback;
   final resolvedBase = base!;
@@ -330,7 +389,12 @@ ResolvedMapStyle resolveMapStyle({
   for (final sel in overlays) {
     final def = findTileSource(sel.id, custom);
     if (def == null) continue;
-    if (overlayBlockReason(resolvedBase, def, tiandituKey: tiandituKey) !=
+    if (overlayBlockReason(
+          resolvedBase,
+          def,
+          tiandituKeys: tiandituKeys,
+          requester: requester,
+        ) !=
         null) {
       continue;
     }

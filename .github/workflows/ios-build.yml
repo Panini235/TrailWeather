@@ -28,11 +28,15 @@ jobs:
       - name: 应用山晴名称与图标（平台生成后）
         run: python3 tool/apply_branding.py --platforms ios
 
+      - name: 设置 Bundle ID（app.shanqing.hiking）
+        run: python3 tool/configure_release.py --platform ios
+
       - name: 依赖
         run: flutter pub get
 
       - name: iOS 构建（无签名，仅验证可编译）
-        run: flutter build ios --release --no-codesign
+        # 分享图二维码指向本次构建页（lib/core/app_links.dart）
+        run: flutter build ios --release --no-codesign --dart-define=SHANQING_DOWNLOAD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: 验证 iOS 名称与图标资源
         run: python3 tool/verify_build_branding.py --ios-app build/ios/iphoneos/Runner.app

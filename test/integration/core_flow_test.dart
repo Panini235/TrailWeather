@@ -129,6 +129,7 @@ class _DeniedLocationService implements LocationService {
   @override
   Future<LocationFix> currentPosition({
     void Function(LatLng)? onLastKnown,
+    bool requestPermission = true,
   }) async =>
       throw const LocationFailure(LocationFailureKind.denied, '集成测试不启用设备定位');
 
@@ -213,8 +214,12 @@ void main() {
     expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
 
     // 节点按天气阈值着色，并附图例说明（非官方预警）。
+    // 穿衣卡片在地图之上：先滚到小地图（固定距离拖动，避免惯性滚过头）。
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
     expect(find.byType(NodeWxMarker), findsWidgets);
-    expect(find.text(S.nodeWxLegendNote), findsOneWidget);
+    // 图例说明收进提示（减负后不再占一行），仍可查看。
+    expect(find.byTooltip(S.nodeWxLegendNote), findsOneWidget);
 
     // 线路小地图：可打开可交互的全屏大图，并能“显示整条线路”。
     await tester.tap(find.byTooltip(S.routeMapFullscreen));
@@ -226,37 +231,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip(S.routeMapFitAll), findsNothing);
 
-    // 5. 滚动到天气区：节点有数据（温度文本出现）
-    await tester.scrollUntilVisible(find.text(S.routeSummary), 300);
+    // 5. 回到顶部的结论卡：节点有数据（温度文本出现）。
+    // 结论卡在已滚过的上方，向上滚找（向下找不到；CI 字体更高时也不会落在缓存区里）。
+    await tester.scrollUntilVisible(
+      find.text(S.routeSummary),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.text(S.routeSummary), findsOneWidget);
     expect(find.textContaining('°C'), findsWidgets);
 
-    // 溯源卡片与颗粒度声明（滚动到底部）
-    await tester.scrollUntilVisible(find.text(S.sourceTransparency), 600);
+    // 溯源卡片、颗粒度声明与官方预警说明：收在底部“数据说明与来源”，展开可见。
+    await tester.scrollUntilVisible(find.text(S.dataNotesTitle), 600);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.dataNotesTitle));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text(S.sourceTransparency), 300);
     await tester.pumpAndSettle();
     expect(find.text(S.sourceTransparency), findsOneWidget);
     expect(find.textContaining('非点位实测'), findsWidgets);
+    expect(find.textContaining(officialAlertsText0), findsWidgets);
 
-    // 6. 回滚顶部切换行程模式 → 显示预计到达说明
-    await tester.drag(find.byType(ListView), const Offset(0, 2000));
+    // 6. 回到顶部，从时间标签展开时间设置，切换行程模式。
+    await tester.scrollUntilVisible(find.byTooltip('设置时间与配速'), -400);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('设置时间与配速'));
     await tester.pumpAndSettle();
     await tester.tap(find.text(S.modeTrip));
     await tester.pumpAndSettle();
-    // ETA 说明与模式按钮同卡（视口内），无需滚动。
     expect(find.textContaining(S.etaIsEstimate), findsWidgets);
-
-    // 7. 循环滚动：官方预警未接入的如实说明（在风险提示卡内）
-    var alertsVisible = false;
-    for (var i = 0; i < 12 && !alertsVisible; i++) {
-      await tester.drag(find.byType(ListView), const Offset(0, -700));
-      await tester.pumpAndSettle();
-      alertsVisible = find
-          .textContaining(officialAlertsText0)
-          .evaluate()
-          .isNotEmpty;
-    }
-    expect(alertsVisible, isTrue, reason: '滚动后应显示官方预警未接入说明');
 
     // 8. 收藏 → 写入本地
     await tester.tap(find.byTooltip(S.favorites));

@@ -8,6 +8,7 @@ import '../../core/geo.dart';
 import '../../data/routes/route_models.dart';
 import '../strings.dart';
 import 'basemap.dart';
+import '../tokens.dart';
 
 /// 线路方向箭头：沿全部段按总里程等分取 [count] 个位置（不含起终点附近），
 /// 返回位置与该处行进方位角（度，0 = 正北）。纯函数，便于测试。
@@ -52,7 +53,7 @@ List<(LatLng, double)> routeDirectionMarks(
 MarkerLayer routeDirectionLayer(
   HikingRoute route,
   Basemap basemap, {
-  Color color = const Color(0xFF0D47A1),
+  Color color = Semantic.route,
 }) {
   return MarkerLayer(
     markers: [
@@ -101,14 +102,12 @@ MarkerLayer routeEndpointLayer(HikingRoute route, Basemap basemap) {
     ),
   );
   if (route.isLoop) {
-    return MarkerLayer(
-      markers: [badge(pts.first, '起终', const Color(0xFF2E7D32))],
-    );
+    return MarkerLayer(markers: [badge(pts.first, '起终', Semantic.go)]);
   }
   return MarkerLayer(
     markers: [
-      badge(pts.last, S.endPoint.substring(0, 1), const Color(0xFFC62828)),
-      badge(pts.first, S.startPoint.substring(0, 1), const Color(0xFF2E7D32)),
+      badge(pts.last, S.endPoint.substring(0, 1), Semantic.danger),
+      badge(pts.first, S.startPoint.substring(0, 1), Semantic.go),
     ],
   );
 }

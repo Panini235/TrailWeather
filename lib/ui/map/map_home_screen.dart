@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -15,8 +15,10 @@ import '../../data/location/location_service.dart';
 import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/favorites_repository.dart';
+import '../../data/map/tianditu.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
+import '../../data/weather/weather_repository.dart';
 import '../detail/route_detail_screen.dart';
 import 'basemap.dart';
 import 'map_layers_ui.dart';
@@ -25,7 +27,12 @@ import 'point_weather_sheet.dart';
 import 'route_marks.dart';
 import 'route_camera.dart';
 import '../strings.dart';
+import '../weather_refresh_clock.dart';
 import '../widgets/common.dart';
+import '../tokens.dart';
+import '../../core/coord_parse.dart';
+import '../../data/weather/weather_field.dart';
+import 'weather_map_overlay.dart';
 
 /// 地图首页：地图浏览 → 线路发现 → 进入详情。
 ///
@@ -59,6 +66,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   List<HikingRoute> _routeMatches = const [];
   String _searchQuery = '';
   bool _searching = false;
+
+  /// 搜索词被识别为经纬度时的坐标（不再发起地名搜索）。
+  ParsedCoordinate? _coordinate;
   bool _locating = false;
   bool _autoLocateStarted = false;
   LatLng? _weatherPoint;
@@ -66,6 +76,34 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   DateTime? _myFixAtUtc;
   String? _myWxText;
   String? _myWxSource;
+  late final WeatherRefreshClock _weatherClock;
+
+  /// 天气图（降水 / 云量 / 卫星云图）。
+  late final WeatherMapController _wxMap = WeatherMapController(
+    fieldService: ref.read(weatherFieldServiceProvider),
+    satelliteService: ref.read(satelliteFrameServiceProvider),
+    typhoonService: ref.read(typhoonServiceProvider),
+    now: ref.read(weatherNowProvider),
+  )..onFitRequest = _fitPoints;
+
+  /// 把视野移到一组业务坐标（台风“定位”）；底部留出面板高度。
+  void _fitPoints(List<LatLng> points) {
+    if (!mounted || points.isEmpty) return;
+    try {
+      _mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: [for (final p in points) _basemap.toDisplay(p)],
+          padding: const EdgeInsets.fromLTRB(40, 120, 70, 260),
+          maxZoom: 8,
+        ),
+      );
+    } catch (_) {
+      // 地图尚未就绪。
+    }
+  }
+
+  StreamSubscription<RouteWeatherBundle>? _myWeatherSubscription;
+  int _weatherGeneration = 0;
 
   double get _zoom {
     try {
@@ -88,6 +126,21 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
 
   Basemap get _basemap => Basemap.fromSettings(ref.read(settingsProvider));
 
+  void _reportWxView() {
+    if (!_wxMap.active) return;
+    try {
+      final cam = _mapController.camera;
+      final (s, w, n, e) = _bbox;
+      _wxMap.onView(
+        FieldBounds(south: s, west: w, north: n, east: e),
+        cam.zoom,
+        cam.size.height == 0 ? 0.5 : cam.size.width / cam.size.height,
+      );
+    } catch (_) {
+      // 地图尚未就绪：等第一次相机事件。
+    }
+  }
+
   void _onTapMap(TapPosition pos, LatLng displayPoint) {
     // 点击线路时由 PolylineLayer 的命中通知器处理，不同时弹出点位天气。
     final hit = _hitNotifier.value;
@@ -107,7 +160,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     _showPointSheet(
       point,
       label: label,
-      requestedAtUtc: DateTime.now().toUtc(),
+      requestedAtUtc: ref.read(weatherNowProvider)(),
     );
   }
 
@@ -115,6 +168,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     LatLng point, {
     required String label,
     required DateTime requestedAtUtc,
+    DateTime? locationAtUtc,
   }) {
     showModalBottomSheet<void>(
       context: context,
@@ -126,6 +180,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
           point: point,
           label: label,
           requestedAtUtc: requestedAtUtc,
+          locationAtUtc: locationAtUtc,
         ),
       ),
     );
@@ -255,12 +310,16 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       _clearSearch();
       return;
     }
+    final coordinate = parseCoordinate(query);
     setState(() {
       _searchQuery = query;
-      _routeMatches = _matchRoutes(query);
+      _coordinate = coordinate;
+      _routeMatches = coordinate == null ? _matchRoutes(query) : const [];
       _places = const [];
-      _searching = true;
+      _searching = coordinate == null;
     });
+    // 经纬度直接查天气，不把坐标发给地名搜索。
+    if (coordinate != null) return;
     try {
       final places = await ref.read(geocodeServiceProvider).search(query);
       if (!mounted || _searchQuery != query) return;
@@ -298,6 +357,17 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     );
   }
 
+  /// 经纬度搜索：地图移到该点并打开该点天气（与点选地图同一流程）。
+  void _selectCoordinate(ParsedCoordinate c) {
+    _clearSearch(clearSelected: false);
+    try {
+      _mapController.move(_basemap.toDisplay(c.point), 12);
+    } catch (_) {
+      // 地图尚未就绪时忽略；仍打开该点天气。
+    }
+    _selectWeatherPoint(c.point, label: S.coordinateResult);
+  }
+
   /// 让整条线路落在视野内（避开顶部搜索栏、右侧按钮与底部线路卡）。
   void _fitRoute(HikingRoute route) {
     final fit = routeCameraFit(
@@ -330,17 +400,21 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       _places = const [];
       _routeMatches = const [];
       _searching = false;
+      _coordinate = null;
       if (clearSelected) _selected = null;
     });
   }
 
-  Future<void> _locate() async {
+  /// [interactive] 为 false 时是打开地图的自动定位：只在已授权时定位，
+  /// 不弹系统授权框，失败也不提示；授权只在用户点“定位”时请求。
+  Future<void> _locate({bool interactive = true}) async {
     if (_locating) return;
     setState(() => _locating = true);
     try {
       final fix = await ref
           .read(locationServiceProvider)
           .currentPosition(
+            requestPermission: interactive,
             // 系统缓存的上次已知位置先用于居中，减少等待新定位时的空白。
             onLastKnown: (point) {
               if (mounted) _mapController.move(_basemap.toDisplay(point), 13);
@@ -348,7 +422,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
           );
       if (!mounted) return;
       _mapController.move(_basemap.toDisplay(fix.point), 13);
-      final atUtc = DateTime.now().toUtc();
+      final atUtc = ref.read(weatherNowProvider)();
       setState(() {
         _myFix = fix;
         _myFixAtUtc = atUtc;
@@ -361,7 +435,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       }
       unawaited(_loadMyLocationWeather(fix, atUtc));
     } on LocationFailure catch (failure) {
-      if (!mounted) return;
+      if (!mounted || !interactive) return;
       final canOpenSettings =
           failure.kind == LocationFailureKind.serviceDisabled ||
           failure.kind == LocationFailureKind.deniedForever;
@@ -379,7 +453,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
         ),
       );
     } catch (_) {
-      if (mounted) {
+      if (mounted && interactive) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('定位失败。你仍可手动点选地图查询天气。')));
       }
@@ -403,41 +477,67 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
         .read(weatherProvidersProvider)
         .firstWhere((p) => p.caps.providerId == providerId)
         .caps;
-    String text;
-    try {
-      final bundle = await fetchPointWeather(
-        ref.read(weatherRepositoryProvider),
-        providerId: providerId,
-        point: fix.point,
-        label: _myLocationSheetLabel(fix),
-        requestedAtUtc: atUtc,
-      );
-      final points = bundle.result.points;
-      final hour = points.isEmpty
-          ? null
-          : nearestPointHour(points.first, atUtc);
-      final temp = hour?.values[WxVar.temperature];
-      text = temp == null
-          ? S.myLocationNoTemp
-          : Units.temp(temp, imperial: ref.read(settingsProvider).imperial);
-    } catch (_) {
-      text = S.myLocationTapHint;
+    final generation = ++_weatherGeneration;
+    unawaited(_myWeatherSubscription?.cancel());
+    if (!mounted || generation != _weatherGeneration) return;
+    _myWeatherSubscription =
+        watchPointWeather(
+          ref.read(weatherRepositoryProvider),
+          providerId: providerId,
+          point: fix.point,
+          label: _myLocationSheetLabel(fix),
+          requestedAtUtc: atUtc,
+        ).listen(
+          (bundle) {
+            if (!mounted ||
+                generation != _weatherGeneration ||
+                !identical(_myFix, fix)) {
+              return;
+            }
+            final points = bundle.result.points;
+            // 当前位置标签只显示当前小时；缺口不拿临近小时冒充。
+            final hour = points.isEmpty ? null : points.first.hourAt(atUtc);
+            final temp = hour?.values[WxVar.temperature];
+            setState(() {
+              _myWxText = temp == null
+                  ? S.myLocationNoTemp
+                  : Units.temp(
+                      temp,
+                      imperial: ref.read(settingsProvider).imperial,
+                    );
+              _myWxSource =
+                  '${caps.displayName}'
+                  '${bundle.result.stale ? ' · 旧预报' : ''}'
+                  '${bundle.result.refreshing ? ' · 更新中' : ''}'
+                  '${bundle.result.refreshFailed ? ' · 更新失败' : ''}';
+            });
+          },
+          onError: (Object error) {
+            if (!mounted || generation != _weatherGeneration) return;
+            setState(() {
+              _myWxText = S.myLocationTapHint;
+              _myWxSource = caps.displayName;
+            });
+          },
+        );
+  }
+
+  void _refreshCurrentWeather() {
+    final fix = _myFix;
+    if (fix != null) {
+      unawaited(_loadMyLocationWeather(fix, _weatherClock.value));
     }
-    if (!mounted || !identical(_myFix, fix)) return;
-    setState(() {
-      _myWxText = text;
-      _myWxSource = caps.displayName;
-    });
   }
 
   void _openMyLocationWeather() {
     final fix = _myFix;
-    final atUtc = _myFixAtUtc;
-    if (fix == null || atUtc == null) return;
+    if (fix == null) return;
+    _weatherClock.check();
     _showPointSheet(
       fix.point,
       label: _myLocationSheetLabel(fix),
-      requestedAtUtc: atUtc,
+      requestedAtUtc: ref.read(weatherNowProvider)(),
+      locationAtUtc: _myFixAtUtc,
     );
   }
 
@@ -494,7 +594,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                color: fix.isLastKnown ? Colors.grey : scheme.primary,
+                color: fix.isLastKnown ? Semantic.unknown : scheme.primary,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
               ),
@@ -533,16 +633,26 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
   void _autoLocate() {
     if (_autoLocateStarted) return;
     _autoLocateStarted = true;
-    unawaited(_locate());
+    unawaited(_locate(interactive: false));
   }
 
   @override
   void initState() {
     super.initState();
+    _weatherClock = WeatherRefreshClock(
+      initialUtc: ref.read(weatherNowProvider)(),
+      nowUtc: ref.read(weatherNowProvider),
+    )..addListener(_refreshCurrentWeather);
   }
 
   @override
   void dispose() {
+    _wxMap.dispose();
+    _weatherGeneration++;
+    _myWeatherSubscription?.cancel();
+    _weatherClock.dispose();
+    _mapController.dispose();
+    _hitNotifier.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -564,7 +674,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     ]..sort((a, b) => a.name.compareTo(b.name));
 
     final selectedId = _selected?.id;
-    final basemap = Basemap.fromSettings(ref.watch(settingsProvider));
+    final basemap = Basemap.fromSettings(
+      ref.watch(settingsProvider),
+      tiandituClient: ref.watch(tiandituTileClientProvider),
+    );
 
     return Scaffold(
       body: Stack(
@@ -581,9 +694,20 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               ),
               onMapReady: _autoLocate,
               onTap: _onTapMap,
+              // 天气图：每次相机事件都报一次视野，控制器自己去抖（拖动中不请求）。
+              onMapEvent: (_) => _reportWxView(),
             ),
             children: [
               ...basemap.tileLayers(),
+              ListenableBuilder(
+                listenable: _wxMap,
+                builder: (context, _) {
+                  final layers = weatherMapLayers(_wxMap, basemap);
+                  return layers.isEmpty
+                      ? const SizedBox.shrink()
+                      : Stack(children: layers);
+                },
+              ),
               GestureDetector(
                 behavior: HitTestBehavior.deferToChild,
                 onTap: () {
@@ -620,10 +744,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                           ],
                           strokeWidth: r.id == selectedId ? 7 : 4,
                           color: r.id == selectedId
-                              ? const Color(0xFF1565C0)
+                              ? Semantic.route
                               : (r.isDemo
-                                    ? const Color(0xCC2E7D32)
-                                    : const Color(0xCC7B1FA2)),
+                                    ? Semantic.planetRoute
+                                    : Semantic.osmRoute),
                           borderStrokeWidth: r.id == selectedId ? 2 : 0,
                           borderColor: Colors.white,
                           hitValue: r.id,
@@ -699,7 +823,10 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                       onPlaceTap: _selectSearchPlace,
                       onImportTap: () => context.push('/import'),
                       onClose: () => _clearSearch(clearSelected: false),
+                      coordinate: _coordinate,
+                      onCoordinateTap: _selectCoordinate,
                     ),
+                  const TiandituErrorBanner(margin: EdgeInsets.only(top: 6)),
                 ],
               ),
             ),
@@ -714,6 +841,14 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    WeatherMapButton(
+                      controller: _wxMap,
+                      onPressed: () {
+                        _wxMap.toggle();
+                        _reportWxView();
+                      },
+                    ),
+                    const SizedBox(height: 10),
                     const MapLayerButton(),
                     const SizedBox(height: 10),
                     FloatingActionButton.small(
@@ -740,6 +875,21 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
               ),
             ),
           ),
+
+          // 底部天气图面板（选中线路时让位给线路卡）
+          if (_selected == null)
+            ListenableBuilder(
+              listenable: _wxMap,
+              builder: (context, _) => _wxMap.active
+                  ? Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                        child: WeatherMapPanel(controller: _wxMap),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
 
           // 底部选中线路卡
           if (_selected != null)

@@ -9,11 +9,16 @@ import 'routes/route_models.dart';
 import 'routes/sample_routes.dart';
 import 'settings/favorites_repository.dart';
 import 'settings/settings_repository.dart';
+import 'weather/air_quality.dart';
+import 'weather/altitude_profile.dart';
 import 'weather/met_norway_provider.dart';
 import 'weather/meteoblue_provider.dart';
 import 'weather/meteoblue_settings.dart';
 import 'weather/open_meteo_provider.dart';
 import 'weather/qweather_provider.dart';
+import 'weather/satellite_frames.dart';
+import 'weather/typhoon.dart';
+import 'weather/weather_field.dart';
 import 'weather/weather_provider.dart';
 import 'weather/weather_repository.dart';
 
@@ -50,6 +55,27 @@ List<WeatherProvider> defaultWeatherProviders({
   MeteoblueProvider(apiKey: meteoblueApiKey, onNetworkCall: onMeteoblueCall),
 ];
 
+final airQualityServiceProvider = Provider<AirQualityService>(
+  (ref) => AirQualityService(),
+);
+
+final altitudeProfileServiceProvider = Provider<AltitudeProfileService>(
+  (ref) => AltitudeProfileService(),
+);
+
+/// 地图页天气图：降水/云量格点场（Open-Meteo）与卫星云图帧（NASA GIBS）。
+final weatherFieldServiceProvider = Provider<WeatherFieldService>(
+  (ref) => WeatherFieldService(),
+);
+
+final satelliteFrameServiceProvider = Provider<SatelliteFrameService>(
+  (ref) => SatelliteFrameService(),
+);
+
+final typhoonServiceProvider = Provider<TyphoonService>(
+  (ref) => TyphoonService(),
+);
+
 /// 自动请求（线路天气、首页位置天气）用的主来源：已启用、且不是按次计费的按需来源。
 String primaryProviderId(
   List<String> enabledIds,
@@ -63,17 +89,25 @@ String primaryProviderId(
 }
 
 final weatherProvidersProvider = Provider<List<WeatherProvider>>((ref) {
-  final settings = ref.watch(settingsProvider);
+  final credentials = ref.watch(
+    settingsProvider.select((s) => (s.qweatherApiHost, s.qweatherApiKey)),
+  );
   // 只监听 key：调用计数变化不应重建来源列表（否则会连带刷新所有天气请求）。
   final mbKey = ref.watch(meteoblueSettingsProvider.select((s) => s.apiKey));
   return defaultWeatherProviders(
-    qweatherApiHost: settings.qweatherApiHost,
-    qweatherApiKey: settings.qweatherApiKey,
+    qweatherApiHost: credentials.$1,
+    qweatherApiKey: credentials.$2,
     meteoblueApiKey: mbKey,
     onMeteoblueCall: () =>
         ref.read(meteoblueSettingsProvider.notifier).recordCall(),
   );
 });
+
+/// 可测试的当前时钟；定位时间与天气查询时间分别记录。
+final weatherNowProvider = Provider<DateTime Function()>(
+  (ref) =>
+      () => DateTime.now().toUtc(),
+);
 
 final weatherRepositoryProvider = Provider<WeatherRepository>((ref) {
   return WeatherRepository(

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'detail/route_detail_screen.dart';
+import 'departure/departure_screen.dart';
 import 'import/import_screen.dart';
 import 'import/incoming_file_listener.dart';
 import 'map/map_home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
+import 'offline/offline_screens.dart';
 import 'planet/planet_screen.dart';
 import 'planner/route_planner_screen.dart';
+import 'privacy/privacy_screen.dart';
 import 'settings/settings_screen.dart';
 import 'strings.dart';
 import 'trips/trips_screen.dart';
@@ -55,6 +58,28 @@ GoRouter buildRouter() => GoRouter(
       builder: (context, state) =>
           RouteDetailScreen(args: state.extra! as RouteDetailArgs),
     ),
+    GoRoute(
+      path: '/departures',
+      redirect: (context, state) => state.extra is DepartureArgs ? null : '/',
+      builder: (context, state) =>
+          DepartureScreen(args: state.extra! as DepartureArgs),
+    ),
+    GoRoute(
+      path: '/offline',
+      builder: (context, state) => const OfflineTripsScreen(),
+    ),
+    GoRoute(
+      path: '/offline/new',
+      redirect: (context, state) =>
+          state.extra is OfflineDownloadArgs ? null : '/offline',
+      builder: (context, state) =>
+          OfflineDownloadScreen(args: state.extra! as OfflineDownloadArgs),
+    ),
+    GoRoute(
+      path: '/offline/:id',
+      builder: (context, state) =>
+          OfflineTripScreen(id: state.pathParameters['id']!),
+    ),
     GoRoute(path: '/import', builder: (context, state) => const ImportScreen()),
     GoRoute(
       path: '/planet',
@@ -67,6 +92,10 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/privacy',
+      builder: (context, state) => const PrivacyScreen(),
     ),
     // 暂缓商业化期间，旧链接也不能进入付费墙。
     GoRoute(path: '/paywall', redirect: (context, state) => '/'),

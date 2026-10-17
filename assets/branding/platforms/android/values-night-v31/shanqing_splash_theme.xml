@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+：系统开屏只显示品牌底色（透明图标），由 Flutter 开屏接着画 -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/shanqing_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/shanqing_splash_blank</item>
+    </style>
+</resources>

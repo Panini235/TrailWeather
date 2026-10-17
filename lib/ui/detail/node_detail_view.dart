@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../core/units.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
+import '../../data/weather/wx_importance.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 import 'detail_state.dart';
+import 'environment_cards.dart';
+import 'meteogram.dart';
 import 'node_detail_sheet.dart';
 import 'node_photos.dart';
 import 'weather_cells.dart';
@@ -100,77 +102,141 @@ class _NodeDetailViewState extends State<NodeDetailView> {
         ),
         Text(
           '距起点 ${(node.distFromStartM / 1000).toStringAsFixed(1)} km'
-          '${node.elevationM == null ? '' : ' · 轨迹海拔 ${node.elevationM!.toStringAsFixed(0)} m'}',
-          style: const TextStyle(fontSize: 13),
-        ),
-        Text(
-          '${widget.tripMode ? S.arrivalEstimate : S.fixedMoment}：'
-          '${_fmtLocal(row.validUtc)}',
+          '${node.elevationM == null ? '' : ' · ${node.elevationM!.toStringAsFixed(0)} m'}'
+          ' · ${widget.tripMode ? S.arrivalEstimate : S.fixedMoment} ${_fmtLocal(row.validUtc)}',
           style: TextStyle(
             fontSize: 12,
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
+        if (wp != null) _markedRow(wp),
         const SizedBox(height: 10),
-        _markSection(context, wp, label),
-        if (widget.routeId != null) ...[
-          const SizedBox(height: 10),
-          NodePhotosSection(routeId: widget.routeId!, pos: node.pos),
-        ],
-        const SizedBox(height: 10),
+        // 先回答“到这里时天气怎样”：4 个关键值放大，其余指标收进“更多指标”。
         if (wx == null)
           const GranularityNotice(text: '此来源在该时刻没有数据（超出预报范围或来源未提供）。')
-        else
-          WxVarGrid(wx: wx, settings: widget.settings),
-        const SizedBox(height: 10),
-        Text(S.next12h, style: theme.textTheme.titleSmall),
-        const SizedBox(height: 4),
-        _NextHours(row: row, settings: widget.settings),
-        const SizedBox(height: 6),
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          title: const Text(S.multiSourceCompare),
-          children: [
-            NodeComparePanel(
-              key: ValueKey('compare-$_idx'),
-              rows: widget.rows,
-              initialIndex: _idx,
-              fixedUtc: widget.tripMode ? null : widget.fixedUtc,
-            ),
+        else ...[
+          KeyWeatherValues(wx: wx, settings: widget.settings),
+          // 准备层只在触发时升上来（紫外线很高、高于 0℃ 层、低云……）。
+          if (signalsFor(wx, elevationM: node.elevationM) case final sig
+              when sig.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            WxSignalChips(signals: sig),
           ],
+        ],
+        if (row.point case final point?) ...[
+          const SizedBox(height: 14),
+          Text(
+            S.meteogramTitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          NodeMeteogram(
+            key: ValueKey('mg-$_idx-${row.validUtc}'),
+            point: point,
+            arrivalUtc: row.validUtc,
+            settings: widget.settings,
+          ),
+        ],
+        const SizedBox(height: 10),
+        AltitudeWeatherCard(
+          key: ValueKey('alt-$_idx-${row.validUtc}'),
+          point: node.pos,
+          atUtc: row.validUtc,
+          nodeElevationM: node.elevationM,
+          routeMinM: _routeMinMax().$1,
+          routeMaxM: _routeMinMax().$2,
         ),
+        const SizedBox(height: 4),
+        if (wx != null)
+          _fold(
+            S.moreMetrics,
+            WxVarGrid(
+              wx: wx,
+              settings: widget.settings,
+              exclude: const {
+                WxVar.temperature,
+                WxVar.apparentTemp,
+                WxVar.precip,
+                WxVar.precipProb,
+                WxVar.windGust,
+              },
+            ),
+          ),
+        _fold(
+          S.airQualityTitle,
+          AirQualityCard(
+            key: ValueKey('aq-$_idx'),
+            point: node.pos,
+            atUtc: row.validUtc,
+          ),
+        ),
+        _fold(
+          S.multiSourceCompare,
+          NodeComparePanel(
+            key: ValueKey('compare-$_idx'),
+            rows: widget.rows,
+            initialIndex: _idx,
+            fixedUtc: widget.tripMode ? null : widget.fixedUtc,
+          ),
+        ),
+        if (widget.routeId != null)
+          _fold(
+            S.nodePhotos,
+            NodePhotosSection(routeId: widget.routeId!, pos: node.pos),
+          ),
+        if (wp == null) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+            label: const Text(S.markAs),
+            onPressed: () => _pickMarkType(label),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _markSection(BuildContext context, RouteWaypoint? wp, String label) {
-    if (wp != null) {
-      return Card(
-        margin: EdgeInsets.zero,
-        child: ListTile(
-          dense: true,
-          title: Text('${waypointTypeLabel(wp.type)} · ${wp.name}'),
-          subtitle: wp.stopMinutes == null
-              ? null
-              : Text('停留 ${wp.stopMinutes} 分钟（已计入后续到达时间）'),
-          trailing: Wrap(
-            spacing: 4,
-            children: [
-              IconButton(
-                tooltip: S.editMark,
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => widget.onEditMark(wp),
-              ),
-              IconButton(
-                tooltip: S.removeMark,
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => widget.onRemoveMark(wp),
-              ),
-            ],
-          ),
+  /// 次要内容默认收起：标题一行，点开才构建（空气质量、多来源对比此时才发请求）。
+  Widget _fold(String title, Widget child) => ExpansionTile(
+    tilePadding: EdgeInsets.zero,
+    dense: true,
+    title: Text(title, style: const TextStyle(fontSize: 14)),
+    childrenPadding: const EdgeInsets.only(bottom: 8),
+    children: [child],
+  );
+
+  Widget _markedRow(RouteWaypoint wp) => Row(
+    children: [
+      WaypointMarker(type: wp.type, size: 14),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          '${_shortLabel(wp.type)} · ${wp.name}'
+          '${wp.stopMinutes == null ? '' : ' · 停留 ${wp.stopMinutes} 分钟'}',
+          style: const TextStyle(fontSize: 13),
+          overflow: TextOverflow.ellipsis,
         ),
-      );
-    }
+      ),
+      IconButton(
+        tooltip: S.editMark,
+        visualDensity: VisualDensity.compact,
+        icon: const Icon(Icons.edit_outlined, size: 18),
+        onPressed: () => widget.onEditMark(wp),
+      ),
+      IconButton(
+        tooltip: S.removeMark,
+        visualDensity: VisualDensity.compact,
+        icon: const Icon(Icons.delete_outline, size: 18),
+        onPressed: () => widget.onRemoveMark(wp),
+      ),
+    ],
+  );
+
+  /// 8 种标记类型放进二级面板，节点详情里只留一个“标记为”按钮。
+  void _pickMarkType(String label) {
     const types = [
       WaypointType.camp,
       WaypointType.rest,
@@ -181,25 +247,41 @@ class _NodeDetailViewState extends State<NodeDetailView> {
       WaypointType.exit,
       WaypointType.poi,
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(S.markAs, style: TextStyle(fontSize: 12)),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 6,
-          runSpacing: 4,
-          children: [
-            for (final t in types)
-              ActionChip(
-                avatar: Icon(waypointStyle(t).$1, size: 16),
-                label: Text(_shortLabel(t)),
-                onPressed: () => widget.onMark((index: _idx, label: label), t),
-              ),
-          ],
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final t in types)
+                ActionChip(
+                  avatar: Icon(waypointStyle(t).$1, size: 16),
+                  label: Text(_shortLabel(t)),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    widget.onMark((index: _idx, label: label), t);
+                  },
+                ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
+  }
+
+  /// 线路（采样节点）海拔范围；无海拔时为 (null, null)。
+  (double?, double?) _routeMinMax() {
+    final eles = widget.rows
+        .map((r) => r.node.elevationM)
+        .whereType<double>()
+        .toList();
+    if (eles.isEmpty) return (null, null);
+    eles.sort();
+    return (eles.first, eles.last);
   }
 
   static String _fmtLocal(DateTime utc) {
@@ -213,83 +295,3 @@ String _shortLabel(WaypointType t) => waypointTypeLabel(t).split(' ').first;
 
 /// 默认标记名称（用户可改）。
 String defaultWaypointName(WaypointType t) => _shortLabel(t);
-
-class _NextHours extends StatelessWidget {
-  const _NextHours({required this.row, required this.settings});
-
-  final NodeWxRow row;
-  final AppSettings settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final point = row.point;
-    final from = DateTime.utc(
-      row.validUtc.year,
-      row.validUtc.month,
-      row.validUtc.day,
-      row.validUtc.hour,
-    );
-    final hours = point == null
-        ? const <WxHourValue>[]
-        : point.hours
-              .where((h) => !h.validFromUtc.isBefore(from))
-              .take(12)
-              .toList();
-    if (hours.isEmpty) {
-      return const Text('此来源没有该时段之后的逐时数据。', style: TextStyle(fontSize: 12));
-    }
-    String fmt(double? v, String Function(double) f) => v == null ? '—' : f(v);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowHeight: 28,
-        dataRowMinHeight: 26,
-        dataRowMaxHeight: 30,
-        columnSpacing: 14,
-        horizontalMargin: 4,
-        columns: [
-          const DataColumn(label: Text('')),
-          for (final h in hours)
-            DataColumn(
-              label: Text(
-                '${h.validFromUtc.toLocal().hour.toString().padLeft(2, '0')}时',
-                style: const TextStyle(fontSize: 11),
-              ),
-            ),
-        ],
-        rows: [
-          _row('温度', hours, (h) {
-            return fmt(
-              h.values[WxVar.temperature],
-              (x) => Units.temp(x, imperial: settings.imperial),
-            );
-          }),
-          _row('降水', hours, (h) {
-            return fmt(
-              h.values[WxVar.precip],
-              (x) => Units.precipMm(x, imperial: settings.imperial),
-            );
-          }),
-          _row('阵风', hours, (h) {
-            return fmt(
-              h.values[WxVar.windGust],
-              (x) => Units.windMs(x, unit: settings.windUnit),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  DataRow _row(
-    String name,
-    List<WxHourValue> hours,
-    String Function(WxHourValue) cell,
-  ) => DataRow(
-    cells: [
-      DataCell(Text(name, style: const TextStyle(fontSize: 11))),
-      for (final h in hours)
-        DataCell(Text(cell(h), style: const TextStyle(fontSize: 11))),
-    ],
-  );
-}

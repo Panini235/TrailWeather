@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-16",
+  "focus": "Android/iOS shared Flutter behavior; Web performance optimization deferred by user",
+  "source_commit": "961a6d4f8082eee5289b9e531c37520f44bbf5f3",
+  "validation": {
+    "analyze": "0 issues",
+    "tests_passed": 284,
+    "new_tests": 21,
+    "test_scope": [
+      "departure thresholds and missing fields",
+      "segment-interior hours and raw Open-Meteo times",
+      "past-sunset and cross-midnight",
+      "single union query and local threshold recalculation",
+      "cache preserved after refresh failure",
+      "360px light/dark and 2x text",
+      "threshold persistence",
+      "weather summary before map and missing temperature",
+      "existing core flows"
+    ]
+  },
+  "ci": {
+    "android": {
+      "run_id": 38890402736,
+      "conclusion": "success",
+      "record": "ci-android.json"
+    },
+    "ios": {
+      "run_id": 38890417187,
+      "conclusion": "success",
+      "record": "ci-ios.json"
+    }
+  },
+  "limitations": [
+    "No physical-device launch, battery or airplane-mode cold start evidence",
+    "No new Lighthouse measurements; prior numbers do not measure native experience",
+    "Multi-day splitting remains T-147",
+    "Sunrise, official alerts and terrain shading not implemented",
+    "iOS artifact is unsigned; compilation success does not prove installation or physical-device behavior",
+    "Other weather pages still require variable-specific time-interval modeling (T-158)",
+    "Local native execution unavailable: adb not on PATH; active Xcode directory is CommandLineTools"
+  ],
+  "raw_evidence": {
+    "flutter-test.txt": "0aa57e5d81380dd1a31d11742f041b06394791739d541a9b7f9da163c78b26fd",
+    "flutter-analyze.txt": "313e6ddf457c994a21f0ebdc79c131e8161c5a2b1b3a6d30b6a2feaa08b4d475"
+  },
+  "apk": {
+    "path": "build/review-961a6d4/app-release.apk",
+    "bytes": 65199173,
+    "sha256": "5dcfcf88dcba225403acee7ed18cd8e07319fe63266a7e41efce3c07d1ee1de6",
+    "zip_integrity": "passed",
+    "brand_png_matches_selected_D": true,
+    "native_app_libraries": [
+      "lib/arm64-v8a/libapp.so",
+      "lib/armeabi-v7a/libapp.so",
+      "lib/x86_64/libapp.so"
+    ],
+    "signing": "Flutter template debug signing; test artifact, not store publication"
+  }
+}

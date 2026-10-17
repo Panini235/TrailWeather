@@ -2,18 +2,33 @@
 <html lang="zh-CN">
 <head>
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="山晴：在地图上发现徒步线路，查看沿途天气与多来源预报对比。数据来自公开气象服务，位置颗粒度与来源如实标注。">
-  <meta name="theme-color" content="#2E5D32">
-
-  <title>山晴</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="山晴是一款徒步天气应用：查询当前位置与沿途天气，对比多来源预报，导入徒步线路，帮助安排出发时间。预报来源、有效时次与缓存状态清楚标注。">
+  <meta name="application-name" content="山晴">
+  <meta name="theme-color" content="#F5F2E9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101B17" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <title>山晴｜徒步天气与行前规划</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="launch.css">
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <main id="launch" aria-labelledby="launch-title">
+    <img src="icons/Icon-192.png" alt="" width="80" height="80">
+    <p class="eyebrow">行前规划 · 沿途看天气</p>
+    <h1 id="launch-title">山晴</h1>
+    <p class="intro">查询当前位置与沿途天气，对比多来源预报，为下一次徒步做好准备。</p>
+    <p id="launch-status" role="status" aria-live="polite">正在打开山晴…</p>
+    <button id="launch-retry" type="button" hidden>重新加载</button>
+    <noscript>
+      <p>交互地图与天气查询需要 JavaScript。请在浏览器中允许 JavaScript 后重新打开。</p>
+    </noscript>
+    <p class="note">预报有时效与空间范围限制。徒步前请检查数据更新时间、当地预警与实际环境。</p>
+  </main>
+  <script src="launch.js"></script>
+  <script src="flutter_bootstrap.js" async id="flutter-bootstrap"></script>
 </body>
 </html>

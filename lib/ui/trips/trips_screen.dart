@@ -10,6 +10,7 @@ import '../../data/settings/settings_repository.dart';
 import '../detail/route_detail_screen.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
+import '../../core/features.dart';
 
 /// 首页“我的行程”：用户导入、手绘、收藏的线路（docs/redesign-v2.md）。
 ///
@@ -27,7 +28,8 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (!ref.read(settingsProvider).hasCompletedOnboarding) {
+      final settings = ref.read(settingsProvider);
+      if (!settings.hasCompletedOnboarding || !settings.privacyAccepted) {
         context.push('/onboarding');
       }
     });
@@ -114,6 +116,15 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
         children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.offline_pin_outlined),
+              title: const Text('离线行程包'),
+              subtitle: const Text('查看已保存的线路与预报'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/offline'),
+            ),
+          ),
           if (trips.isEmpty)
             _EmptyTrips(
               onImport: () => context.push('/import'),
@@ -135,24 +146,28 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
           Text(S.exampleRoutes, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           for (final r in samples) _TripCard(route: r, onTap: () => _open(r)),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.public),
-              title: const Text(S.planetEntry),
-              subtitle: const Text(S.planetEntryHint),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/planet'),
+          // 徒步星球线路库：许可核实前测试版隐藏（B-011）。
+          if (kPlanetTrailsEnabled)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.public),
+                title: const Text(S.planetEntry),
+                subtitle: const Text(S.planetEntryHint),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/planet'),
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 }
 
-/// “用山晴打开”目前只在 Android 接入（iOS 待验证，见 agent/tasks.json）。
+/// “用山晴打开”：Android 与 iOS 均已接入（Web 无此能力）。
 bool get _supportsOpenWith =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS);
 
 class _EmptyTrips extends StatelessWidget {
   const _EmptyTrips({required this.onImport, required this.onDraw});

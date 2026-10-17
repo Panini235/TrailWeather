@@ -7,13 +7,31 @@ import '../../data/routes/route_sampling.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
 import '../../data/weather/weather_repository.dart';
+import '../detail/environment_cards.dart';
 import '../detail/weather_cells.dart';
 import '../strings.dart';
+import '../weather_refresh_clock.dart';
 import '../widgets/common.dart';
 
 /// 单点天气请求。首页当前位置标签与本面板使用同一参数，标签取到的数据
 /// 在打开面板时可直接命中缓存。
 Future<RouteWeatherBundle> fetchPointWeather(
+  WeatherRepository repository, {
+  required String providerId,
+  required LatLng point,
+  required String label,
+  required DateTime requestedAtUtc,
+  bool refresh = false,
+}) => watchPointWeather(
+  repository,
+  providerId: providerId,
+  point: point,
+  label: label,
+  requestedAtUtc: requestedAtUtc,
+  refresh: refresh,
+).last;
+
+Stream<RouteWeatherBundle> watchPointWeather(
   WeatherRepository repository, {
   required String providerId,
   required LatLng point,
@@ -27,7 +45,7 @@ Future<RouteWeatherBundle> fetchPointWeather(
     requestedAtUtc.day,
     requestedAtUtc.hour,
   );
-  return repository.getRouteWeatherBundle(
+  return repository.watchRouteWeatherBundle(
     providerId: providerId,
     nodes: [
       RouteNode(
@@ -62,20 +80,49 @@ WxHourValue? nearestPointHour(WxPointForecast point, DateTime requestedAtUtc) {
 }
 
 /// 地图任意点天气面板。每个来源独立请求、独立展示，不做跨来源平均。
-class PointWeatherSheet extends ConsumerWidget {
+class PointWeatherSheet extends ConsumerStatefulWidget {
   const PointWeatherSheet({
     super.key,
     required this.point,
     required this.label,
     required this.requestedAtUtc,
+    this.locationAtUtc,
   });
 
   final LatLng point;
   final String label;
   final DateTime requestedAtUtc;
+  final DateTime? locationAtUtc;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PointWeatherSheet> createState() => _PointWeatherSheetState();
+}
+
+class _PointWeatherSheetState extends ConsumerState<PointWeatherSheet> {
+  late final WeatherRefreshClock _clock;
+  LatLng get point => widget.point;
+  String get label => widget.label;
+  DateTime get requestedAtUtc => _clock.value;
+
+  @override
+  void initState() {
+    super.initState();
+    _clock = WeatherRefreshClock(
+      initialUtc: widget.requestedAtUtc,
+      nowUtc: ref.read(weatherNowProvider),
+    )..addListener(_onTimeChanged);
+  }
+
+  void _onTimeChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _clock.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final providers = ref.watch(weatherProvidersProvider);
     final enabled = settings.enabledProviderIds;
@@ -104,12 +151,21 @@ class PointWeatherSheet extends ConsumerWidget {
           Text(
             'WGS-84 ${point.latitude.toStringAsFixed(5)}, '
             '${point.longitude.toStringAsFixed(5)} · '
-            '${_formatLocal(requestedAtUtc.toLocal())}',
+            '查询时刻 ${_formatLocal(requestedAtUtc.toLocal())}',
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
+          if (widget.locationAtUtc != null)
+            Text(
+              '位置读取于 ${_formatLocal(widget.locationAtUtc!.toLocal())} · '
+              '天气按该坐标查询，移动后请重新定位',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           const SizedBox(height: 10),
           const GranularityNotice(
             text:
@@ -117,9 +173,18 @@ class PointWeatherSheet extends ConsumerWidget {
                 '各来源独立显示，返回坐标、网格颗粒度和缺失项以来源说明为准。',
           ),
           const SizedBox(height: 10),
+          AltitudeWeatherCard(point: point, atUtc: requestedAtUtc),
+          const SizedBox(height: 8),
+          AirQualityCard(point: point, atUtc: requestedAtUtc),
+          const SizedBox(height: 10),
           for (final provider in providers)
             if (enabled.contains(provider.caps.providerId))
               _PointSourceCard(
+                key: ValueKey((
+                  provider.caps.providerId,
+                  point,
+                  requestedAtUtc,
+                )),
                 providerId: provider.caps.providerId,
                 point: point,
                 label: label,
@@ -139,6 +204,7 @@ class PointWeatherSheet extends ConsumerWidget {
 
 class _PointSourceCard extends ConsumerStatefulWidget {
   const _PointSourceCard({
+    super.key,
     required this.providerId,
     required this.point,
     required this.label,
@@ -158,7 +224,7 @@ class _PointSourceCard extends ConsumerStatefulWidget {
 
 class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
   /// 按次计费来源（caps.onDemandOnly）不自动请求：null 表示等待用户点击查询。
-  late Future<RouteWeatherBundle>? _future =
+  late Stream<RouteWeatherBundle>? _stream =
       ref
           .read(weatherProvidersProvider)
           .firstWhere((p) => p.caps.providerId == widget.providerId)
@@ -167,8 +233,8 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
       ? null
       : _fetch();
 
-  Future<RouteWeatherBundle> _fetch({bool refresh = false}) =>
-      fetchPointWeather(
+  Stream<RouteWeatherBundle> _fetch({bool refresh = false}) =>
+      watchPointWeather(
         ref.read(weatherRepositoryProvider),
         providerId: widget.providerId,
         point: widget.point,
@@ -177,9 +243,25 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
         refresh: refresh,
       );
 
+  @override
+  void didUpdateWidget(covariant _PointSourceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.point != widget.point ||
+        oldWidget.requestedAtUtc != widget.requestedAtUtc ||
+        oldWidget.providerId != widget.providerId) {
+      final onDemand = ref
+          .read(weatherProvidersProvider)
+          .firstWhere((p) => p.caps.providerId == widget.providerId)
+          .caps
+          .onDemandOnly;
+      // 每个新时段的计费查询仍需用户主动触发。
+      _stream = onDemand ? null : _fetch();
+    }
+  }
+
   void _retry() {
     setState(() {
-      _future = _fetch(refresh: true);
+      _stream = _fetch(refresh: true);
     });
   }
 
@@ -190,7 +272,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
         .firstWhere((p) => p.caps.providerId == widget.providerId)
         .caps;
 
-    if (_future == null) {
+    if (_stream == null) {
       return Card(
         margin: const EdgeInsets.only(bottom: 10),
         child: Padding(
@@ -203,7 +285,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
               OnDemandQueryPrompt(
                 caps: caps,
                 onQuery: () => setState(() {
-                  _future = _fetch();
+                  _stream = _fetch();
                 }),
               ),
             ],
@@ -215,8 +297,8 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: FutureBuilder<RouteWeatherBundle>(
-          future: _future,
+        child: StreamBuilder<RouteWeatherBundle>(
+          stream: _stream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting &&
                 !snapshot.hasData) {
@@ -240,6 +322,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
               );
             }
 
+            if (!snapshot.hasData) return const SizedBox.shrink();
             final result = snapshot.data!.result;
             if (result.points.isEmpty) {
               return Column(
@@ -259,6 +342,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
                 children: [
                   SourceBadge(caps: caps),
                   const SizedBox(height: 8),
+                  WeatherCacheNotice(result: result, onRetry: _retry),
                   const MissingValueText(label: '该来源未返回当前时段数据'),
                 ],
               );
@@ -279,6 +363,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
                     DataKindChip(kind: caps.dataKind),
                   ],
                 ),
+                WeatherCacheNotice(result: result, onRetry: _retry),
                 const SizedBox(height: 8),
                 Text(
                   '有效时次 ${nearest.validFromUtc.toLocal().month}月'
@@ -296,7 +381,10 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
                   '${S.fetchedAt}：'
                   '${provenance.fetchedAtUtc.toIso8601String().substring(0, 16)} UTC'
                   '${result.stale ? ' · ${S.staleData}' : ''}',
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             );

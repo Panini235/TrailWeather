@@ -10,6 +10,7 @@ import '../strings.dart';
 import '../widgets/common.dart';
 import 'detail_state.dart';
 import 'weather_cells.dart';
+import '../tokens.dart';
 
 /// 节点级多来源对比面板。
 ///
@@ -77,7 +78,10 @@ class _NodeComparePanelState extends ConsumerState<NodeComparePanel> {
         Text(
           '${S.validTime}：${_fmt(wantUtc)} UTC（${_fmtLocal(wantUtc)} 本地）'
           '${widget.fixedUtc != null ? '' : '（行程模式：${S.eta}，估算）'}',
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 8),
         GranularityNotice(text: S.timeAlignmentNote),
@@ -119,11 +123,11 @@ class _SourceNodeCard extends ConsumerStatefulWidget {
   ConsumerState<_SourceNodeCard> createState() => _SourceNodeCardState();
 }
 
-/// 请求 Future 保存在 State 中：仅当来源/节点/时刻变化才重新请求，
+/// 请求流保存在 State 中：仅当来源/节点/时刻变化才重新请求，
 /// 避免每次重建（如切换节点、设置变化）都重复发起网络请求。
 class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
   /// 按次计费来源（caps.onDemandOnly）不自动请求：null 表示等待用户点击查询。
-  late Future<RouteWeatherBundle>? _future = _onDemand ? null : _fetch();
+  late Stream<RouteWeatherBundle>? _stream = _onDemand ? null : _fetch();
 
   bool get _onDemand => ref
       .read(weatherProvidersProvider)
@@ -136,8 +140,9 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
     super.didUpdateWidget(old);
     if (old.providerId != widget.providerId ||
         old.node.pos != widget.node.pos ||
+        old.node.elevationM != widget.node.elevationM ||
         old.wantUtc != widget.wantUtc) {
-      _future = _onDemand ? null : _fetch();
+      _stream = _onDemand ? null : _fetch();
     }
   }
 
@@ -146,9 +151,9 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
   DateTime get wantUtc => widget.wantUtc;
   AppSettings get settings => widget.settings;
 
-  Future<RouteWeatherBundle> _fetch() async {
+  Stream<RouteWeatherBundle> _fetch() {
     final repo = ref.read(weatherRepositoryProvider);
-    return repo.getRouteWeatherBundle(
+    return repo.watchRouteWeatherBundle(
       providerId: providerId,
       nodes: [node],
       startUtc: wantUtc.subtract(const Duration(hours: 6)),
@@ -166,8 +171,8 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.all(10),
-        child: FutureBuilder<RouteWeatherBundle>(
-          future: _future,
+        child: StreamBuilder<RouteWeatherBundle>(
+          stream: _stream,
           builder: (context, snap) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,11 +186,11 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (_future == null)
+                if (_stream == null)
                   OnDemandQueryPrompt(
                     caps: caps,
                     onQuery: () => setState(() {
-                      _future = _fetch();
+                      _stream = _fetch();
                     }),
                   )
                 else if (snap.connectionState == ConnectionState.waiting &&
@@ -203,9 +208,12 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
                 else if (snap.hasError)
                   Text(
                     '该来源请求失败：${snap.error}',
-                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: SemanticInk.danger(context),
+                    ),
                   )
-                else
+                else if (snap.hasData)
                   ..._dataWidgets(context, snap.data!),
               ],
             );
@@ -230,19 +238,24 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
         const SizedBox(height: 4),
         Text(
           '该来源的时间范围：${_range(point)}。${S.outOfRangeDetail}',
-          style: const TextStyle(fontSize: 11, height: 1.4, color: Colors.grey),
+          style: TextStyle(
+            fontSize: 11,
+            height: 1.4,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ];
     }
     final diffMin = nearest.validFromUtc.difference(wantUtc).inMinutes.abs();
     final prov = point.provenance;
     return [
+      WeatherCacheNotice(result: bundle.result),
       if (diffMin > 0)
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(
             '来源最近有效时次：${nearest.validFromUtc.toIso8601String().substring(5, 16)} UTC（与请求时刻相差 $diffMin 分钟）',
-            style: const TextStyle(fontSize: 11, color: Colors.orange),
+            style: TextStyle(fontSize: 11, color: SemanticInk.caution(context)),
           ),
         ),
       WxVarGrid(wx: nearest, settings: settings),
@@ -253,7 +266,10 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
         '${S.fetchedAt}：${prov.fetchedAtUtc.toIso8601String().substring(0, 16)} UTC'
         '${prov.modelRunUtc == null ? '' : ' · 起报 ${prov.modelRunUtc!.toIso8601String().substring(11, 16)} UTC'}'
         '${bundle.result.stale ? ' · ${S.staleData}' : ''}',
-        style: const TextStyle(fontSize: 10, color: Colors.grey),
+        style: TextStyle(
+          fontSize: 10,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     ];
   }

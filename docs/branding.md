@@ -12,7 +12,7 @@
 - 保留的Web验证入口：页面标题、manifest、favicon与图标。
 - 隐藏中的旧付费页面文案同步名称，但入口仍保持隐藏。
 
-现有Dart包名、Android/iOS应用标识、仓库地址、MethodChannel和本地数据键保持兼容；HTTP标识沿用与仓库对应的技术标识，不把显示名称变更当作新应用或数据迁移。
+现有 Dart 包名、仓库地址、MethodChannel 和本地数据键保持不变。2026-10-16 起发布应用 ID 改为 `app.shanqing.hiking`（D-030，`tool/configure_release.py`），旧应用 ID 的测试安装与新包是两个 App。
 
 ## 文件
 
@@ -42,6 +42,14 @@ python3 tool/apply_branding.py --platforms android web --check
 脚本只使用Python标准库，不增加Flutter/CI图像依赖。它会核对图标尺寸、iOS图标不透明性、平台资源内容和应用显示名，避免产物退回Flutter模板图标。
 
 CI构建后还运行`tool/verify_build_branding.py`：检查APK的实际application-label、启动图标声明和品牌图片；检查iOS产物Info.plist及编译的AppIcon目录；检查Web实际输出的标题、manifest与图标。
+
+## 开屏（2026-10-17，D-031）
+
+- 系统启动页只铺品牌底色：浅色 `#F3EAD8`，深色 `#18211C`。Android 由 `platforms/android` 下的 `launch_background`、`shanqing_splash*` 资源实现，Android 12+ 用透明图标；iOS 使用 `LaunchBackground` 颜色集，`apply_branding.py` 会把 LaunchScreen.storyboard 的底色补丁为该颜色。
+- 图标与动画由 Flutter 绘制（`lib/ui/splash/`），路径坐标与 `app-icon.svg` 一致。依次出现的顺序是：山体升起、太阳从山后升到此刻位置（19–6 时换成月亮）、山顶落雪、山坡滑入、小路一笔画出、字标出现。
+- 播放规则：当天第一次冷启动完整播放约 1.1 秒，右上角有“跳过动画”，点任意处也可跳过；当天再次启动只淡入 0.25 秒；系统减少动效或低耗电时显示静态图标；Web 不播。播完后开屏从页面上移除，之后不再画任何帧。
+- 太阳位置只读手机时钟（按 6–19 时为白天），不定位、不联网，不代表当地真实日出日落。
+- 国产 ROM 对 Android 12 系统开屏的处理可能不同，需真机确认是否仍会闪现启动图标（B-002）。
 
 ## 编辑与导出
 

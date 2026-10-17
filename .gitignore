@@ -32,6 +32,8 @@ ios/*
 !ios/Runner/
 ios/Runner/*
 !ios/Runner/Info.plist
+# “用山晴打开”接收外部文件（flutter create 不覆盖已存在文件）
+!ios/Runner/AppDelegate.swift
 
 # 本地环境与密钥（不入库）
 .env
@@ -48,3 +50,11 @@ devtools_options.yaml
 
 # 用户本地示例轨迹（真实位置/时间，不入库）
 example/
+
+# Local browser verification sessions
+.playwright-cli/
+__pycache__/
+
+# 本地 flutter create 生成、未被引用的文件（CI 每次重新生成）
+/.metadata
+/web/icons/Icon-maskable-*.png

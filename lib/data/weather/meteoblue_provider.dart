@@ -56,6 +56,7 @@ class MeteoblueProvider extends WeatherProvider {
       WxVar.humidity,
       WxVar.pressure,
       WxVar.snowFraction,
+      WxVar.uvIndex,
     ],
     minRequestIntervalMs: 250,
     recommendedCacheTtl: const Duration(hours: 3),
@@ -181,6 +182,9 @@ class MeteoblueProvider extends WeatherProvider {
             WxVar.visibility: null,
             WxVar.pressure: at('sealevelpressure', i),
             WxVar.snowFraction: snow == null ? null : snow * 100,
+            // 文档未说明 uvindex 是否计入云量（docs/data-sources.md）；
+            // 作为紫外线预报使用，若为晴空值则偏高，方向上不会低估风险。
+            WxVar.uvIndex: at('uvindex', i),
           },
           symbols: picto == null ? null : {'mb_pictocode': '${picto.round()}'},
         ),

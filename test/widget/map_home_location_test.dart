@@ -16,12 +16,15 @@ import 'package:trailweather/ui/strings.dart';
 
 class _FakeLocationService implements LocationService {
   int calls = 0;
+  final requested = <bool>[];
 
   @override
   Future<LocationFix> currentPosition({
     void Function(LatLng)? onLastKnown,
+    bool requestPermission = true,
   }) async {
     calls++;
+    requested.add(requestPermission);
     return LocationFix(
       calls == 1
           ? const LatLng(31.2304, 121.4737)
@@ -128,11 +131,13 @@ void main() {
     final preferences = await SharedPreferences.getInstance();
     final location = _FakeLocationService();
     final routes = _FakeRouteSource();
+    var now = DateTime(2026, 10, 16, 23, 50).toUtc();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           prefsProvider.overrideWithValue(preferences),
+          weatherNowProvider.overrideWithValue(() => now),
           locationServiceProvider.overrideWithValue(location),
           overpassRouteSourceProvider.overrideWithValue(routes),
           weatherProvidersProvider.overrideWithValue([_FakeWeatherProvider()]),
@@ -143,6 +148,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(location.calls, 1);
+    // 打开地图时只在已授权时定位，不弹系统授权框。
+    expect(location.requested, [false]);
     // 不自动弹出面板，也不自动发 Overpass 请求。
     expect(routes.calls, 0);
     expect(find.text(S.currentLocation), findsNothing);
@@ -151,9 +158,13 @@ void main() {
     // “搜索此区域”不再是首页主按钮。
     expect(find.byTooltip(S.searchThisArea), findsNothing);
 
+    // 保持旧定位，次日打开时查询时刻必须向前推进。
+    now = DateTime(2026, 10, 17, 1, 10).toUtc();
     await tester.tap(find.text('${S.myLocationChip} · 18°C'));
     await tester.pumpAndSettle();
     expect(find.text(S.currentLocation), findsOneWidget);
+    expect(find.textContaining('查询时刻 10月17日'), findsOneWidget);
+    expect(find.textContaining('位置读取于 10月16日'), findsOneWidget);
     expect(find.text(S.selectedPointWeather), findsNothing);
     expect(find.textContaining('31.23040, 121.47370'), findsOneWidget);
 
@@ -166,11 +177,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(location.calls, 2);
+    // 用户主动点“定位”才请求授权。
+    expect(location.requested, [false, true]);
     expect(routes.calls, 0);
     expect(find.text(S.currentLocation), findsNothing);
     await tester.tap(find.text('${S.myLocationChip} · 18°C'));
     await tester.pumpAndSettle();
     expect(find.text(S.currentLocation), findsOneWidget);
     expect(find.textContaining('30.27410, 120.15510'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }

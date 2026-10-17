@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 山晴：系统启动页只铺品牌底色，图标与动画由 Flutter 开屏画出（tool/apply_branding.py 覆盖模板文件） -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/shanqing_splash_background" />
+</layer-list>

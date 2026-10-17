@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../data/weather/node_wx_class.dart';
 import '../strings.dart';
+import '../tokens.dart';
 
 /// 颜色表示阈值级别（红/黄/提示/未触发/未知），图标表示天气类别。
 Color nodeWxColor(NodeWxClass c) => switch (c.level) {
-  NodeWxLevel.red => const Color(0xFFC62828),
-  NodeWxLevel.yellow => const Color(0xFFF9A825),
+  NodeWxLevel.red => Semantic.danger,
+  NodeWxLevel.yellow => Semantic.caution,
   NodeWxLevel.info => switch (c) {
-    NodeWxClass.freezing => const Color(0xFF00ACC1),
-    _ => const Color(0xFF1E88E5),
+    NodeWxClass.freezing => Semantic.ice,
+    _ => Semantic.cold,
   },
-  NodeWxLevel.none => const Color(0xFF43A047),
-  NodeWxLevel.unknown => const Color(0xFF9E9E9E),
+  NodeWxLevel.none => Semantic.go,
+  NodeWxLevel.unknown => Semantic.unknown,
 };
 
 IconData nodeWxIcon(NodeWxClass c) => switch (c) {
@@ -79,6 +80,16 @@ class NodeWxLegend extends StatelessWidget {
             spacing: 10,
             runSpacing: 4,
             children: [
+              // 图例说明收进提示（长按/悬停），不再在地图下方多占一行。
+              Tooltip(
+                message: S.nodeWxLegendNote,
+                triggerMode: TooltipTriggerMode.tap,
+                child: Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
               for (final c in present)
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -89,14 +100,6 @@ class NodeWxLegend extends StatelessWidget {
                   ],
                 ),
             ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            S.nodeWxLegendNote,
-            style: TextStyle(
-              fontSize: 10,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
           ),
         ],
       ),

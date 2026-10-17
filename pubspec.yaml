@@ -1,7 +1,7 @@
 name: trailweather
 description: "山晴：行前规划，沿途看天气"
 publish_to: "none"
-version: 0.1.0+1
+version: 0.2.0-beta.1+2
 
 environment:
   sdk: ">=3.13.0 <4.0.0"
@@ -29,7 +29,7 @@ dependencies:
   # KMZ（zip 包装的 KML）解压；纯 Dart、Web 可用。已是 flutter_map 的传递依赖，
   # 精确锁定发布超过 2 周的版本（见 agent/decisions.md）
   archive: 4.3.0
-  # 定位（首页一次性前台定位；之后仅用户主动请求）
+  # 定位（仅前台：地图页在已授权时自动定位一次；系统授权只在用户点击定位时请求）
   geolocator: ^14.1.1
   # 用户主动打开外部攻略网页（Android/iOS/Web）
   url_launcher: 6.3.3
@@ -38,6 +38,17 @@ dependencies:
   image_picker: 1.2.3
   # 节点图片本地文件目录（已是传递依赖，直接声明；Web 端走条件导入不调用）
   path_provider: 2.1.6
+  # 天地图瓦片错误码识别：给 flutter_map 传自定义 http client 读取 403 响应体。
+  # 已是 flutter_map 的传递依赖（同版本），直接声明；dart-lang 官方包，三端可用。
+  # 精确锁定（1.6.0，2025-11-10 发布），见 agent/decisions.md D-023
+  http: 1.6.0
+  # 分享图片到系统分享面板（微信 / QQ / X / Threads 等）。fluttercommunity 官方维护，三端可用；
+  # Android 自带 FileProvider 声明，无需改已提交的 manifest。精确锁定 13.3.1（2026-10-01 发布，
+  # 满足 ≥2 周；Dart ≥3.10 / Flutter ≥3.38.1），见 agent/decisions.md D-026
+  share_plus: 13.3.1
+  # 分享图上的下载二维码（纯 Dart 绘制，三端一致）。4.1.0（2023-05 发布，pub 150/160，
+  # 依赖纯 Dart 的 qr ^3.0.1），见 agent/decisions.md D-029
+  qr_flutter: 4.1.0
 
 dev_dependencies:
   flutter_test:

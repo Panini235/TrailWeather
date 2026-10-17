@@ -15,12 +15,14 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/favorites_repository.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/strings.dart';
+import 'package:trailweather/ui/onboarding/onboarding_screen.dart';
 import 'package:trailweather/ui/settings/settings_screen.dart';
 
 class _DeniedLocationService implements LocationService {
   @override
   Future<LocationFix> currentPosition({
     void Function(LatLng)? onLastKnown,
+    bool requestPermission = true,
   }) async =>
       throw const LocationFailure(LocationFailureKind.denied, '未获得定位权限。');
 
@@ -65,7 +67,12 @@ HikingRoute _trip(String id, String name) => HikingRoute(
 Future<SharedPreferences> _prefs({List<HikingRoute> trips = const []}) async {
   SharedPreferences.setMockInitialValues({
     'settings.v1': jsonEncode(
-      const AppSettings().copyWith(hasCompletedOnboarding: true).toJson(),
+      const AppSettings()
+          .copyWith(
+            hasCompletedOnboarding: true,
+            privacyAcceptedVersion: AppSettings.privacyNoticeVersion,
+          )
+          .toJson(),
     ),
     'favorites.v1': jsonEncode([for (final t in trips) t.toJson()]),
   });
@@ -112,7 +119,8 @@ void main() {
     expect(find.text(S.myTrips), findsOneWidget);
     expect(find.text(S.emptyTripsTitle), findsOneWidget);
     expect(find.widgetWithText(FilledButton, S.importRoute), findsOneWidget);
-    expect(find.text(S.planetEntry), findsOneWidget);
+    // 徒步星球线路库在测试版隐藏（B-011）。
+    expect(find.text(S.planetEntry), findsNothing);
     // 底部导航三个分支
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text(S.tabMap), findsOneWidget);
@@ -189,6 +197,35 @@ void main() {
       container.read(favoritesProvider).map((r) => r.name),
       contains('外部传入线路'),
     );
+  });
+
+  testWidgets('首次启动：先同意隐私说明，再处理外部传入的文件', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final incoming = _FakeIncoming(
+      initial: const IncomingFile(uri: 'content://x/3', name: 'c.gpx'),
+      bytes: Uint8List.fromList(utf8.encode(_gpx)),
+    );
+    await _pumpApp(tester, prefs, incoming: incoming);
+    await _settleIsolate(tester);
+    expect(find.byType(OnboardingScreen), findsOneWidget);
+    expect(find.text('导入：外部传入线路'), findsNothing);
+
+    await tester.tap(find.text(S.privacyAgree));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('先看示例线路'));
+    await tester.tap(find.text('先看示例线路'));
+    await _settleIsolate(tester);
+    expect(find.byType(OnboardingScreen), findsNothing);
+    expect(find.text('导入：外部传入线路'), findsOneWidget);
+  });
+
+  testWidgets('老用户未同意过隐私说明：再次进入引导页', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'settings.v1': '{"hasCompletedOnboarding":true}',
+    });
+    await _pumpApp(tester, await SharedPreferences.getInstance());
+    expect(find.byType(OnboardingScreen), findsOneWidget);
   });
 
   testWidgets('外部传入无法识别的文件给出明确错误，不保存', (tester) async {

@@ -134,14 +134,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  const HelpText(
                     '支持标准 GPX、KML/KMZ（奥维互动地图/两步路/Google Earth）与 GeoJSON，按文件内容自动识别格式。'
                     '单文件上限 30MB，超长轨迹自动平滑抽稀保留峰顶与关键地形特征，异常漂移点自动过滤。纯本地解析，不上传云端。',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey,
-                      height: 1.5,
-                    ),
                   ),
                 ],
               ),

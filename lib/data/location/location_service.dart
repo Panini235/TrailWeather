@@ -37,7 +37,14 @@ class LocationFix {
 abstract interface class LocationService {
   /// 获取位置。若系统有上次已知位置，会先通过 [onLastKnown] 立即回调，
   /// 便于地图先居中；随后返回新位置，新位置失败时退回上次已知位置。
-  Future<LocationFix> currentPosition({void Function(LatLng)? onLastKnown});
+  ///
+  /// [requestPermission] 为 false 时只检查、不弹系统授权框：未授权直接以
+  /// [LocationFailureKind.denied] 失败。用于打开页面时的自动定位，授权只在
+  /// 用户主动点“定位”时请求。
+  Future<LocationFix> currentPosition({
+    void Function(LatLng)? onLastKnown,
+    bool requestPermission = true,
+  });
 
   /// 打开与当前失败最相关的系统设置页。
   Future<bool> openSettings(LocationFailureKind kind);
@@ -130,6 +137,7 @@ class GeolocatorLocationService implements LocationService {
   @override
   Future<LocationFix> currentPosition({
     void Function(LatLng)? onLastKnown,
+    bool requestPermission = true,
   }) async {
     if (!await backend.isLocationServiceEnabled()) {
       throw const LocationFailure(
@@ -139,7 +147,7 @@ class GeolocatorLocationService implements LocationService {
     }
 
     var permission = await backend.checkPermission();
-    if (permission == LocationPermission.denied) {
+    if (permission == LocationPermission.denied && requestPermission) {
       permission = await backend.requestPermission();
     }
     if (permission == LocationPermission.denied) {

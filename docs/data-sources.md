@@ -44,11 +44,11 @@
 | 缓存 TTL | 30 min（自定） |
 | 限制 | 非商业免费额度有调用上限（官方文档），实现分批 + 最小间隔 600ms + 退避 |
 
-### 2. MET Norway Locationforecast 2.0 (compact)
+### 2. MET Norway Locationforecast 2.0 (complete，2026-10-17 起；此前为 compact)
 
 | 项 | 内容 |
 | --- | --- |
-| 端点 | `https://api.met.no/weatherapi/locationforecast/2.0/compact`（实测 200） |
+| 端点 | `https://api.met.no/weatherapi/locationforecast/2.0/complete`（实测 200，国内直连约 1.6 s） |
 | 密钥 | 不需要，但**服务条款要求 User-Agent 标识自身**（已内置） |
 | CORS | `Access-Control-Allow-Origin: *`（实测） |
 | Web 标识 | 当前MET条款允许低流量浏览器以Origin标识；移动端应使用有效User-Agent和联系方式。旧能力文案过于保守，待后续统一调整；生产端仍需缓存和流量治理 |
@@ -56,7 +56,9 @@
 | 时效 | compact 实测约 2–3 天逐时（以 3 天标注） |
 | 批量 | 不支持（单坐标/请求）；实现最小间隔 250ms |
 | 响应溯源 | `meta.updated_at`（作为发布时间）；响应几何为请求坐标原样（不冒充实际网格坐标）；不提供来源使用海拔 |
-| 缺失字段（实测） | 体感温度、降水概率、能见度、多数时次的阵风 → UI 显示“此来源未提供” |
+| complete 多出的字段（2026-10-17 实测） | 体感温度 `apparent_air_temperature`、露点、低/中/高云量、雾面积比、**晴空**紫外线 `ultraviolet_index_clear_sky` |
+| 缺失字段（实测） | 能见度、降水概率（北欧以外）、多数时次的阵风 → UI 显示“此来源未提供” |
+| 紫外线 | 只有晴空值（假设无云），记为 `uvIndexClearSky`，**不写入紫外线预报**；只在“晴空可达”的提示里出现，不触发紫外线提示 |
 | 空间分辨率 | 来源文档：北欧 HARMONIE 约 2.5 km，其他区域 ECMWF 约 9–22 km，随区域与时效变化；响应不携带网格信息 |
 | 授权 | NLOD 2.0 / CC BY 4.0 |
 | 署名 | “天气数据：MET Norway, CC BY 4.0 / NLOD” |
@@ -86,6 +88,43 @@
 | 署名 | “天气数据：和风天气 qweather.com” |
 | 真实联网验证 | **未验证**（无 key）；域名直连可达已实测。fixture 契约测试覆盖解析；待用户配置 key 后用 Live Smoke 验证 |
 
+### 1b. Open-Meteo 补充（2026-10-15 核验：官方文档 + 实测）
+
+- **按节点海拔降尺度**：`elevation` 参数可为逗号列表（每坐标一个）；默认 90 m 高程模型；`elevation=nan`
+  会**关闭**降尺度改用网格平均高度——所以节点缺海拔时整批不传 `elevation`，不用 nan 补位。
+- **新增变量**：`weather_code`（WMO 表：45/48 雾、56/57/66/67 冻雨、71–77/85/86 雪、95–99 雷暴；96/99 仅部分模式）、
+  `snowfall`（cm，前一小时新增雪深，约 7 cm ≈ 10 mm 降水）、`freezing_level_height`（m，0℃ 层海拔）。
+- **同一地点不同海拔**：同一坐标重复 N 次、配 N 个 elevation，一次请求得到垂直剖面（实测五台山北台附近同一时次
+  1500 / 2500 / 3058 m 为 14.8 / 8.2 / 4.6 ℃）；地面海拔用 Elevation API `/v1/elevation`（90 m 高程模型）。
+- **合并策略**：按海拔计算的来源只合并“同 0.1° 网格且海拔差 <100 m”的节点，避免山脊与山谷合成一个点。
+
+### 1d. Open-Meteo 补充（2026-10-17：紫外线、分层云量、露点、积雪、对流潜势、日出）
+
+- 新增逐时变量（实测 best_match 返回值）：`uv_index`（含云量影响）、`uv_index_clear_sky`（晴空值）、
+  `cloud_cover_low / mid / high`（低云约 2 km 以下含雾、中云约 2–6 km、高云约 6 km 以上）、`dew_point_2m`、
+  `snow_depth`（m，模式积雪）、`cape`（J/kg）；`daily=sunrise,sunset`。
+- **实测：阴天时预报值与晴空值差很多**（北京 2026-10-17 午间 0.25 vs 3.75），两者必须分开。
+- `models=ecmwf_ifs025` 的 `uv_index` 全为 null → “此来源未提供”。
+- 传 `elevation` 时，气温与露点按同一递减率平移（相对湿度不变，实测 100 / 1000 / 2500 m 三档 RH 均 97%），
+  所以“露点差”反映的是网格而不是节点海拔，不能据此判断节点是否在云中；判断云中需要气压层湿度（未接入，T-181）。
+- 紫外线未按节点海拔修正：说明里注明“海拔每升高约 1000 m 紫外线约增强 10%、新雪反射约 80%”（世界卫生组织）。
+
+### 1e. 天气图：Open-Meteo 格点场（降水 / 云量，D-035）
+
+- 同一端点多坐标批量：视野（外扩 15%，最小 0.45° × 0.6°）内按墨卡托等距取最多 120 个格点，
+  `hourly=precipitation,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high`，`forecast_hours=48`。
+- 实测（2026-10-17，国内直连）：77 个点约 1.6 s、约 160 KB；时间从当前整点开始。
+- 这是**模式预报**，不是雷达或卫星实况；格点之间只做显示用的双线性平滑；降水为该时刻前一小时累计。
+- 请求纪律：地图停下 500 ms 后、视野超出已取范围才请求；30 分钟内复用；缩放小于 5 级不请求。
+- 额度：多坐标按坐标数计次（非商业免费额度按 IP），一次刷新约 80–120 次。
+
+### 1c. Open-Meteo Air Quality（CAMS）
+
+- `air-quality-api.open-meteo.com/v1/air-quality`，`hourly=pm2_5,pm10,us_aqi`；中国区域为 CAMS 全球预报，
+  **约 0.4°（≈45 km）网格**，每 12 小时更新、5 天预报；PM2.5 为近地面（约 10 m）浓度。
+- 展示为“区域级数值”，并说明山脊在逆温层之上时实际空气可能更好；必须署名 CAMS（哥白尼大气监测服务）与 Open-Meteo。
+- 授权同 Open-Meteo（免费 API 非商用；商用需订阅）。
+
 ### 4. meteoblue Forecast API（basic-1h，按需单点）
 
 核验：2026-10-15，用户自有 Free key 实测 1 次 + 官方页面（business.meteoblue.com 免费版对比表、
@@ -110,6 +149,36 @@ docs.meteoblue.com 逐时 pictogram 表）。
 
 **pictocode**：basic-1h 使用逐时编码表（1–35），日数据为另一套（1–25），不能混用；映射见
 `lib/data/weather/weather_phenomena.dart`。
+- 紫外线：basic-1h 的 `uvindex` 记为紫外线预报（2026-10-17）。文档未说明是否计入云量；若实为晴空值则偏高，方向上不会低估风险。
+
+### 5. 卫星云图：Himawari-9 红外（NASA GIBS，D-035）
+
+| 项 | 内容 |
+| --- | --- |
+| 端点 | `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Himawari_AHI_Band13_Clean_Infrared/default/{时间}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png` |
+| 国内直连 | 2026-10-17 实测可用，单块瓦片约 0.7 s；CORS `*`；支持 HEAD |
+| 数据 | 日本 Himawari-9 AHI 第 13 通道（10.4 µm 红外），约 10 分钟一张，延迟 20–40 分钟，偶有缺失时次（404）；最大原生级别 6（约 2 km） |
+| 实况/预报 | **观测（实况）**，界面写“观测 HH:mm” |
+| 授权 | NASA 开放数据；GIBS 要求注明“imagery provided by services from NASA's Global Imagery Browse Services (GIBS), part of NASA's ESDIS”；Himawari 原始数据来自日本气象厅，GIBS 页面未单列商用条款（商用前需向 earthdata-support@nasa.gov 确认） |
+| 用法 | 并行 HEAD 探测近 3 小时每 10 分钟的时次，只用存在的时次；每 30 分钟一帧，最多 7 帧 |
+
+### 6. 台风：日本气象厅（RSMC 东京，D-035）
+
+| 项 | 内容 |
+| --- | --- |
+| 端点 | `https://www.jma.go.jp/bosai/typhoon/data/targetTc.json`、`/{TCxxxx}/forecast.json`、`/{TCxxxx}/specifications.json` |
+| 国内直连 | 2026-10-17 实测可用（约 0.2 s）；CORS `*` |
+| 内容 | 西北太平洋与南海热带气旋的实况、过去路径、12–120 小时路径预报、70% 概率圆、大风区与暴风区 |
+| 口径 | 风速为 **10 分钟平均**（中央气象台为 2 分钟平均，不能直接比较）；预报圆是中心落点 70% 概率圆，不是风圈 |
+| 授权 | 气象厅网站内容按政府标准利用规约 2.0 可转载，须注明出处，与 CC BY 4.0 兼容；数值数据本身不受著作权保护 |
+| 风险 | 气象厅网站自用 JSON，结构未公开说明，可能变化；解析失败如实报错 |
+
+### 候选未接入：雷达实况与分钟级降水
+
+- RainViewer 公共 API：2026-10-17 实测国内直连可用、有华北雷达拼图，但免费版**仅限个人与教育用途**、最大缩放 7 级、
+  无临近预报与卫星；数据所有者可随时要求撤下。本应用含付费计划，暂不接入（T-183，需用户决定授权方案）。
+- 中央气象台雷达拼图：没有开放授权，不抓取。
+- 和风天气分钟级降水（中国 1 km、2 小时）：已接入和风，但套餐是否包含待核实（T-182）。
 
 ## 其他数据服务
 
@@ -181,8 +250,46 @@ Strava API 主要读取获授权用户自己的路线。第三方“scraper API�
   面板中显示原因。业务计算始终 WGS-84。
 - 天地图需用户自行申请 Key（`{tk}` 占位），未填写时天地图图层不可选；所选天地图底图在 Key 缺失时回退默认底图并提示。
   天地图为 CGCS2000，与 WGS-84 差异厘米级，按 WGS-84 处理。天地图地形与地形注记最高 14 级。
-- 国内可达性未实测：OpenTopoMap、Esri 为海外服务，面板中注明“国内常常加载缓慢或失败”；天地图请求头/Key 类型
-  （浏览器端/服务端/移动端）是否需要额外设置待真机验证。
+  Key 类型与错误码见下节。
+- 国内可达性未实测：OpenTopoMap、Esri 为海外服务，面板中注明“国内常常加载缓慢或失败”。
+
+### 天地图 Key 类型与错误码（2026-10-15 实测）
+
+App 直接请求天地图 HTTP 瓦片（`t{0-7}.tianditu.gov.cn/DataServer?T=…&tk=…`），不使用天地图 Android/iOS SDK。
+用户在天地图控制台申请了“浏览器端”和“服务端”两个 Key，直连 `t3.tianditu.gov.cn`，z10 北京附近，
+vec/img/ter/cva/cia/cta 六个图层实测（原始记录：claude/zealous-cori-926437 分支 `docs/3d-map-evaluation.md` §5.1）。
+
+**天地图按 User-Agent 是否含 `Mozilla` 判定请求是否来自浏览器，与 Referer 无关**，再按 Key 的“应用类型”放行：
+
+| Key 类型 | UA 不含 Mozilla（flutter_map 默认 UA、空 UA、`Dart/…`、`okhttp/…`） | UA 含 Mozilla（浏览器、WebView） |
+| --- | --- | --- |
+| 浏览器端 | 403 `{"code":301012,"msg":"权限类型错误","resolve":"Key权限类型为:浏览器端，请使用浏览器访问！"}` | 200 图片 |
+| 服务端 | 200 图片（t0/t3/t7 子域、z10/z12 均通过） | 403 `{"code":301013,"msg":"权限类型错误","resolve":"Key权限类型为:服务器端，请使用服务器端访问！"}` |
+
+- 错误 Key：403 `{"resolve":"请到API控制台重新申请Key","code":301001,"msg":"非法key"}`
+  （用户实测；本轮又用 32 位十六进制假值复测，UA 含/不含 Mozilla 结果相同）。
+- Key 格式异常：本轮用 15 位、含非十六进制字符的假值请求，返回 418 防火墙拦截页（HTML，`Server: CW`），不是 JSON；
+  具体触发条件（长度还是字符）未细分。
+- 403 JSON 响应带 `Access-Control-Allow-Origin: *`（本轮复测），Web 端可以读到响应体；同时带 `Cache-Control: max-age=432000`（5 天），
+  浏览器可能缓存同一 URL 的 403。在控制台修改已有 Key 的类型后，网页版可能需要清除站点缓存才生效（推断，未实测）。
+
+**App 的做法（D-023）**：
+
+| 渲染环境 | 发出的 UA | 使用的 Key（设置项） |
+| --- | --- | --- |
+| Android / iOS 原生 2D（flutter_map） | `flutter_map (app.shanqing.hiking)` | 服务端（`tiandituServerKey`） |
+| Flutter Web 2D | 浏览器 UA（无法改写） | 浏览器端（`tiandituBrowserKey`） |
+| 将来的 3D 视图（WebView / iframe） | 浏览器 UA | 浏览器端 |
+
+- 选 Key 在数据层：`TileRequester` + `TiandituKeys.forRequester`（`lib/data/map/tile_sources.dart`），平台判断只有
+  `flutterMapRequester = kIsWeb ? browser : nativeApp` 一处。对应 Key 未填时该端天地图图层不可选（不跨端借用另一个 Key）。
+- 不伪造浏览器 UA 绕过类型校验（用户决定）。
+- 天地图图层的瓦片请求经过 `TiandituErrorSniffingClient`（`lib/data/map/tianditu.dart`）：只在天地图域名的错误响应上
+  读取响应体，按 code 映射为明确提示（301001 Key 无效 / 301012 服务端栏填了浏览器端 Key / 301013 浏览器端栏填了服务端 Key /
+  418 拦截 / 其他状态码），显示在地图顶部与 Key 设置卡片中，而不是只留空白瓦片。
+- 两栏填同一个值时设置卡片提示“必有一端无法出图”；旧版单一 `tiandituKey` 迁移后两栏相同，同样会提示。
+- 申请方法：天地图控制台“创建新应用”，应用类型分别选“服务端”与“浏览器端”，白名单留空。“安卓端”类型需要
+  发布版 SHA1 + 包名，用于天地图 Android SDK 的签名校验，本项目不用 SDK，且 CI 每次构建签名都不同，不使用（推断，未实测）。
 - 3D 地形/地图未实现：flutter_map 只支持 2D 栅格，需要更换渲染引擎，另行评估。
 
 ## OSM 衍生数据义务评估（简要）

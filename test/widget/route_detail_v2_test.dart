@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart' show CancelToken;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:trailweather/data/weather/weather_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -8,6 +11,7 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/favorites_repository.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
+import 'package:trailweather/ui/map/map_layers_ui.dart';
 import 'package:trailweather/ui/strings.dart';
 
 import '../integration/core_flow_test.dart' show IntegrationFakeProvider;
@@ -26,17 +30,26 @@ HikingRoute _route() => HikingRoute(
   sourceName: '测试',
 );
 
-Future<ProviderContainer> _pump(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(900, 2400);
+Future<ProviderContainer> _pump(
+  WidgetTester tester, {
+  bool missingTemperature = false,
+  double width = 900,
+  Map<String, Object> initialPrefs = const {},
+}) async {
+  tester.view.physicalSize = Size(width, 2400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues(initialPrefs);
   final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         prefsProvider.overrideWithValue(prefs),
-        weatherProvidersProvider.overrideWithValue([IntegrationFakeProvider()]),
+        weatherProvidersProvider.overrideWithValue([
+          missingTemperature
+              ? _MissingTemperatureProvider()
+              : IntegrationFakeProvider(),
+        ]),
       ],
       child: MaterialApp(
         home: RouteDetailScreen(args: RouteDetailArgs(route: _route())),
@@ -50,9 +63,55 @@ Future<ProviderContainer> _pump(WidgetTester tester) async {
   return ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
 }
 
-Finder _tileTitle(String text) => find.textContaining(text);
+/// 节点列表行的标题（山脊天气带下方的选中说明行以同样文字开头，需排除）。
+Finder _tileTitle(String text) => find.descendant(
+  of: find.byType(ListTile),
+  matching: find.textContaining(text),
+);
+
+class _MissingTemperatureProvider extends IntegrationFakeProvider {
+  @override
+  Future<List<WxPointForecast>> fetchPoints({
+    required List<LatLng> points,
+    required DateTime startUtc,
+    required DateTime endUtc,
+    CancelToken? cancelToken,
+  }) async {
+    final data = await super.fetchPoints(
+      points: points,
+      startUtc: startUtc,
+      endUtc: endUtc,
+    );
+    return [
+      for (final p in data)
+        WxPointForecast(
+          lat: p.lat,
+          lon: p.lon,
+          provenance: p.provenance,
+          dailySunsetsUtc: p.dailySunsetsUtc,
+          hours: [
+            for (final h in p.hours)
+              WxHourValue(
+                validFromUtc: h.validFromUtc,
+                values: {...h.values, WxVar.temperature: null},
+              ),
+          ],
+        ),
+    ];
+  }
+}
 
 void main() {
+  testWidgets('移动端天气摘要先于地图；缺气温不显示成零度', (tester) async {
+    await _pump(tester, missingTemperature: true, width: 390);
+    expect(find.text('${S.notProvided} / ${S.notProvided}'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text(S.routeSummary)).dy,
+      lessThan(tester.getTopLeft(find.byType(FlutterMap).first).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('显示行进方向；点节点选中，再点或点详情打开节点详情', (tester) async {
     await _pump(tester);
 
@@ -71,8 +130,35 @@ void main() {
     await tester.tap(_tileTitle('起点 · 0.0 km'));
     await tester.pumpAndSettle();
     expect(find.text(S.markAs), findsOneWidget);
-    expect(find.text(S.next12h), findsOneWidget);
+    expect(find.text(S.meteogramTitle), findsOneWidget);
     expect(find.text(S.multiSourceCompare), findsOneWidget);
+  });
+
+  testWidgets('穿衣卡片：切换场景、怕冷偏好会加厚保暖层并保存', (tester) async {
+    final container = await _pump(tester);
+    expect(find.text(S.layeringTitle), findsOneWidget);
+    // 保暖层那一行是否带“背包”标记（防护层随假数据的时刻变化，不参与断言）。
+    Finder midPacked(String name) => find.descendant(
+      of: find.ancestor(of: find.text(name), matching: find.byType(Row)).first,
+      matching: find.text(S.layeringPacked),
+    );
+    // 体感全程 13°：保暖层“薄抓绒”，出发时放背包
+    expect(find.text('薄抓绒'), findsOneWidget);
+    expect(midPacked('薄抓绒'), findsOneWidget);
+
+    await tester.tap(find.textContaining('停留 '));
+    await tester.pumpAndSettle();
+    // 停留时保暖层穿上
+    expect(midPacked('薄抓绒'), findsNothing);
+
+    await tester.tap(find.text(S.layeringColdy));
+    await tester.pumpAndSettle();
+    expect(container.read(settingsProvider).coldSensitivity, -1);
+    expect(find.text('抓绒衣'), findsOneWidget);
+
+    await tester.tap(find.text(S.layeringBasis));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('经验建议'), findsOneWidget);
   });
 
   testWidgets('把节点标为营地：保存到我的行程并出现在时间线', (tester) async {
@@ -84,6 +170,14 @@ void main() {
     await tester.tap(detailButtons.at(1));
     await tester.pumpAndSettle();
 
+    // 节点详情只保留一个“标记为”按钮，类型在二级面板里选。
+    await tester.scrollUntilVisible(
+      find.text(S.markAs),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text(S.markAs));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ActionChip, '营地'));
     await tester.pumpAndSettle();
     expect(find.text(S.markName), findsOneWidget);
@@ -109,8 +203,53 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    expect(find.text(S.reversedNote), findsOneWidget);
+    // 线路要点行标明“已反向”；完整说明在“数据说明与来源”里。
+    expect(find.textContaining('已反向'), findsOneWidget);
     await tester.scrollUntilVisible(_tileTitle('起点 · 0.0 km · 780 m'), 300);
     expect(_tileTitle('起点 · 0.0 km · 780 m'), findsOneWidget);
+  });
+
+  testWidgets('小地图图层只给平面地形：跟随设置 / 天地图地形（推荐）/ 等高线（海外）', (tester) async {
+    final container = await _pump(tester);
+    await tester.tap(find.byTooltip(S.miniMapLayers));
+    await tester.pumpAndSettle();
+    expect(find.text(S.miniMapFollowSettings), findsOneWidget);
+    expect(find.text('天地图地形晕渲（推荐）'), findsOneWidget);
+    expect(find.text('OpenTopoMap 等高线（海外图源）'), findsOneWidget);
+    expect(find.text(S.miniMapNeedsTiandituKey), findsOneWidget);
+    expect(find.textContaining('卫星'), findsNothing);
+
+    await tester.tap(find.text('OpenTopoMap 等高线（海外图源）'));
+    await tester.pumpAndSettle();
+    expect(container.read(settingsProvider).routeMapLayerId, 'opentopomap');
+    // 小地图图层不改全局底图。
+    expect(
+      container.read(settingsProvider).baseLayerId,
+      const AppSettings().baseLayerId,
+    );
+
+    // 没有天地图 Key：点“天地图地形”直接进入填 Key 页面。
+    await tester.tap(find.byTooltip(S.miniMapLayers));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('天地图地形晕渲（推荐）'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MapSourcesPage), findsOneWidget);
+    expect(container.read(settingsProvider).routeMapLayerId, 'opentopomap');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('小地图自选图层加载不出时提示，并可一键切回', (tester) async {
+    final container = await _pump(
+      tester,
+      initialPrefs: {'settings.v1': '{"routeMapLayerId":"opentopomap"}'},
+    );
+    // 测试环境没有网络：瓦片不会成功显示，10 秒后给出提示。
+    await tester.pump(const Duration(seconds: 11));
+    await tester.pump();
+    expect(find.text(S.miniMapLayerFailed), findsOneWidget);
+    await tester.tap(find.text(S.miniMapRevert));
+    await tester.pumpAndSettle();
+    expect(container.read(settingsProvider).routeMapLayerId, '');
+    expect(find.text(S.miniMapLayerFailed), findsNothing);
   });
 }

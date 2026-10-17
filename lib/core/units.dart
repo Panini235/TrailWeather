@@ -50,28 +50,14 @@ class Units {
     return '${m.toStringAsFixed(0)} m';
   }
 
-  /// 风向：角度转十六方位中文。
+  /// 风向（气象学“来向”，各来源均为 wind-from 方向）：八方位加“风”字并附度数，
+  /// 如“东南风 123°”。国内预报通用八方位；十六方位的“东东南”“北西北”不常见、
+  /// 易被误读成标错（用户反馈），也说不清是来向还是去向。
   static String windDirectionLabel(double degrees) {
-    const names = [
-      '北',
-      '北东北',
-      '东北',
-      '东东北',
-      '东',
-      '东东南',
-      '东南',
-      '南东南',
-      '南',
-      '南西南',
-      '西南',
-      '西西南',
-      '西',
-      '西西北',
-      '西北',
-      '北西北',
-    ];
-    final idx = ((degrees % 360 + 360) % 360 / 22.5).round() % 16;
-    return names[idx];
+    const names = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
+    final d = (degrees % 360 + 360) % 360;
+    final idx = ((d + 22.5) ~/ 45) % 8;
+    return '${names[idx]}风 ${d.round() % 360}°';
   }
 
   /// 蒲福风级（由 m/s 计算），用于户外提示。
