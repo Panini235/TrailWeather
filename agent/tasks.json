@@ -1075,10 +1075,10 @@
    "deps": [
     "T-166"
    ],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "CI 严格按 pubspec.lock 构建；启动失败有兜底页面；CI 正式签名 APK 在真机冷启动、完成引导、重启保留设置；发布 0.2.0-beta.2",
    "verify": "真机安装 CI 正式包 + logcat 无异常",
-   "result": "2026-10-17：根因见 D-038；本地 release 模式（.rc 后缀）包在小米 12S 上启动、引导、重启均正常。"
+   "result": "2026-10-17：根因见 D-038；本地 release 模式（.rc 后缀）包在小米 12S 上启动、引导、重启均正常。CI 39040332592 依赖按锁文件（shared_preferences_android 2.4.28，APK 中已无 JNI 注册类）；正式签名 APK 覆盖安装到真机冷启动正常，logcat 无异常；预发布 v0.2.0-beta.2（main e19ef7c）附 APK 与 iOS 未签名 IPA（构建 39040431412）；beta.1 说明顶部加了改用 beta.2 的提示。"
   }
  ]
 }

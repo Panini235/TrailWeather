@@ -633,3 +633,6 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 **根因**（D-038）：CI 依赖漂移把 shared_preferences_android 升到 2.5.0（Pigeon JNI），R8 裁掉 JNI 方法，`main()` 在 runApp 前抛异常。
 **修复**：CI / iOS 工作流严格按锁文件；启动失败兜底页面；版本 0.2.0-beta.2；发布清单要求真机冷启动正式包。
 **验证**：flutter analyze 0；flutter test 374/374；本地 release 模式包（.rc 后缀，与正式版共存）在真机启动、引导、重启正常。
+**CI**：PR #4 run 39039559070 通过（依赖步骤按锁文件，无版本变化）；main run 39040332592 与 iOS 构建 39040431412 通过。
+**发布**：预发布 `v0.2.0-beta.2`（main `e19ef7c`）。发布前把这个正式签名 APK 覆盖安装到小米 12S 冷启动：进入引导页，logcat 无异常。
+beta.1 Release 说明顶部加了“Android 包无法启动，请改用 beta.2”的提示（未删除旧附件）。T-192 完成。
