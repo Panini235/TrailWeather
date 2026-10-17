@@ -45,6 +45,22 @@ String shareNodeWeather(NodeWxRow r, AppSettings settings) {
 }
 
 /// 线路天气分享卡（分层：标题 → 三个大数字 → 醒目提示 → 线路示意 + 海拔剖面 → 关键节点）。
+/// 线路分享图版式（D-034）：信息侧重不同，来源与免责说明在每种版式里都保留。
+enum ShareLayout {
+  /// 长图：数字、提示、示意图与剖面、关键节点逐条说明。
+  full('长图·完整', Icons.view_agenda_outlined),
+
+  /// 简图：数字、提示与着色剖面，适合群聊与朋友圈一眼看完。
+  brief('简图·摘要', Icons.crop_portrait),
+
+  /// 横图（约 16:9）：左侧线路示意，右侧数字、提示与剖面，适合 X / Threads / 微博。
+  wide('横图', Icons.crop_landscape);
+
+  const ShareLayout(this.label, this.icon);
+  final String label;
+  final IconData icon;
+}
+
 class RouteShareCard extends StatelessWidget {
   const RouteShareCard({
     super.key,
@@ -59,8 +75,10 @@ class RouteShareCard extends StatelessWidget {
     required this.settings,
     required this.sourceName,
     required this.fetchedAtUtc,
+    this.layout = ShareLayout.full,
   });
 
+  final ShareLayout layout;
   final HikingRoute route;
   final String timeLabel;
   final bool tripMode;
@@ -109,8 +127,122 @@ class RouteShareCard extends StatelessWidget {
     final sorted = [...hints]
       ..sort((a, b) => b.level.index.compareTo(a.level.index));
 
+    final Widget stats = Row(
+      children: [
+        _stat(context, Icons.thermostat, '气温', tempRange, null),
+        _stat(
+          context,
+          Icons.air,
+          '最大阵风',
+          summary.maxGustMs == null
+              ? '未提供'
+              : Units.windMs(summary.maxGustMs!, unit: settings.windUnit),
+          null,
+        ),
+        _stat(context, Icons.water_drop, precipLabel, precipValue, precipSub),
+      ],
+    );
+    final Widget hintsView = sorted.isEmpty
+        ? _pill(
+            Icons.check_circle_outline,
+            '未触发阈值提示（不代表安全）',
+            SemanticInk.goOnLight,
+          )
+        : Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final h in sorted.take(4))
+                _pill(hintIcon(h), h.title, hintColor(h)),
+            ],
+          );
+    final sketch = RouteSketch(
+      route: route,
+      rows: rows,
+      keyNodes: keys,
+      height: layout == ShareLayout.wide ? 250 : 200,
+    );
+    final profile = ascent == null
+        ? null
+        : ShareElevationProfile(route: route, rows: rows, keyNodes: keys);
+    final Widget keyList = Column(
+      children: [
+        for (final (n, i) in keys.indexed)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                // 连续编号，与示意图、剖面上的徽章一致。
+                _numberBadge(n + 1, nodeWxColor(classifyNodeWx(rows[i].wx))),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${tripMode ? '${_two(rows[i].validUtc.toLocal().hour)}:${_two(rows[i].validUtc.toLocal().minute)}  ' : ''}'
+                        '${rows[i].node.label ?? '${(rows[i].node.distFromStartM / 1000).toStringAsFixed(1)} km 处'}'
+                        '${rows[i].node.elevationM == null ? '' : ' · ${rows[i].node.elevationM!.toStringAsFixed(0)} m'}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        shareNodeWeather(rows[i], settings),
+                        style: TextStyle(fontSize: 12, color: muted),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  nodeWxIcon(classifyNodeWx(rows[i].wx)),
+                  size: 18,
+                  color: nodeWxColor(classifyNodeWx(rows[i].wx)),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+
+    final body = switch (layout) {
+      ShareLayout.full => [
+        stats,
+        hintsView,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [sketch, const SizedBox(height: 6), ?profile],
+        ),
+        keyList,
+      ],
+      // 简图：结论 + 着色剖面；没有海拔时用示意图代替剖面。
+      ShareLayout.brief => [stats, hintsView, profile ?? sketch],
+      ShareLayout.wide => [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 300, child: sketch),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  stats,
+                  const SizedBox(height: 12),
+                  hintsView,
+                  if (profile != null) ...[const SizedBox(height: 12), profile],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    };
+
     return ShareCardFrame(
       title: route.name,
+      width: layout == ShareLayout.wide ? 640 : 360,
       subtitle: [
         timeLabel,
         '${(route.totalDistanceM / 1000).toStringAsFixed(1)} km',
@@ -118,99 +250,7 @@ class RouteShareCard extends StatelessWidget {
         if (reversed) '反向',
         if (route.isDemo && !route.name.contains('示例')) '演示线路',
       ].join(' · '),
-      body: [
-        // ① 三个大数字
-        Row(
-          children: [
-            _stat(context, Icons.thermostat, '气温', tempRange, null),
-            _stat(
-              context,
-              Icons.air,
-              '最大阵风',
-              summary.maxGustMs == null
-                  ? '未提供'
-                  : Units.windMs(summary.maxGustMs!, unit: settings.windUnit),
-              null,
-            ),
-            _stat(
-              context,
-              Icons.water_drop,
-              precipLabel,
-              precipValue,
-              precipSub,
-            ),
-          ],
-        ),
-        // ② 醒目提示（图标 + 颜色）
-        if (sorted.isEmpty)
-          _pill(
-            Icons.check_circle_outline,
-            '未触发阈值提示（不代表安全）',
-            SemanticInk.goOnLight,
-          )
-        else
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final h in sorted.take(4))
-                _pill(hintIcon(h), h.title, hintColor(h)),
-            ],
-          ),
-        // ③ 线路示意 + 海拔剖面
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            RouteSketch(route: route, rows: rows, keyNodes: keys),
-            const SizedBox(height: 6),
-            if (ascent != null)
-              ShareElevationProfile(route: route, rows: rows, keyNodes: keys),
-          ],
-        ),
-        // ④ 关键节点（编号与示意图一致）
-        Column(
-          children: [
-            for (final i in keys)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    _numberBadge(
-                      i + 1,
-                      nodeWxColor(classifyNodeWx(rows[i].wx)),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${tripMode ? '${_two(rows[i].validUtc.toLocal().hour)}:${_two(rows[i].validUtc.toLocal().minute)}  ' : ''}'
-                            '${rows[i].node.label ?? '节点 ${i + 1}'}'
-                            '${rows[i].node.elevationM == null ? '' : ' · ${rows[i].node.elevationM!.toStringAsFixed(0)} m'}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            shareNodeWeather(rows[i], settings),
-                            style: TextStyle(fontSize: 12, color: muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      nodeWxIcon(classifyNodeWx(rows[i].wx)),
-                      size: 18,
-                      color: nodeWxColor(classifyNodeWx(rows[i].wx)),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ],
+      body: body,
       footer: [
         '数据：$sourceName · 获取于 ${_stamp(fetchedAtUtc)}（设备时区）',
         '预报非实测；提示按阈值计算，非官方预警、非安全评分${tripMode ? '；到达时间为配速估算' : ''}。示意图不含地图。',
@@ -234,15 +274,27 @@ class RouteShareCard extends StatelessWidget {
             children: [
               Icon(icon, size: 14, color: scheme.primary),
               const SizedBox(width: 3),
-              Text(
-                label,
-                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ),
             ],
           ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          // 窄栏（横图）与大字号下等比缩小，不截断数值。
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
           ),
           if (sub != null)
             Text(

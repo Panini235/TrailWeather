@@ -585,6 +585,26 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
         .firstOrNull;
     final timeLabel = _timeChipLabel(query.fixedUtc);
     final day = query.fixedUtc.toLocal();
+    Widget card(ShareLayout layout) => RouteShareCard(
+      layout: layout,
+      route: route,
+      timeLabel: timeLabel,
+      tripMode: _mode == TimeMode.trip,
+      reversed: _reversed,
+      summary: summarizeRows(rows),
+      dayPrecip: _mode == TimeMode.fixed
+          ? summarizeDayPrecip(
+              points: bundle.result.points,
+              dayStartUtc: DateTime(_date.year, _date.month, _date.day).toUtc(),
+              precedingHour: bundle.result.providerId.startsWith('open-meteo:'),
+            )
+          : null,
+      hints: hints,
+      rows: rows,
+      settings: settings,
+      sourceName: source?.caps.displayName ?? _providerId,
+      fetchedAtUtc: bundle.result.fetchedAtUtc,
+    );
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SharePreviewPage(
@@ -592,31 +612,16 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           fileName:
               'shanqing-${day.year}${_two(day.month)}${_two(day.day)}.png',
           shareText: '${route.name} · $timeLabel · 山晴徒步天气',
-          card: RouteShareCard(
-            route: route,
-            timeLabel: timeLabel,
-            tripMode: _mode == TimeMode.trip,
-            reversed: _reversed,
-            summary: summarizeRows(rows),
-            dayPrecip: _mode == TimeMode.fixed
-                ? summarizeDayPrecip(
-                    points: bundle.result.points,
-                    dayStartUtc: DateTime(
-                      _date.year,
-                      _date.month,
-                      _date.day,
-                    ).toUtc(),
-                    precedingHour: bundle.result.providerId.startsWith(
-                      'open-meteo:',
-                    ),
-                  )
-                : null,
-            hints: hints,
-            rows: rows,
-            settings: settings,
-            sourceName: source?.caps.displayName ?? _providerId,
-            fetchedAtUtc: bundle.result.fetchedAtUtc,
-          ),
+          card: card(ShareLayout.full),
+          variants: [
+            for (final l in ShareLayout.values)
+              ShareVariant(
+                label: l.label,
+                icon: l.icon,
+                card: card(l),
+                fileSuffix: l.name,
+              ),
+          ],
         ),
       ),
     );

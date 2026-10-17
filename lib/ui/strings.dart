@@ -274,7 +274,8 @@ abstract final class S {
   static const miniMapLayers = '小地图图层';
   static const miniMapLayersHint = '只提供平面地形图层；完整图层在全屏地图里切换。';
   static const miniMapFollowSettings = '跟随地图设置';
-  static const miniMapNeedsTiandituKey = '需先在“设置 → 地图图层”填写天地图 Key';
+  static const miniMapNeedsTiandituKey = '国内官方图源，需要天地图 Key：点此填写（Key 只保存在本机）';
+  static const miniMapTiandituNote = '国内官方图源，山体晕渲显示起伏（天地图不提供等高线），自动叠加地形注记。';
   static const miniMapFit = '回到全线';
   static const miniMapGestureHint = '双指缩放、拖动；单指上下滑动页面';
   static const miniMapLayerFailed = '图源加载缓慢或连不上（国内网络常连不上海外图源）。';

@@ -13,6 +13,21 @@ import '../theme.dart';
 ///
 /// 卡片是专门为图片排版的组件（固定宽度、浅色背景、自带来源与免责声明），
 /// 不是屏幕截图；预览页让用户先看到将要分享的内容。
+/// 分享图的一种版式：名称、图标、卡片，以及文件名后缀。
+class ShareVariant {
+  const ShareVariant({
+    required this.label,
+    required this.icon,
+    required this.card,
+    this.fileSuffix = '',
+  });
+
+  final String label;
+  final IconData icon;
+  final Widget card;
+  final String fileSuffix;
+}
+
 class SharePreviewPage extends StatefulWidget {
   const SharePreviewPage({
     super.key,
@@ -20,12 +35,18 @@ class SharePreviewPage extends StatefulWidget {
     required this.card,
     required this.fileName,
     this.shareText,
+    this.variants,
   });
 
   final String title;
+
+  /// 单一卡片（没有 [variants] 时使用）。
   final Widget card;
   final String fileName;
   final String? shareText;
+
+  /// 多种版式：预览页顶部可切换，分享当前选中的版式。
+  final List<ShareVariant>? variants;
 
   @override
   State<SharePreviewPage> createState() => _SharePreviewPageState();
@@ -34,6 +55,21 @@ class SharePreviewPage extends StatefulWidget {
 class _SharePreviewPageState extends State<SharePreviewPage> {
   final _boundary = GlobalKey();
   bool _busy = false;
+  int _variant = 0;
+
+  ShareVariant? get _current {
+    final v = widget.variants;
+    return v == null || v.isEmpty ? null : v[_variant.clamp(0, v.length - 1)];
+  }
+
+  String get _fileName {
+    final suffix = _current?.fileSuffix ?? '';
+    if (suffix.isEmpty) return widget.fileName;
+    final dot = widget.fileName.lastIndexOf('.');
+    return dot < 0
+        ? '${widget.fileName}-$suffix'
+        : '${widget.fileName.substring(0, dot)}-$suffix${widget.fileName.substring(dot)}';
+  }
 
   Future<void> _share() async {
     setState(() => _busy = true);
@@ -44,7 +80,7 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile.fromData(bytes, mimeType: 'image/png')],
-          fileNameOverrides: [widget.fileName],
+          fileNameOverrides: [_fileName],
           text: widget.shareText,
           // iPad 分享面板需要锚点。
           sharePositionOrigin: box == null
@@ -65,12 +101,39 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
       appBar: AppBar(title: Text(widget.title)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
-        child: Center(
-          child: RepaintBoundary(
-            key: _boundary,
-            // 分享图固定用浅色主题，保证在聊天软件里清晰可读。
-            child: Theme(data: AppTheme.light(), child: widget.card),
-          ),
+        child: Column(
+          children: [
+            if (widget.variants case final variants? when variants.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: SegmentedButton<int>(
+                  segments: [
+                    for (final (i, v) in variants.indexed)
+                      ButtonSegment(
+                        value: i,
+                        icon: Icon(v.icon),
+                        label: Text(v.label),
+                      ),
+                  ],
+                  selected: {_variant},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (s) => setState(() => _variant = s.first),
+                ),
+              ),
+            // 横图比屏幕宽：预览时按屏宽缩小显示；RepaintBoundary 在缩放之内，
+            // 导出的图片仍是卡片原始尺寸（640 宽）× pixelRatio。
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: RepaintBoundary(
+                key: _boundary,
+                // 分享图固定用浅色主题，保证在聊天软件里清晰可读。
+                child: Theme(
+                  data: AppTheme.light(),
+                  child: _current?.card ?? widget.card,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -110,6 +173,7 @@ class ShareCardFrame extends StatelessWidget {
     required this.subtitle,
     required this.body,
     required this.footer,
+    this.width = 360,
   });
 
   final String title;
@@ -117,11 +181,14 @@ class ShareCardFrame extends StatelessWidget {
   final List<Widget> body;
   final List<String> footer;
 
+  /// 竖版 360；横图 640。
+  final double width;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 360,
+      width: width,
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(16),

@@ -95,7 +95,7 @@ Future<void> _pumpCard(
   double scale = 1,
   bool dark = false,
 }) async {
-  tester.view.physicalSize = const Size(400, 2400);
+  tester.view.physicalSize = const Size(720, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   await tester.pumpWidget(
@@ -114,45 +114,47 @@ Future<void> _pumpCard(
   await tester.pumpAndSettle();
 }
 
-RouteShareCard _routeCard() => RouteShareCard(
-  route: _route(),
-  timeLabel: '固定 10/17 14:00',
-  tripMode: false,
-  reversed: false,
-  summary: const RouteWxSummary(
-    minTempC: 8,
-    maxTempC: 12,
-    maxGustMs: 19,
-    totalPrecipMm: 4.2,
-  ),
-  dayPrecip: DayPrecipSummary(
-    maxDayMm: 79,
-    firstWetUtc: DateTime.utc(2026, 10, 16, 16),
-    lastWetUtc: DateTime.utc(2026, 10, 17, 12),
-    maxProb: 100,
-    minHoursCovered: 24,
-  ),
-  hints: const [
-    WxHint(
-      id: 'precip',
-      title: '较强降水提示',
-      detail: '',
-      basis: '',
-      level: HintLevel.caution,
-    ),
-    WxHint(
-      id: 'gust',
-      title: '大风提示',
-      detail: '',
-      basis: '',
-      level: HintLevel.warning,
-    ),
-  ],
-  rows: _rows(),
-  settings: const AppSettings(),
-  sourceName: 'Open-Meteo（best_match）',
-  fetchedAtUtc: DateTime.utc(2026, 10, 16, 13),
-);
+RouteShareCard _routeCard({ShareLayout layout = ShareLayout.full}) =>
+    RouteShareCard(
+      layout: layout,
+      route: _route(),
+      timeLabel: '固定 10/17 14:00',
+      tripMode: false,
+      reversed: false,
+      summary: const RouteWxSummary(
+        minTempC: 8,
+        maxTempC: 12,
+        maxGustMs: 19,
+        totalPrecipMm: 4.2,
+      ),
+      dayPrecip: DayPrecipSummary(
+        maxDayMm: 79,
+        firstWetUtc: DateTime.utc(2026, 10, 16, 16),
+        lastWetUtc: DateTime.utc(2026, 10, 17, 12),
+        maxProb: 100,
+        minHoursCovered: 24,
+      ),
+      hints: const [
+        WxHint(
+          id: 'precip',
+          title: '较强降水提示',
+          detail: '',
+          basis: '',
+          level: HintLevel.caution,
+        ),
+        WxHint(
+          id: 'gust',
+          title: '大风提示',
+          detail: '',
+          basis: '',
+          level: HintLevel.warning,
+        ),
+      ],
+      rows: _rows(),
+      settings: const AppSettings(),
+      sourceName: 'Open-Meteo（best_match）',
+      fetchedAtUtc: DateTime.utc(2026, 10, 16, 13),
+    );
 
 void main() {
   test('关键节点：起终点、最高点、红/黄阈值节点，按沿途顺序且不超过上限', () {
@@ -237,5 +239,56 @@ void main() {
     final bytes = await tester.runAsync(() => capturePng(key, pixelRatio: 1));
     expect(bytes, isNotNull);
     expect(bytes!.sublist(0, 4), [0x89, 0x50, 0x4E, 0x47]);
+  });
+
+  for (final layout in ShareLayout.values) {
+    testWidgets('版式「${layout.label}」：2 倍字号不溢出，保留来源与免责、宣传与二维码', (tester) async {
+      await _pumpCard(tester, _routeCard(layout: layout), scale: 2);
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('数据：Open-Meteo'), findsOneWidget);
+      expect(find.textContaining('预报非实测'), findsOneWidget);
+      expect(find.byType(QrImageView), findsOneWidget);
+      final width = tester.getSize(find.byType(ShareCardFrame)).width;
+      expect(width, layout == ShareLayout.wide ? 640 : 360);
+      // 简图不列关键节点；长图与横图有线路示意。
+      expect(
+        find.byType(RouteSketch),
+        layout == ShareLayout.brief ? findsNothing : findsOneWidget,
+      );
+    });
+  }
+
+  testWidgets('分享预览页可切换版式', (tester) async {
+    tester.view.physicalSize = const Size(400, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: SharePreviewPage(
+          title: '分享',
+          fileName: 'x.png',
+          card: _routeCard(),
+          variants: [
+            for (final l in ShareLayout.values)
+              ShareVariant(
+                label: l.label,
+                icon: l.icon,
+                card: _routeCard(layout: l),
+                fileSuffix: l.name,
+              ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(RouteSketch), findsOneWidget);
+    await tester.tap(find.text(ShareLayout.brief.label));
+    await tester.pumpAndSettle();
+    expect(find.byType(RouteSketch), findsNothing);
+    await tester.tap(find.text(ShareLayout.wide.label));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(ShareCardFrame)).width, 640);
+    expect(tester.takeException(), isNull);
   });
 }

@@ -11,6 +11,7 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/favorites_repository.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
+import 'package:trailweather/ui/map/map_layers_ui.dart';
 import 'package:trailweather/ui/strings.dart';
 
 import '../integration/core_flow_test.dart' show IntegrationFakeProvider;
@@ -181,28 +182,17 @@ void main() {
     expect(_tileTitle('起点 · 0.0 km · 780 m'), findsOneWidget);
   });
 
-  testWidgets('小地图图层只给平面地形：跟随设置 / 等高线 / 天地图地形（无 Key 不可选）', (tester) async {
+  testWidgets('小地图图层只给平面地形：跟随设置 / 天地图地形（推荐）/ 等高线（海外）', (tester) async {
     final container = await _pump(tester);
     await tester.tap(find.byTooltip(S.miniMapLayers));
     await tester.pumpAndSettle();
     expect(find.text(S.miniMapFollowSettings), findsOneWidget);
-    expect(find.text('OpenTopoMap 等高线'), findsOneWidget);
-    expect(find.text('天地图地形晕渲'), findsOneWidget);
+    expect(find.text('天地图地形晕渲（推荐）'), findsOneWidget);
+    expect(find.text('OpenTopoMap 等高线（海外图源）'), findsOneWidget);
     expect(find.text(S.miniMapNeedsTiandituKey), findsOneWidget);
     expect(find.textContaining('卫星'), findsNothing);
-    expect(
-      tester
-          .widget<ListTile>(
-            find.ancestor(
-              of: find.text('天地图地形晕渲'),
-              matching: find.byType(ListTile),
-            ),
-          )
-          .enabled,
-      isFalse,
-    );
 
-    await tester.tap(find.text('OpenTopoMap 等高线'));
+    await tester.tap(find.text('OpenTopoMap 等高线（海外图源）'));
     await tester.pumpAndSettle();
     expect(container.read(settingsProvider).routeMapLayerId, 'opentopomap');
     // 小地图图层不改全局底图。
@@ -210,6 +200,14 @@ void main() {
       container.read(settingsProvider).baseLayerId,
       const AppSettings().baseLayerId,
     );
+
+    // 没有天地图 Key：点“天地图地形”直接进入填 Key 页面。
+    await tester.tap(find.byTooltip(S.miniMapLayers));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('天地图地形晕渲（推荐）'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MapSourcesPage), findsOneWidget);
+    expect(container.read(settingsProvider).routeMapLayerId, 'opentopomap');
     expect(tester.takeException(), isNull);
   });
 

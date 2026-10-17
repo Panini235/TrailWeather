@@ -273,14 +273,26 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                 ),
               ),
               option('', S.miniMapFollowSettings, base?.name),
-              if (topo != null) option(topo.id, topo.name, topo.note),
+              // 国内官方图源排第一（D-034）；没有 Key 时点击直接去填 Key。
               if (ter != null)
-                option(
-                  ter.id,
-                  ter.name,
-                  hasTdt ? ter.note : S.miniMapNeedsTiandituKey,
-                  enabled: hasTdt,
-                ),
+                hasTdt
+                    ? option(ter.id, '${ter.name}（推荐）', S.miniMapTiandituNote)
+                    : ListTile(
+                        leading: const Icon(Icons.vpn_key_outlined),
+                        title: Text('${ter.name}（推荐）'),
+                        subtitle: const Text(S.miniMapNeedsTiandituKey),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const MapSourcesPage(),
+                            ),
+                          );
+                        },
+                      ),
+              if (topo != null)
+                option(topo.id, '${topo.name}（海外图源）', topo.note),
             ],
           ),
         );
