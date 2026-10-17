@@ -273,12 +273,10 @@ class _ControlBar extends ConsumerWidget {
     final current = providers
         .where((p) => p.caps.providerId == providerId)
         .firstOrNull;
+    // 一行排下：时间按内容宽度，来源占剩余宽度并省略过长名称（大字号手机上不再折成两行）。
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      padding: const EdgeInsets.symmetric(vertical: Space.xs),
+      child: Row(
         children: [
           ActionChip(
             avatar: const Icon(Icons.schedule, size: 16),
@@ -286,28 +284,32 @@ class _ControlBar extends ConsumerWidget {
             tooltip: '设置时间与配速',
             onPressed: onToggleTime,
           ),
-          PopupMenuButton<String>(
-            tooltip: S.chooseSource,
-            onSelected: (v) =>
-                v == _compare ? onCompare() : onSelectProvider(v),
-            itemBuilder: (_) => [
-              for (final p in auto)
-                CheckedPopupMenuItem(
-                  value: p.caps.providerId,
-                  checked: p.caps.providerId == providerId,
-                  child: Text(p.caps.displayName),
+          const SizedBox(width: Space.sm),
+          Flexible(
+            child: PopupMenuButton<String>(
+              tooltip: S.chooseSource,
+              onSelected: (v) =>
+                  v == _compare ? onCompare() : onSelectProvider(v),
+              itemBuilder: (_) => [
+                for (final p in auto)
+                  CheckedPopupMenuItem(
+                    value: p.caps.providerId,
+                    checked: p.caps.providerId == providerId,
+                    child: Text(p.caps.displayName),
+                  ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: _compare,
+                  child: Text(S.compareSources),
                 ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: _compare,
-                child: Text(S.compareSources),
-              ),
-            ],
-            child: Chip(
-              avatar: const Icon(Icons.cloud_outlined, size: 16),
-              label: Text(
-                '${current?.caps.displayName ?? providerId} ▾',
-                overflow: TextOverflow.ellipsis,
+              ],
+              child: Chip(
+                avatar: const Icon(Icons.cloud_outlined, size: 16),
+                label: Text(
+                  '${current?.caps.displayName ?? providerId} ▾',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
             ),
           ),
