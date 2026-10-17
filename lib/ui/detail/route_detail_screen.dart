@@ -26,17 +26,19 @@ import '../../data/weather/weather_provider.dart';
 import '../../data/weather/weather_repository.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
+import '../widgets/rolling_text.dart';
 import '../map/basemap.dart';
 import '../map/map_layers_ui.dart';
 import '../map/route_camera.dart';
 import '../map/route_marks.dart';
 import 'detail_state.dart';
 import '../share/share_cards.dart';
+import '../share/share_graphics.dart' show hintIcon;
 import '../share/share_image.dart';
-import 'elevation_profile.dart';
 import 'node_detail_view.dart';
 import 'node_photos.dart';
 import 'node_wx_style.dart';
+import 'ridge_band.dart';
 import 'weather_cells.dart';
 import '../tokens.dart';
 
@@ -401,6 +403,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       ...computeHints(entries: rowsToEntries(rows)),
       ?sunsetWarn,
     ];
+    // 山脊天气带：行程模式标出预计到达时刻与日落后的路段。
+    final nightFrom = sunset == null
+        ? null
+        : etas.indexWhere((e) => e.isAfter(sunset));
 
     return Scaffold(
       appBar: AppBar(
@@ -506,6 +512,24 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
               onShowHints: () => _showHints(hints),
               onDepartures: () => _openDepartures(route, nodes),
             ),
+          if (!bundleAsync.hasError && rows.isNotEmpty) ...[
+            const SizedBox(height: Space.md),
+            RidgeWeatherBand(
+              route: route,
+              rows: rows,
+              selectedIndex: _selectedNode,
+              onTapNode: _select,
+              etaLabels: tripMode
+                  ? [
+                      for (final e in etas)
+                        '${_two(e.toLocal().hour)}:${_two(e.toLocal().minute)}',
+                    ]
+                  : null,
+              nightFromIndex: nightFrom == null || nightFrom < 0
+                  ? null
+                  : nightFrom,
+            ),
+          ],
           const SizedBox(height: 8),
           // 第二层：地图 + 线路要点 + 沿途节点。
           _RouteMiniMap(
@@ -769,13 +793,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       const SizedBox(height: 4),
       Text(S.weatherAlongRoute, style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 4),
-      if (route.totalAscentM != null)
-        ElevationProfile(
-          distancesM: [for (final r in rows) r.node.distFromStartM],
-          elevationsM: [for (final r in rows) r.node.elevationM],
-          selectedIndex: _selectedNode ?? -1,
-          onTapNode: (i) => _select(i, scroll: true),
-        ),
       for (var i = 0; i < rows.length; i++)
         _NodeTile(
           key: _tileKeys.putIfAbsent(i, GlobalKey.new),

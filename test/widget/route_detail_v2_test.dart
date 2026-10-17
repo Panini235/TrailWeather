@@ -61,7 +61,11 @@ Future<ProviderContainer> _pump(
   return ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
 }
 
-Finder _tileTitle(String text) => find.textContaining(text);
+/// 节点列表行的标题（山脊天气带下方的选中说明行以同样文字开头，需排除）。
+Finder _tileTitle(String text) => find.descendant(
+  of: find.byType(ListTile),
+  matching: find.textContaining(text),
+);
 
 class _MissingTemperatureProvider extends IntegrationFakeProvider {
   @override

@@ -266,6 +266,11 @@ abstract final class S {
     ('联系我们', '测试版问题与隐私疑问可在“设置 → 问题反馈”中复制诊断信息并提交。'),
   ];
 
+  // 山脊天气带
+  static const ridgeBandTitle = '海拔剖面与沿途天气';
+  static const ridgeNoElevation = '无海拔数据';
+  static const ridgeAfterSunset = '日落后';
+
   // 开屏
   static const splashSkip = '跳过动画';
   static const splashTagline = '出发前，看懂沿途天气';

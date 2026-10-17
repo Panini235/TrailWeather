@@ -550,3 +550,18 @@ precipitation_probability 为前一小时 >0.1 mm 的集合预报概率（~27 km
 
 **验证**：flutter analyze 0；flutter test 309/309；本机 profile 构建通过（Android 启动页资源编译通过），在真机上逐帧核对。
 
+## Round 28 — 2026-10-17（UI 重构第一批：token、山脊天气带、结论先行）
+
+**用户要求**：继续按 review 推进开发。
+
+**完成**：
+- 详情页拆分（part 文件，只搬代码）。
+- 设计 token 与主题（D-032）：语义色、按主题取色的文字色（WCAG 核算）、主题种子和底色；深色模式下看不清的灰字和状态色改为跟随主题；
+  抽出共用组件 `ConfiguredStatus` / `HelpText`；选中节点外圈不再用红色。
+- 山脊天气带：分段着色、按严重程度摆放图标、日落后夜色、首次画出、与小地图联动；新增 5 个组件测试。
+- 结论先行与 `RollingText`。
+- 真机核对（本机 profile 构建，小米 12S 深色）：发现并修复终点附近图标重叠、“日落后”文字压在图标上。
+
+**验证**：flutter analyze 0；flutter test 314/314；真机逐屏截图核对。
+**CI**：本批次结束时跑一次 Android/Web 和一次 iOS 无签名构建（iOS 启动页与 Bundle ID 的改动从未在 iOS 上编译过）。
+

@@ -26,18 +26,32 @@ class _ConclusionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
     final sorted = [...hints]
       ..sort((a, b) => b.level.index.compareTo(a.level.index));
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+        padding: const EdgeInsets.fromLTRB(
+          Space.md,
+          Space.md,
+          Space.md,
+          Space.xs,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(S.routeSummary, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 6),
+            Text(
+              S.routeSummary,
+              style: theme.textTheme.labelMedium?.copyWith(color: muted),
+            ),
+            const SizedBox(height: Space.xs),
+            // 结论先行：最关键的一条提示；未触发时如实说明，不说“适合出发”。
+            if (summary.hasAnyData) ...[
+              _Headline(hints: sorted, onTap: onShowHints),
+              const SizedBox(height: Space.md),
+            ],
             if (!summary.hasAnyData)
               Text(
                 '当前选定时间与来源没有可用数据（${summary.nodesWithData}/${summary.totalNodes} 节点有数据）。信息不足时无法给出摘要。',
@@ -82,48 +96,35 @@ class _ConclusionCard extends StatelessWidget {
               ),
             if (dayLine != null)
               Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.only(top: Space.sm),
                 child: Text(dayLine!, style: const TextStyle(fontSize: 13)),
               ),
-            const SizedBox(height: 8),
-            if (sorted.isEmpty)
-              InkWell(
-                onTap: onShowHints,
-                child: Text(
-                  S.noHintsTriggered,
-                  style: TextStyle(fontSize: 12, color: muted),
-                ),
-              )
-            else
+            if (sorted.length > 1) ...[
+              const SizedBox(height: Space.sm),
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
                 children: [
-                  for (final h in sorted.take(3))
+                  for (final h in sorted.skip(1).take(3))
                     ActionChip(
                       visualDensity: VisualDensity.compact,
                       avatar: Icon(
-                        h.level == HintLevel.warning
-                            ? Icons.warning_amber_rounded
-                            : Icons.info_outline,
+                        hintIcon(h),
                         size: 16,
-                        color: h.level == HintLevel.warning
-                            ? Semantic.danger
-                            : h.level == HintLevel.caution
-                            ? Semantic.caution
-                            : muted,
+                        color: _hintInk(context, h),
                       ),
                       label: Text(h.title),
                       onPressed: onShowHints,
                     ),
-                  if (sorted.length > 3)
+                  if (sorted.length > 4)
                     ActionChip(
                       visualDensity: VisualDensity.compact,
-                      label: Text('+${sorted.length - 3}'),
+                      label: Text('+${sorted.length - 4}'),
                       onPressed: onShowHints,
                     ),
                 ],
               ),
+            ],
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
@@ -148,12 +149,84 @@ class _ConclusionCard extends StatelessWidget {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
-      Text(
+      RollingText(
         v,
+        lowPower: settings.lowPower,
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
     ],
   );
+}
+
+Color _hintInk(BuildContext context, WxHint h) => switch (h.level) {
+  HintLevel.warning => SemanticInk.danger(context),
+  HintLevel.caution => SemanticInk.caution(context),
+  HintLevel.info => SemanticInk.info(context),
+};
+
+/// 结论句：最关键的一条提示（按级别排序后的第一条），其余以“等 N 项”提示；
+/// 没有触发时写明不代表安全。点击查看全部提示与依据。
+class _Headline extends StatelessWidget {
+  const _Headline({required this.hints, required this.onTap});
+
+  final List<WxHint> hints;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final top = hints.firstOrNull;
+    final color = top == null
+        ? SemanticInk.go(context)
+        : _hintInk(context, top);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(Radii.sm),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Space.xs),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              top == null ? Icons.check_circle_outline : hintIcon(top),
+              size: 22,
+              color: color,
+            ),
+            const SizedBox(width: Space.sm),
+            Expanded(
+              child: top == null
+                  ? Text(S.noHintsTriggered, style: theme.textTheme.bodyMedium)
+                  : Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: top.title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: color,
+                            ),
+                          ),
+                          if (hints.length > 1)
+                            TextSpan(
+                              text: '  等 ${hints.length} 项提示',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _NodeTile extends StatelessWidget {
