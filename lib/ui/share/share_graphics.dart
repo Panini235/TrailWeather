@@ -306,21 +306,51 @@ class _ProfilePainter extends CustomPainter {
       ..lineTo(at(eles.last.$1, eles.last.$2).dx, size.height)
       ..close();
     canvas.drawPath(p, Paint()..color = fill);
-    final l = Path()
-      ..moveTo(
-        at(eles.first.$1, eles.first.$2).dx,
-        at(eles.first.$1, eles.first.$2).dy,
-      );
-    for (final (x, e) in eles.skip(1)) {
-      l.lineTo(at(x, e).dx, at(x, e).dy);
+    // 山脊线按最近节点的天气分类分段着色（与 App 内山脊天气带一致，节点间不插值）。
+    double eleAt(double d) {
+      for (var i = 1; i < eles.length; i++) {
+        if (eles[i].$1 >= d) {
+          final (d0, e0) = eles[i - 1];
+          final (d1, e1) = eles[i];
+          final t = d1 == d0 ? 0.0 : ((d - d0) / (d1 - d0)).clamp(0.0, 1.0);
+          return e0 + (e1 - e0) * t;
+        }
+      }
+      return eles.last.$2;
     }
-    canvas.drawPath(
-      l,
-      Paint()
-        ..color = line
-        ..strokeWidth = 2
-        ..style = PaintingStyle.stroke,
-    );
+
+    Path ridge(double a, double b) {
+      final path = Path()..moveTo(at(a, eleAt(a)).dx, at(a, eleAt(a)).dy);
+      for (final (x, e) in eles) {
+        if (x <= a) continue;
+        if (x >= b) break;
+        path.lineTo(at(x, e).dx, at(x, e).dy);
+      }
+      return path..lineTo(at(b, eleAt(b)).dx, at(b, eleAt(b)).dy);
+    }
+
+    final stroke = Paint()
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    if (rows.isEmpty) {
+      canvas.drawPath(ridge(eles.first.$1, eles.last.$1), stroke..color = line);
+    }
+    for (var i = 0; i < rows.length; i++) {
+      final d = rows[i].node.distFromStartM;
+      final a = i == 0
+          ? eles.first.$1
+          : (rows[i - 1].node.distFromStartM + d) / 2;
+      final b = i == rows.length - 1
+          ? eles.last.$1
+          : (d + rows[i + 1].node.distFromStartM) / 2;
+      if (b <= a) continue;
+      canvas.drawPath(
+        ridge(a, b),
+        stroke..color = nodeWxColor(classifyNodeWx(rows[i].wx)),
+      );
+    }
     _label(canvas, Offset(0, top - 6), '${maxE.round()} m');
     _label(canvas, Offset(0, size.height - bottom - 12), '${minE.round()} m');
 

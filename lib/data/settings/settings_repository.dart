@@ -28,6 +28,7 @@ class AppSettings {
     this.hasCompletedOnboarding = false,
     this.privacyAcceptedVersion = 0,
     this.elevationLapseRateCorrection = true,
+    this.routeMapLayerId = '',
   });
 
   /// 隐私说明版本。说明内容有实质变化时 +1，已同意旧版的用户会再次看到并确认。
@@ -93,6 +94,10 @@ class AppSettings {
 
   final bool elevationLapseRateCorrection;
 
+  /// 线路详情小地图的图层：空串 = 跟随地图设置；否则为限定的平面地形图层 id
+  /// （等高线 / 地形晕渲，见 lib/ui/detail/detail_map.dart）。
+  final String routeMapLayerId;
+
   AppSettings copyWith({
     DepartureThresholds? departureThresholds,
     bool? imperial,
@@ -112,6 +117,7 @@ class AppSettings {
     bool? hasCompletedOnboarding,
     int? privacyAcceptedVersion,
     bool? elevationLapseRateCorrection,
+    String? routeMapLayerId,
   }) => AppSettings(
     departureThresholds: departureThresholds ?? this.departureThresholds,
     imperial: imperial ?? this.imperial,
@@ -134,6 +140,7 @@ class AppSettings {
         privacyAcceptedVersion ?? this.privacyAcceptedVersion,
     elevationLapseRateCorrection:
         elevationLapseRateCorrection ?? this.elevationLapseRateCorrection,
+    routeMapLayerId: routeMapLayerId ?? this.routeMapLayerId,
   );
 
   Map<String, dynamic> toJson() => {
@@ -155,6 +162,7 @@ class AppSettings {
     'hasCompletedOnboarding': hasCompletedOnboarding,
     'privacyAcceptedVersion': privacyAcceptedVersion,
     'elevationLapseRateCorrection': elevationLapseRateCorrection,
+    'routeMapLayerId': routeMapLayerId,
   };
 
   static AppSettings fromJson(Map<String, dynamic> m) => AppSettings(
@@ -189,6 +197,7 @@ class AppSettings {
     privacyAcceptedVersion: (m['privacyAcceptedVersion'] as num?)?.toInt() ?? 0,
     elevationLapseRateCorrection:
         m['elevationLapseRateCorrection'] as bool? ?? true,
+    routeMapLayerId: m['routeMapLayerId'] as String? ?? '',
   );
 
   /// 旧版只有一个 `tiandituKey`，无法离线判断它是服务端还是浏览器端类型
@@ -248,6 +257,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> acceptPrivacy() => update(
     state.copyWith(privacyAcceptedVersion: AppSettings.privacyNoticeVersion),
   );
+
+  Future<void> setRouteMapLayer(String id) =>
+      update(state.copyWith(routeMapLayerId: id));
 
   Future<void> setLapseRateCorrection(bool v) =>
       update(state.copyWith(elevationLapseRateCorrection: v));

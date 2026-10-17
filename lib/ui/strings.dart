@@ -266,6 +266,16 @@ abstract final class S {
     ('联系我们', '测试版问题与隐私疑问可在“设置 → 问题反馈”中复制诊断信息并提交。'),
   ];
 
+  // 线路小地图
+  static const miniMapLayers = '小地图图层';
+  static const miniMapLayersHint = '只提供平面地形图层；完整图层在全屏地图里切换。';
+  static const miniMapFollowSettings = '跟随地图设置';
+  static const miniMapNeedsTiandituKey = '需先在“设置 → 地图图层”填写天地图 Key';
+  static const miniMapFit = '回到全线';
+  static const miniMapGestureHint = '双指缩放、拖动；单指上下滑动页面';
+  static const miniMapLayerFailed = '图源加载缓慢或连不上（国内网络常连不上海外图源）。';
+  static const miniMapRevert = '切回';
+
   // 山脊天气带
   static const ridgeBandTitle = '海拔剖面与沿途天气';
   static const ridgeNoElevation = '无海拔数据';

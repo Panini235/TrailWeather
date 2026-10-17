@@ -1,3 +1,5 @@
+import 'dart:async' show Timer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_map/flutter_map.dart';
@@ -13,6 +15,7 @@ import '../../core/geo.dart';
 import '../../core/units.dart';
 import '../../data/app_providers.dart';
 import '../../data/map/tianditu.dart';
+import '../../data/map/tile_sources.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/routes/route_sampling.dart';
 import '../../data/settings/favorites_repository.dart';
@@ -536,7 +539,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             route: route,
             rows: rows,
             selectedIndex: _selectedNode,
-            onTapNode: (i) => _select(i, scroll: true),
+            // 与节点列表一致：第一次点选中，再点打开节点详情；不滚走页面。
+            onTapNode: (i) => _selectedNode == i
+                ? _showNodeSheet(rows, settings, initialIndex: i)
+                : _select(i),
             onOpenFullscreen: () => _openFullMap(route, rows, settings),
           ),
           _RouteFactsRow(

@@ -78,7 +78,12 @@ class Basemap {
 
   /// flutter_map 没有 `{-y}` 占位符：转为 `{y}` + tms 翻转。
   /// 天地图图层用 [tiandituClient]（外部传入的 client 不会被 TileLayer 关闭）。
-  TileLayer _layer(TileSourceDef def, String template) {
+  TileLayer _layer(
+    TileSourceDef def,
+    String template, {
+    VoidCallback? onTileError,
+    VoidCallback? onTileLoaded,
+  }) {
     final client = def.needsTiandituKey ? tiandituClient : null;
     return TileLayer(
       urlTemplate: template.replaceAll('{-y}', '{y}'),
@@ -89,14 +94,36 @@ class Basemap {
       tileProvider: client == null
           ? null
           : NetworkTileProvider(httpClient: client),
+      errorTileCallback: onTileError == null
+          ? null
+          : (_, _, _) => onTileError(),
+      tileBuilder: onTileLoaded == null
+          ? null
+          : (context, tileWidget, tile) {
+              if (tile.imageInfo != null && !tile.loadError) onTileLoaded();
+              return tileWidget;
+            },
     );
   }
 
   /// 底图 + 叠加层（自下而上）。在地图 children 中展开使用。
-  List<Widget> tileLayers() => [
-    _layer(style.base, style.baseTemplate),
+  /// [onTileError]：任一瓦片加载失败时回调；[onTileLoaded]：底图有瓦片成功显示时回调。
+  /// 两者都可能在构建期间触发，调用方不能直接 setState。
+  List<Widget> tileLayers({
+    VoidCallback? onTileError,
+    VoidCallback? onTileLoaded,
+  }) => [
+    _layer(
+      style.base,
+      style.baseTemplate,
+      onTileError: onTileError,
+      onTileLoaded: onTileLoaded,
+    ),
     for (final (def, template, opacity) in style.overlays)
-      Opacity(opacity: opacity, child: _layer(def, template)),
+      Opacity(
+        opacity: opacity,
+        child: _layer(def, template, onTileError: onTileError),
+      ),
   ];
 
   Widget attributionWidget() {

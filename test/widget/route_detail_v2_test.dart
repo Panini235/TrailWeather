@@ -33,11 +33,12 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   bool missingTemperature = false,
   double width = 900,
+  Map<String, Object> initialPrefs = const {},
 }) async {
   tester.view.physicalSize = Size(width, 2400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues(initialPrefs);
   final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
     ProviderScope(
@@ -178,5 +179,52 @@ void main() {
     expect(find.textContaining('已反向'), findsOneWidget);
     await tester.scrollUntilVisible(_tileTitle('起点 · 0.0 km · 780 m'), 300);
     expect(_tileTitle('起点 · 0.0 km · 780 m'), findsOneWidget);
+  });
+
+  testWidgets('小地图图层只给平面地形：跟随设置 / 等高线 / 天地图地形（无 Key 不可选）', (tester) async {
+    final container = await _pump(tester);
+    await tester.tap(find.byTooltip(S.miniMapLayers));
+    await tester.pumpAndSettle();
+    expect(find.text(S.miniMapFollowSettings), findsOneWidget);
+    expect(find.text('OpenTopoMap 等高线'), findsOneWidget);
+    expect(find.text('天地图地形晕渲'), findsOneWidget);
+    expect(find.text(S.miniMapNeedsTiandituKey), findsOneWidget);
+    expect(find.textContaining('卫星'), findsNothing);
+    expect(
+      tester
+          .widget<ListTile>(
+            find.ancestor(
+              of: find.text('天地图地形晕渲'),
+              matching: find.byType(ListTile),
+            ),
+          )
+          .enabled,
+      isFalse,
+    );
+
+    await tester.tap(find.text('OpenTopoMap 等高线'));
+    await tester.pumpAndSettle();
+    expect(container.read(settingsProvider).routeMapLayerId, 'opentopomap');
+    // 小地图图层不改全局底图。
+    expect(
+      container.read(settingsProvider).baseLayerId,
+      const AppSettings().baseLayerId,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('小地图自选图层加载不出时提示，并可一键切回', (tester) async {
+    final container = await _pump(
+      tester,
+      initialPrefs: {'settings.v1': '{"routeMapLayerId":"opentopomap"}'},
+    );
+    // 测试环境没有网络：瓦片不会成功显示，10 秒后给出提示。
+    await tester.pump(const Duration(seconds: 11));
+    await tester.pump();
+    expect(find.text(S.miniMapLayerFailed), findsOneWidget);
+    await tester.tap(find.text(S.miniMapRevert));
+    await tester.pumpAndSettle();
+    expect(container.read(settingsProvider).routeMapLayerId, '');
+    expect(find.text(S.miniMapLayerFailed), findsNothing);
   });
 }
