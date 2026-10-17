@@ -988,10 +988,85 @@
     "T-177",
     "T-178"
    ],
-   "status": "todo",
+   "status": "done",
    "acceptance": "真机实时数据下逐项截图核对，含播放与卫星云图流量",
    "verify": "真机",
-   "result": "2026-10-17：手机当时无网络（默认网络为 none），先在 Web 上用实时数据核对。"
+   "result": "2026-10-17：手机当时无网络（默认网络为 none），先在 Web 上用实时数据核对。2026-10-17 晚：手机仍无系统网络，用 adb reverse + 调试构建内代理（SHANQING_DEV_PROXY）在小米 12S 上用实时数据核对：降水播放 9 s 1084 帧（120 Hz 满帧），build p50 3.4 ms / p99 5.6 ms，raster p50 3.0 ms；拖动地图 build p50 2.1 ms；卫星 13 帧交叉淡入 build p50 2.2 ms；台风 Champi 路径；线路详情、穿衣卡、节点时间图、分享长图。卫星一次约 5–10 MB（瓦片 25–85 KB）。"
+  },
+  {
+   "id": "T-185",
+   "p": "P0",
+   "title": "天气图时间轴流畅化（连续播放、拖动、卫星预加载）",
+   "deps": [
+    "T-178",
+    "T-179"
+   ],
+   "status": "done",
+   "acceptance": "降水/云量/卫星播放与拖动在真机上无跳帧；静止画面与时间标签只显示整点/真实观测时次；两帧之间线性过渡并在说明中标注",
+   "verify": "flutter test test/widget/weather_map_test.dart test/unit/weather_field_test.dart；真机 profile 帧耗时",
+   "result": "2026-10-17：时间轴改为连续 AnimationController，播放只重绘图层不重建地图；三角网位置每个格点场只算一次，平移缩放只改画布变换；颜色查表；平滑改为 8 倍细分 Catmull-Rom（邻点缺失退回双线性）；卫星改为最近 2 小时每 10 分钟一帧、全部预加载、按时间轴交叉淡入，缺失时次跳过不顶替。真机 120 Hz 满帧（见 T-184）。"
+  },
+  {
+   "id": "T-186",
+   "p": "P1",
+   "title": "README 改为产品介绍预览；使用文档与开发文档拆分",
+   "deps": [],
+   "status": "done",
+   "acceptance": "README 有截图、功能、数据原则、下载；docs/user-guide.md 含 Android/iOS 安装与各功能说明；docs/development.md 承接原开发内容",
+   "verify": "人工阅读；截图来自真机实时数据",
+   "result": "2026-10-17：5 张真机截图（docs/images，JPEG 共约 0.5 MB）。"
+  },
+  {
+   "id": "T-187",
+   "p": "P0",
+   "title": "iOS 未签名 IPA 随测试版发布（爱思助手自签）",
+   "deps": [
+    "T-166"
+   ],
+   "status": "in_progress",
+   "acceptance": "ios-build 工作流产出 shanqing-<版本>-ios-unsigned.ipa；Release 说明写清开发者模式、自签、安装、信任与 7 天限制",
+   "verify": "gh workflow run ios-build.yml；下载产物检查 Payload/Runner.app",
+   "result": ""
+  },
+  {
+   "id": "T-188",
+   "p": "P2",
+   "title": "真机调试代理（手机无网络时）",
+   "deps": [],
+   "status": "done",
+   "acceptance": "--dart-define=SHANQING_DEV_PROXY 仅 debug/profile 生效；release 忽略；不改手机系统设置",
+   "verify": "真机 profile 构建拿到实时数据",
+   "result": "2026-10-17：lib/core/dev_proxy*.dart，经 HttpOverrides 让 dio/http/图片/瓦片走代理。"
+  },
+  {
+   "id": "T-189",
+   "p": "P1",
+   "title": "手绘规划工具：定位、实时距离/爬升/用时、拖动与插点编辑",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "规划页有定位到我；顶部实时显示距离、累计爬升（DEM 高程，标注来源与精度）、估算用时；可拖动已有点、在线段上插点",
+   "verify": "widget 测试 + 真机",
+   "result": "2026-10-17 用户提出；方案待用户确认。"
+  },
+  {
+   "id": "T-190",
+   "p": "P1",
+   "title": "等高线 / 地形晕渲可叠加在任意底图上",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "规划页与地图页可在高德/天地图底图上叠加等高线或晕渲；国内直连可用性与授权核实后接入",
+   "verify": "真机核对国内加载速度",
+   "result": "2026-10-17 用户提出；现有 OpenTopoMap 与天地图地形只能作底图。"
+  },
+  {
+   "id": "T-191",
+   "p": "P2",
+   "title": "3D 地形评估",
+   "deps": [],
+   "status": "todo",
+   "acceptance": "比较 MapLibre（矢量+DEM 地形）替换 flutter_map 与“线路 3D 预览”自绘方案的包体、三端支持、数据授权与工作量，给出结论",
+   "verify": "决策记录",
+   "result": "2026-10-17 用户提出。"
   }
  ]
 }

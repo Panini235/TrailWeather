@@ -88,6 +88,23 @@ class FieldGrid {
     return x == null || x.isNaN ? null : x;
   }
 
+  /// 时间轴位置 [pos]（时次下标，可为小数）处的格点值：两整点之间线性过渡，
+  /// 只用于播放 / 拖动时的动画；任一端缺失则为 NaN（不拿另一端顶替）。
+  Float32List blendedAt(FieldVar v, double pos) {
+    final frames = values[v]!;
+    final p = pos.clamp(0.0, (frames.length - 1).toDouble());
+    final t0 = p.floor();
+    final f = p - t0;
+    final a = frames[t0];
+    if (f == 0) return a;
+    final b = frames[t0 + 1];
+    final out = Float32List(a.length);
+    for (var i = 0; i < a.length; i++) {
+      out[i] = a[i] + (b[i] - a[i]) * f;
+    }
+    return out;
+  }
+
   /// 离 [utc] 最近的时次下标；超出范围返回 null。
   int? timeIndexOf(DateTime utc) {
     for (var i = 0; i < timesUtc.length; i++) {

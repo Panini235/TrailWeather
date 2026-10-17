@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -16,7 +19,8 @@ import 'package:trailweather/ui/map/basemap.dart';
 import 'package:trailweather/ui/map/weather_map_overlay.dart';
 import 'package:trailweather/ui/strings.dart';
 
-import '../unit/weather_field_test.dart' show fakeFieldResponse;
+import '../unit/weather_field_test.dart'
+    show fakeFieldResponse, fakeUniformResponse;
 
 final _now = DateTime.now().toUtc();
 
@@ -88,7 +92,7 @@ void main() {
     expect(c.fieldVar, FieldVar.cloudLow);
   });
 
-  testWidgets('播放：逐帧前进，播到最后自动停；不自动开始', (tester) async {
+  testWidgets('播放：时间轴连续前进，播到最后自动停；不自动开始', (tester) async {
     final c = _controller();
     addTearDown(c.dispose);
     c.toggle();
@@ -97,13 +101,52 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
     expect(c.playing, isFalse);
-    final start = c.timeIndex;
+    expect(c.timeline.value, 0);
     await tester.tap(find.byTooltip(S.wxMapPlay));
-    await tester.pump(const Duration(milliseconds: 700));
-    expect(c.timeIndex, start + 1);
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // 每秒 2.5 小时：0.2 s 后停在第 0 与第 1 个整点之间（过渡中）
+    expect(c.timeline.value, closeTo(0.5, 0.05));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
     expect(c.playing, isFalse);
+    expect(c.timeline.value, c.frameCount - 1);
     expect(c.timeIndex, c.frameCount - 1);
+  });
+
+  testWidgets('暂停或松开时间轴：回到最近的整点，标签只显示整点', (tester) async {
+    final c = _controller();
+    addTearDown(c.dispose);
+    c.toggle();
+    c.onView(_view, 10, 0.5);
+    await _pumpPanel(tester, c);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(S.wxMapPlay));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 280));
+    expect(c.timeline.value, closeTo(0.7, 0.05));
+    await tester.tap(find.byTooltip(S.wxMapPause));
+    await tester.pumpAndSettle();
+    expect(c.playing, isFalse);
+    expect(c.timeline.value, 1);
+
+    c.scrub(1.4);
+    await tester.pump();
+    final hour = c.grid!.timesUtc[1].toLocal().hour.toString().padLeft(2, '0');
+    expect(find.textContaining('$hour:00'), findsOneWidget);
+    c.settle();
+    await tester.pumpAndSettle();
+    expect(c.timeline.value, 1);
+  });
+
+  test('卫星帧叠放权重：两帧之间线性过渡，整帧上只画一帧', () {
+    expect(frameWeight(2, 2), 1);
+    expect(frameWeight(3, 2), 0);
+    expect(frameWeight(1, 2), 0);
+    expect(frameWeight(2, 2.25), closeTo(0.75, 1e-9));
+    expect(frameWeight(3, 2.25), 1);
+    expect(frameWeight(4, 2.25), 0);
   });
 
   testWidgets('缩放太小（全国以上）：不请求，提示放大', (tester) async {
@@ -134,6 +177,43 @@ void main() {
     expect(find.text(S.wxMapSatelliteNote), findsOneWidget);
   });
 
+  testWidgets('卫星云图：所有时次一起挂上，按时间轴交叉淡入；停下回到真实观测时次', (tester) async {
+    final c = _controller();
+    addTearDown(c.dispose);
+    c.toggle();
+    await _pumpPanel(tester, c);
+    await tester.tap(find.text(S.wxMapSatellite));
+    await tester.pumpAndSettle();
+    final n = c.satFrames.length;
+    expect(n, 13);
+    expect(c.timeline.value, n - 1);
+    final stack =
+        ((weatherMapLayers(c, Basemap.base('osm')).single as RepaintBoundary)
+                        .child!
+                    as Opacity)
+                .child!
+            as Stack;
+    final fades = stack.children.cast<FadeTransition>();
+    expect(fades, hasLength(n));
+    // 新的在下：倒序叠放
+    expect(
+      (fades.first.key! as ValueKey<String>).value,
+      contains(c.satFrames.last.toIso8601String()),
+    );
+    List<double> opacities() => [for (final f in fades) f.opacity.value];
+    expect(opacities().where((o) => o > 0), hasLength(1));
+    c.scrub(n - 1.75);
+    final o = opacities();
+    // 位于第 n-2 与 n-1 帧之间 1/4 处：最新一帧在下层不透明，第 n-2 帧在上层 0.75
+    expect(o[0], 1);
+    expect(o[1], closeTo(0.75, 1e-9));
+    expect(o.skip(2).every((x) => x == 0), isTrue);
+    c.settle();
+    await tester.pumpAndSettle();
+    expect(c.timeline.value, n - 2);
+    expect(c.satIndex, n - 2);
+  });
+
   testWidgets('台风：列出名称、强度、气压与移向，可定位', (tester) async {
     final c = _controller();
     addTearDown(c.dispose);
@@ -158,7 +238,7 @@ void main() {
     expect(fitted, isNotEmpty);
   });
 
-  testWidgets('格点场图层在地图上绘制且切换时次不报错', (tester) async {
+  testWidgets('格点场图层在地图上绘制，时间轴连续变化与切换变量不报错', (tester) async {
     final c = _controller();
     addTearDown(c.dispose);
     c.toggle();
@@ -167,7 +247,9 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pumpAndSettle();
     final grid = c.grid!;
-    Widget map(int t) => MaterialApp(
+    final time = ValueNotifier<double>(0);
+    addTearDown(time.dispose);
+    Widget map(FieldVar v) => MaterialApp(
       home: FlutterMap(
         options: const MapOptions(
           initialCenter: LatLng(40, 116.2),
@@ -176,16 +258,91 @@ void main() {
         children: [
           WeatherFieldLayer(
             grid: grid,
-            variable: FieldVar.precip,
-            timeIndex: t,
+            variable: v,
+            time: time,
             basemap: Basemap.base('osm'),
           ),
         ],
       ),
     );
-    await tester.pumpWidget(map(0));
-    await tester.pumpWidget(map(2));
+    await tester.pumpWidget(map(FieldVar.precip));
+    // 时间轴变化只重绘本层（含两整点之间的过渡位置）
+    time.value = 1.5;
+    await tester.pump();
+    time.value = 2;
+    await tester.pump();
+    await tester.pumpWidget(map(FieldVar.cloudLow));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('格点场画在格点范围内：平移缩放后位置跟着地图走', (tester) async {
+    // 4×4 格点，全场 5 mm/h；范围约北纬 39.8–40.2、东经 116.0–116.4
+    final grid = WeatherFieldService.parse(
+      fakeUniformResponse(16, 5),
+      bounds: _view,
+      cols: 4,
+      rows: 4,
+      lats: const [40.2, 40.067, 39.933, 39.8],
+      lons: const [116.0, 116.133, 116.267, 116.4],
+      fetchedAtUtc: _now,
+    );
+    final time = ValueNotifier<double>(0);
+    addTearDown(time.dispose);
+    final key = GlobalKey();
+    Future<ui.Image> render(LatLng center, double zoom) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: RepaintBoundary(
+              key: key,
+              child: SizedBox(
+                width: 400,
+                height: 400,
+                child: FlutterMap(
+                  key: ValueKey('$center$zoom'),
+                  options: MapOptions(
+                    initialCenter: center,
+                    initialZoom: zoom,
+                    backgroundColor: Colors.transparent,
+                  ),
+                  children: [
+                    WeatherFieldLayer(
+                      grid: grid,
+                      variable: FieldVar.precip,
+                      time: time,
+                      basemap: Basemap.base('osm'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final boundary =
+          key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      return (await tester.runAsync(() => boundary.toImage()))!;
+    }
+
+    Future<int> alphaAt(ui.Image img, int x, int y) async {
+      final data = (await tester.runAsync(
+        () => img.toByteData(format: ui.ImageByteFormat.rawRgba),
+      ))!;
+      return data.getUint8((y * img.width + x) * 4 + 3);
+    }
+
+    // 缩放 9：格点场宽约 145 px，居中
+    var img = await render(const LatLng(40, 116.2), 9);
+    expect(await alphaAt(img, 200, 200), greaterThan(0));
+    expect(await alphaAt(img, 200 + 50, 200), greaterThan(0));
+    expect(await alphaAt(img, 200 + 120, 200), 0);
+    expect(await alphaAt(img, 200, 200 - 120), 0);
+    // 缩放 10、中心东移 0.2°：场的西缘落在画面中心附近，中心以东仍有颜色、以西变透明
+    img = await render(const LatLng(40, 116.4), 10);
+    expect(await alphaAt(img, 200 - 100, 200), greaterThan(0));
+    expect(await alphaAt(img, 200 + 20, 200), 0);
     expect(tester.takeException(), isNull);
   });
 

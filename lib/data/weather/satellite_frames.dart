@@ -37,9 +37,9 @@ class SatelliteFrameService {
   static const layer = 'Himawari_AHI_Band13_Clean_Infrared';
   static const maxNativeZoom = 6;
 
-  /// 回看 3 小时，每 30 分钟一帧（播放用；共约 7 帧）。
-  static const lookback = Duration(hours: 3);
-  static const step = Duration(minutes: 30);
+  /// 回看 2 小时内的全部时次（约 10 分钟一张，最多 13 帧）：相邻两帧只差 10 分钟，
+  /// 播放时交叉淡入才连贯。
+  static const lookback = Duration(hours: 2);
 
   static String _iso(DateTime t) =>
       '${t.toUtc().toIso8601String().substring(0, 19)}Z';
@@ -52,8 +52,9 @@ class SatelliteFrameService {
   static Uri probeUri(DateTime t) =>
       Uri.parse(tileTemplate(t).replaceFirst('{z}/{y}/{x}', '2/1/3'));
 
-  /// 最近可用的若干帧（升序）。并行探测回看窗口内每 10 分钟的时次，
-  /// 只返回真实存在的时次；一张都没有时返回空列表。
+  /// 最近可用的若干帧（升序）。并行探测每 10 分钟的时次（多探 30 分钟，
+  /// 因为最新时次常有 20–40 分钟延迟），只返回真实存在的时次；缺失的时次直接跳过，
+  /// 不拿相邻时次顶替。一张都没有时返回空列表。
   Future<List<DateTime>> recentFrames() async {
     final now = _now();
     final end = DateTime.utc(
@@ -64,7 +65,7 @@ class SatelliteFrameService {
       now.minute - now.minute % 10,
     ).subtract(const Duration(minutes: 10));
     final slots = [
-      for (var m = 0; m <= lookback.inMinutes + 20; m += 10)
+      for (var m = 0; m <= lookback.inMinutes + 30; m += 10)
         end.subtract(Duration(minutes: m)),
     ];
     final codes = await Future.wait(slots.map((t) => _probe(probeUri(t))));
@@ -73,23 +74,10 @@ class SatelliteFrameService {
         if (codes[i] == 200) slots[i],
     ];
     if (ok.isEmpty) return const [];
-    // 从最新一帧往回，每 30 分钟取最近的可用时次。
     final latest = ok.first;
-    final picked = <DateTime>[latest];
-    for (var k = 1; k * step.inMinutes <= lookback.inMinutes; k++) {
-      final target = latest.subtract(step * k);
-      DateTime? best;
-      for (final t in ok) {
-        final d = t.difference(target).abs();
-        if (d <= const Duration(minutes: 10) &&
-            (best == null || d < best.difference(target).abs()) &&
-            !picked.contains(t)) {
-          best = t;
-        }
-      }
-      if (best != null) picked.add(best);
-    }
-    picked.sort();
-    return picked;
+    return [
+      for (final t in ok.reversed)
+        if (latest.difference(t) <= lookback) t,
+    ];
   }
 }

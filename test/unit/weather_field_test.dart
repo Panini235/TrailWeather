@@ -23,6 +23,17 @@ String fakeFieldResponse(Uri uri, {double? missingAt}) {
   ]);
 }
 
+/// [n] 个格点、3 个时次，降水与云量处处为 [value]。
+String fakeUniformResponse(int n, double value) => jsonEncode([
+  for (var i = 0; i < n; i++)
+    {
+      'hourly': {
+        'time': ['2026-10-17T07:00', '2026-10-17T08:00', '2026-10-17T09:00'],
+        for (final v in FieldVar.values) v.api: [value, value, value],
+      },
+    },
+]);
+
 void main() {
   final now = DateTime.utc(2026, 10, 17, 7, 20);
 
@@ -79,6 +90,28 @@ void main() {
       expect(g.timeIndexOf(DateTime.utc(2026, 10, 17, 9, 59)), 2);
       expect(g.timeIndexOf(DateTime.utc(2026, 10, 17, 10)), isNull);
       expect(g.spacingKm, greaterThan(10));
+    });
+
+    test('时间轴过渡：两整点之间线性，整点上取原值；任一端缺失为 NaN', () {
+      final g = WeatherFieldService.parse(
+        fakeFieldResponse(
+          Uri.parse('https://x/?latitude=1,2,3,4'),
+          missingAt: 2,
+        ),
+        bounds: const FieldBounds(south: 0, west: 0, north: 1, east: 1),
+        cols: 2,
+        rows: 2,
+        lats: const [1, 0],
+        lons: const [0, 1],
+        fetchedAtUtc: now,
+      );
+      // 第 3 个格点（下标 1）：0.1 → 0.0 → 2.0
+      expect(g.blendedAt(FieldVar.precip, 0)[1], closeTo(0.1, 1e-6));
+      expect(g.blendedAt(FieldVar.precip, 0.5)[1], closeTo(0.05, 1e-6));
+      expect(g.blendedAt(FieldVar.precip, 1.75)[1], closeTo(1.5, 1e-6));
+      expect(g.blendedAt(FieldVar.precip, 9)[1], closeTo(2.0, 1e-6));
+      expect(g.blendedAt(FieldVar.precip, 0.5)[2].isNaN, isTrue);
+      expect(g.blendedAt(FieldVar.cloudLow, 0.25)[0], closeTo(70, 1e-6));
     });
 
     test('缺失值为 null（不当 0）', () {
@@ -145,7 +178,7 @@ void main() {
   });
 
   group('SatelliteFrameService', () {
-    test('只返回真实存在的时次；每 30 分钟一帧，升序', () async {
+    test('只返回真实存在的时次：回看 2 小时内每 10 分钟一帧，升序；缺失时次跳过', () async {
       final probed = <Uri>[];
       final s = SatelliteFrameService(
         now: () => DateTime.utc(2026, 10, 17, 7, 5),
@@ -161,11 +194,17 @@ void main() {
       expect(probed.first.path, contains('2026-10-17T06:50:00Z'));
       expect(probed.first.path, endsWith('/2/1/3.png'));
       expect(frames.last, DateTime.utc(2026, 10, 17, 6, 40));
-      // 06:10 缺失：用 10 分钟内最近的可用时次（06:20）顶上，不出现缺失时次
-      expect(frames, contains(DateTime.utc(2026, 10, 17, 6, 20)));
+      expect(frames.first, DateTime.utc(2026, 10, 17, 4, 40));
+      // 缺失的时次不拿相邻时次顶替
       expect(frames, isNot(contains(DateTime.utc(2026, 10, 17, 6, 10))));
-      expect(frames.length, 7);
+      expect(frames.length, 12);
       expect(frames, orderedEquals([...frames]..sort()));
+      for (var i = 1; i < frames.length; i++) {
+        expect(
+          frames[i].difference(frames[i - 1]).inMinutes,
+          frames[i] == DateTime.utc(2026, 10, 17, 6, 20) ? 20 : 10,
+        );
+      }
     });
 
     test('一张都没有：空列表', () async {
