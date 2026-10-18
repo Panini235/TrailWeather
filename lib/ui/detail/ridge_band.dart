@@ -182,6 +182,7 @@ class RidgeBandGraphic extends StatelessWidget {
     required this.route,
     required this.rows,
     this.keyNodes = const [],
+    this.keyLabels,
     this.nightFromIndex,
     this.height = 120,
   });
@@ -189,6 +190,9 @@ class RidgeBandGraphic extends StatelessWidget {
   final HikingRoute route;
   final List<NodeWxRow> rows;
   final List<int> keyNodes;
+
+  /// 与 [keyNodes] 一一对应、画在编号徽章下方的短标签（行程模式的到达时刻）。
+  final List<String>? keyLabels;
   final int? nightFromIndex;
   final double height;
 
@@ -208,6 +212,7 @@ class RidgeBandGraphic extends StatelessWidget {
             selected: null,
             nightFromIndex: nightFromIndex,
             keyNodes: keyNodes,
+            keyLabels: keyLabels,
             progress: kAlwaysCompleteAnimation,
             fill: scheme.primary.withValues(alpha: 0.10),
             neutral: scheme.outlineVariant,
@@ -356,6 +361,7 @@ class _RidgePainter extends CustomPainter {
     required this.selected,
     required this.nightFromIndex,
     this.keyNodes = const [],
+    this.keyLabels,
     required this.progress,
     required this.fill,
     required this.neutral,
@@ -373,6 +379,7 @@ class _RidgePainter extends CustomPainter {
 
   /// 画成编号徽章的节点（分享图）；App 内为空。
   final List<int> keyNodes;
+  final List<String>? keyLabels;
   final Animation<double> progress;
   final Color fill, neutral, label, guide, night;
   final TextDirection textDirection;
@@ -449,6 +456,10 @@ class _RidgePainter extends CustomPainter {
       final k = keyNodes.indexOf(i);
       if (k >= 0) {
         _numberBadge(canvas, Offset(nx, ny), k + 1, color);
+        final kl = keyLabels;
+        if (kl != null && k < kl.length) {
+          _text(canvas, kl[k], Offset(nx, ny + 9), 9, center: true);
+        }
         continue;
       }
       final isSel = i == s;
@@ -560,6 +571,7 @@ class _RidgePainter extends CustomPainter {
     Offset at,
     double size, {
     bool alignRight = false,
+    bool center = false,
   }) {
     final tp = TextPainter(
       text: TextSpan(
@@ -568,7 +580,14 @@ class _RidgePainter extends CustomPainter {
       ),
       textDirection: textDirection,
     )..layout();
-    tp.paint(canvas, alignRight ? at - Offset(tp.width, 0) : at);
+    tp.paint(
+      canvas,
+      alignRight
+          ? at - Offset(tp.width, 0)
+          : center
+          ? at - Offset(tp.width / 2, 0)
+          : at,
+    );
   }
 
   @override
@@ -577,6 +596,7 @@ class _RidgePainter extends CustomPainter {
       old.selected != selected ||
       old.nightFromIndex != nightFromIndex ||
       old.keyNodes != keyNodes ||
+      old.keyLabels != keyLabels ||
       old.geom.size != geom.size ||
       old.geom.profile != geom.profile ||
       old.fill != fill;

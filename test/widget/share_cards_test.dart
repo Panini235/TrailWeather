@@ -96,7 +96,7 @@ Future<void> _pumpCard(
   double scale = 1,
   bool dark = false,
 }) async {
-  tester.view.physicalSize = const Size(720, 2400);
+  tester.view.physicalSize = const Size(900, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   await tester.pumpWidget(
@@ -119,7 +119,6 @@ RouteShareCard _routeCard({ShareLayout layout = ShareLayout.full}) =>
     RouteShareCard(
       layout: layout,
       route: _route(),
-      timeLabel: '固定 10/17 14:00',
       tripMode: false,
       reversed: false,
       summary: const RouteWxSummary(
@@ -190,6 +189,8 @@ void main() {
         expect(find.byType(QrImageView), findsOneWidget);
         expect(find.textContaining('数据：Open-Meteo'), findsOneWidget);
         expect(find.textContaining('预报非实测'), findsOneWidget);
+        // 固定时刻：顶部写明“全线同一时刻”，不和行程混淆。
+        expect(find.textContaining('全线同一时刻'), findsOneWidget);
       },
     );
   }
@@ -210,7 +211,6 @@ void main() {
       tester,
       RouteShareCard(
         route: c.route,
-        timeLabel: '行程 10/17 08:00 出发',
         tripMode: true,
         reversed: false,
         summary: c.summary,
@@ -227,6 +227,13 @@ void main() {
     final band = tester.widget<RidgeBandGraphic>(find.byType(RidgeBandGraphic));
     expect(band.keyNodes, pickKeyNodes(rows));
     expect(band.nightFromIndex, 5); // 第一个晚于日落到达的节点（100 分钟）
+    expect(band.keyLabels, [
+      for (final i in band.keyNodes)
+        '${rows[i].validUtc.toLocal().hour.toString().padLeft(2, '0')}:'
+            '${rows[i].validUtc.toLocal().minute.toString().padLeft(2, '0')}',
+    ]);
+    expect(find.textContaining(' 出发 → 约 '), findsOneWidget);
+    expect(find.textContaining('全线同一时刻'), findsNothing);
   });
 
   testWidgets('出发窗口分享卡：格子、图例、最早未触发时刻与宣传条', (tester) async {
@@ -285,7 +292,12 @@ void main() {
       expect(find.textContaining('预报非实测'), findsOneWidget);
       expect(find.byType(QrImageView), findsOneWidget);
       final width = tester.getSize(find.byType(ShareCardFrame)).width;
-      expect(width, layout == ShareLayout.wide ? 640 : 360);
+      expect(width, layout == ShareLayout.wide ? 820 : 360);
+      // 横图三栏：示意图、山脊天气带和关键节点都在（不再只有数字和剖面）。
+      if (layout == ShareLayout.wide) {
+        expect(find.byType(RidgeBandGraphic), findsOneWidget);
+        expect(find.textContaining('终点'), findsWidgets);
+      }
       // 简图不列关键节点；长图与横图有线路示意。
       expect(
         find.byType(RouteSketch),
@@ -324,7 +336,37 @@ void main() {
     expect(find.byType(RouteSketch), findsNothing);
     await tester.tap(find.text(ShareLayout.wide.label));
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(ShareCardFrame)).width, 640);
+    expect(tester.getSize(find.byType(ShareCardFrame)).width, 820);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('分享预览页顶部提醒不进图片，操作可点', (tester) async {
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: SharePreviewPage(
+          title: '分享',
+          fileName: 'x.png',
+          card: _routeCard(),
+          notice: ShareModeNotice(
+            text: '固定时刻提醒',
+            actionLabel: '改按行程',
+            onAction: () => tapped = true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('固定时刻提醒'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(ShareCardFrame),
+        matching: find.text('固定时刻提醒'),
+      ),
+      findsNothing,
+    );
+    await tester.tap(find.text('改按行程'));
+    expect(tapped, isTrue);
   });
 }

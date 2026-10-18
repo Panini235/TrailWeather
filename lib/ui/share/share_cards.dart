@@ -26,6 +26,11 @@ String _endHour(DateTime lastWetStartUtc) {
   return _two(h == 0 ? 24 : h);
 }
 
+String _hhmm(DateTime utc) {
+  final l = utc.toLocal();
+  return '${_two(l.hour)}:${_two(l.minute)}';
+}
+
 String _stamp(DateTime utc) {
   final l = utc.toLocal();
   return '${l.month}/${l.day} ${_two(l.hour)}:${_two(l.minute)}';
@@ -71,7 +76,6 @@ class RouteShareCard extends StatelessWidget {
   const RouteShareCard({
     super.key,
     required this.route,
-    required this.timeLabel,
     required this.tripMode,
     required this.reversed,
     required this.summary,
@@ -92,7 +96,6 @@ class RouteShareCard extends StatelessWidget {
   final DateTime? sunriseUtc;
   final DateTime? sunsetUtc;
   final HikingRoute route;
-  final String timeLabel;
   final bool tripMode;
   final bool reversed;
   final RouteWxSummary summary;
@@ -175,7 +178,7 @@ class RouteShareCard extends StatelessWidget {
       route: route,
       rows: rows,
       keyNodes: keys,
-      height: layout == ShareLayout.wide ? 250 : 200,
+      height: layout == ShareLayout.wide ? 260 : 200,
     );
     // 山脊天气带（与详情页同一套视觉）：行程模式且日落已知时铺出日落后的路段。
     final sunset = sunsetUtc;
@@ -188,6 +191,10 @@ class RouteShareCard extends StatelessWidget {
             route: route,
             rows: rows,
             keyNodes: keys,
+            // 行程模式：编号下标到达时刻，一眼看出“几点走到哪”。
+            keyLabels: tripMode
+                ? [for (final i in keys) _hhmm(rows[i].validUtc)]
+                : null,
             nightFromIndex: nightFrom < 0 ? null : nightFrom,
           );
     final Widget keyList = Column(
@@ -205,7 +212,7 @@ class RouteShareCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${tripMode ? '${_two(rows[i].validUtc.toLocal().hour)}:${_two(rows[i].validUtc.toLocal().minute)}  ' : ''}'
+                        '${tripMode ? '${_hhmm(rows[i].validUtc)}  ' : ''}'
                         '${rows[i].node.label ?? S.shareNodeAtKm((rows[i].node.distFromStartM / 1000).toStringAsFixed(1))}'
                         '${rows[i].node.elevationM == null ? '' : ' · ${rows[i].node.elevationM!.toStringAsFixed(0)} m'}',
                         style: const TextStyle(
@@ -237,8 +244,10 @@ class RouteShareCard extends StatelessWidget {
       sunsetUtc: sunsetUtc,
       coldSensitivity: settings.coldSensitivity,
     );
+    final banner = _modeBanner(scheme);
     final body = switch (layout) {
       ShareLayout.full => [
+        banner,
         stats,
         hintsView,
         ?(plan == null ? null : _gearRow(plan, muted)),
@@ -249,14 +258,30 @@ class RouteShareCard extends StatelessWidget {
         keyList,
       ],
       // 简图：结论 + 着色剖面；没有海拔时用示意图代替剖面。
-      ShareLayout.brief => [stats, hintsView, profile ?? sketch],
+      ShareLayout.brief => [banner, stats, hintsView, profile ?? sketch],
+      // 横图：三栏（示意图与穿衣 | 数字、提示与山脊天气带 | 关键节点），
+      // 信息量与长图接近，在手机上横向看也不是一条细长的窄图。
       ShareLayout.wide => [
+        banner,
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 300, child: sketch),
+            SizedBox(
+              width: 250,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  sketch,
+                  if (plan != null) ...[
+                    const SizedBox(height: 12),
+                    _gearRow(plan, muted),
+                  ],
+                ],
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(
+            SizedBox(
+              width: 290,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -267,6 +292,8 @@ class RouteShareCard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 16),
+            Expanded(child: keyList),
           ],
         ),
       ],
@@ -274,9 +301,8 @@ class RouteShareCard extends StatelessWidget {
 
     return ShareCardFrame(
       title: route.name,
-      width: layout == ShareLayout.wide ? 640 : 360,
+      width: layout == ShareLayout.wide ? 820 : 360,
       subtitle: [
-        timeLabel,
         '${(route.totalDistanceM / 1000).toStringAsFixed(1)} km',
         if (ascent != null) '↑${ascent.toStringAsFixed(0)} m',
         if (reversed) S.shareReversed,
@@ -287,6 +313,67 @@ class RouteShareCard extends StatelessWidget {
         S.shareSourceLine(sourceName, _stamp(fetchedAtUtc)),
         S.shareRouteDisclaimer(tripMode: tripMode),
       ],
+    );
+  }
+
+  /// 时间模式横幅：固定时刻与行程模式对天气判断的含义不同，放在最显眼处，
+  /// 避免把“全线同一小时的快照”当成按出发时间推算的行程。
+  Widget _modeBanner(ColorScheme scheme) {
+    final first = rows.isEmpty ? null : rows.first.validUtc;
+    final last = rows.isEmpty ? null : rows.last.validUtc;
+    final sunset = sunsetUtc;
+    final (icon, title, note) = tripMode
+        ? (
+            Icons.hiking,
+            first == null
+                ? S.shareModeTrip
+                : S.shareModeTripTitle(_stamp(first), _hhmm(last!)),
+            S.shareModeTripNote(sunset == null ? null : _hhmm(sunset)),
+          )
+        : (
+            Icons.schedule,
+            first == null
+                ? S.shareModeFixed
+                : S.shareModeFixedTitle(_stamp(first)),
+            S.shareModeFixedNote,
+          );
+    final color = tripMode ? scheme.primary : SemanticInk.cautionOnLight;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  note,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
