@@ -15,17 +15,16 @@ String feedbackDiagnostics(
   bool isWeb = kIsWeb,
 }) {
   final os = isWeb ? 'Web' : (platform ?? defaultTargetPlatform).name;
-  String onOff(bool v) => v ? '开' : '关';
   return [
-    '${S.appTitle} 测试版',
-    '版本：$kAppVersion',
-    '下载：$kDownloadUrl',
-    '平台：$os',
-    '天气来源：${settings.enabledProviderIds.join(', ')}',
-    '底图：${settings.baseLayerId}',
-    '低耗电：${onOff(settings.lowPower)}',
-    '海拔订正：${onOff(settings.elevationLapseRateCorrection)}',
-    '和风天气 Key：${settings.qweatherConfigured ? '已配置' : '未配置'}',
+    S.feedbackDiagBuild,
+    S.feedbackDiagVersion(kAppVersion),
+    S.feedbackDiagDownload(kDownloadUrl),
+    S.feedbackDiagPlatform(os),
+    S.feedbackDiagSources(settings.enabledProviderIds.join(', ')),
+    S.feedbackDiagBasemap(settings.baseLayerId),
+    S.feedbackDiagLowPower(settings.lowPower),
+    S.feedbackDiagLapseRate(settings.elevationLapseRateCorrection),
+    S.feedbackDiagQweather(settings.qweatherConfigured),
   ].join('\n');
 }
 

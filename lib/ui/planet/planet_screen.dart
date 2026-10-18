@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../detail/route_detail_screen.dart';
+import '../strings.dart';
 
 /// 徒步星球 · 全球经典徒步路线专区。
 class PlanetTrailsScreen extends ConsumerStatefulWidget {
@@ -27,10 +28,10 @@ class _PlanetTrailsScreenState extends ConsumerState<PlanetTrailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('徒步星球 · 全球经典'),
+        title: const Text(S.planetTitle),
         actions: [
           IconButton(
-            tooltip: '随机漫游传送',
+            tooltip: S.planetRandomTooltip,
             icon: const Icon(Icons.shuffle),
             onPressed: () async {
               final repo = ref.read(planetTrailsRepositoryProvider);
@@ -38,7 +39,9 @@ class _PlanetTrailsScreenState extends ConsumerState<PlanetTrailsScreen> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('已随机传送到：${r.name}（${r.region ?? ""}）'),
+                    content: Text(
+                      S.planetRandomTeleported(r.name, r.region ?? ''),
+                    ),
                     duration: const Duration(seconds: 2),
                   ),
                 );
@@ -84,7 +87,7 @@ class _PlanetTrailsScreenState extends ConsumerState<PlanetTrailsScreen> {
               scrollDirection: Axis.horizontal,
               child: SegmentedButton<int>(
                 segments: const [
-                  ButtonSegment(value: 0, label: Text('全部里程')),
+                  ButtonSegment(value: 0, label: Text(S.planetAllDistances)),
                   ButtonSegment(value: 1, label: Text('≤20km')),
                   ButtonSegment(value: 2, label: Text('20-50km')),
                   ButtonSegment(value: 3, label: Text('50-100km')),
@@ -104,7 +107,8 @@ class _PlanetTrailsScreenState extends ConsumerState<PlanetTrailsScreen> {
           Expanded(
             child: trailsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => Center(child: Text('加载经典路线失败：$err')),
+              error: (err, _) =>
+                  Center(child: Text(S.planetLoadFailed('$err'))),
               data: (allRoutes) {
                 // 客户端过滤
                 final filtered = allRoutes.where((r) {
@@ -122,7 +126,7 @@ class _PlanetTrailsScreenState extends ConsumerState<PlanetTrailsScreen> {
                 }).toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('当前分类下暂无经典路线'));
+                  return const Center(child: Text(S.planetEmptyCategory));
                 }
 
                 return ListView.builder(
@@ -152,7 +156,7 @@ class _PlanetRouteCard extends StatelessWidget {
     final km = (route.totalDistanceM / 1000.0).toStringAsFixed(1);
     final ascent = route.totalAscentM != null
         ? '${route.totalAscentM!.round()} m'
-        : '未知';
+        : S.unknown;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -225,7 +229,10 @@ class _PlanetRouteCard extends StatelessWidget {
                 children: [
                   _InfoChip(icon: Icons.straighten, text: '$km km'),
                   const SizedBox(width: 12),
-                  _InfoChip(icon: Icons.trending_up, text: '爬升 $ascent'),
+                  _InfoChip(
+                    icon: Icons.trending_up,
+                    text: S.planetAscent(ascent),
+                  ),
                   if (route.durationDesc != null) ...[
                     const SizedBox(width: 12),
                     _InfoChip(icon: Icons.schedule, text: route.durationDesc!),

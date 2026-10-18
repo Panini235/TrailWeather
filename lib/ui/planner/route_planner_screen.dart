@@ -188,7 +188,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
     _edited();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('路线方向已反转（反穿规划）'),
+        content: Text(S.plannerReversed),
         duration: Duration(seconds: 1),
       ),
     );
@@ -250,16 +250,16 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
     showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('清空当前规划？'),
-        content: const Text('此操作将清除已绘制的全部轨迹点与航点。'),
+        title: const Text(S.plannerClearTitle),
+        content: const Text(S.plannerClearBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: const Text(S.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('清空'),
+            child: const Text(S.plannerClear),
           ),
         ],
       ),
@@ -315,7 +315,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('定位失败，可以继续在地图上打点。')));
+            .showSnackBar(const SnackBar(content: Text(S.plannerLocateFailed)));
       }
     } finally {
       if (mounted) setState(() => _locating = false);
@@ -330,7 +330,9 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
   // ---------------------------------------------------------------- 航点、保存、导出
 
   Future<void> _showAddWaypointDialog(LatLng pt) async {
-    final nameCtrl = TextEditingController(text: '航点 ${_waypoints.length + 1}');
+    final nameCtrl = TextEditingController(
+      text: S.plannerWaypointDefaultName(_waypoints.length + 1),
+    );
     final descCtrl = TextEditingController();
     var selectedType = WaypointType.poi;
 
@@ -338,7 +340,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
-          title: const Text('添加关键航点 (POI)'),
+          title: const Text(S.plannerAddWaypointTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -346,13 +348,15 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                 TextField(
                   controller: nameCtrl,
                   decoration: const InputDecoration(
-                    labelText: '航点名称（如：一线天、白家营地）',
+                    labelText: S.plannerWaypointNameLabel,
                   ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<WaypointType>(
                   initialValue: selectedType,
-                  decoration: const InputDecoration(labelText: '航点类型'),
+                  decoration: const InputDecoration(
+                    labelText: S.plannerWaypointTypeLabel,
+                  ),
                   items: WaypointType.values.map((t) {
                     return DropdownMenuItem(
                       value: t,
@@ -367,7 +371,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                 TextField(
                   controller: descCtrl,
                   decoration: const InputDecoration(
-                    labelText: '备注（如：可扎营3顶帐篷、有流动山泉）',
+                    labelText: S.plannerWaypointDescLabel,
                   ),
                 ),
               ],
@@ -376,7 +380,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
+              child: const Text(S.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -394,7 +398,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                   ),
                 );
               },
-              child: const Text('添加'),
+              child: const Text(S.plannerAdd),
             ),
           ],
         ),
@@ -410,7 +414,10 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '已添加：${created.name}（${waypointTypeLabel(created.type)}）',
+              S.plannerWaypointAdded(
+                created.name,
+                waypointTypeLabel(created.type),
+              ),
             ),
           ),
         );
@@ -427,12 +434,12 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
   Future<void> _saveRoute() async {
     if (_points.length < 2) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('规划轨迹至少需要连接 2 个点')));
+          .showSnackBar(const SnackBar(content: Text(S.plannerNeedTwoPoints)));
       return;
     }
 
     final nameCtrl = TextEditingController(
-      text: '手绘规划线路 ${DateTime.now().month}月${DateTime.now().day}日',
+      text: S.plannerDefaultRouteName(DateTime.now().month, DateTime.now().day),
     );
     final descCtrl = TextEditingController();
     final stats = _profile.stats;
@@ -440,27 +447,31 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('保存手绘路线并查看天气'),
+        title: const Text(S.plannerSaveTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: nameCtrl,
-              decoration: const InputDecoration(labelText: '线路名称'),
+              decoration: const InputDecoration(
+                labelText: S.plannerRouteNameLabel,
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: descCtrl,
               maxLines: 2,
-              decoration: const InputDecoration(labelText: '备注说明（可选）'),
+              decoration: const InputDecoration(labelText: S.plannerDescLabel),
             ),
             const SizedBox(height: 12),
             Text(
-              '总里程：${(_totalDistM / 1000.0).toStringAsFixed(2)} km\n'
-              '${stats == null ? '' : '累计爬升：${S.plannerAbout} ${displayElevation(stats.ascentM)} m\n'}'
-              '航点数：${_waypoints.length} 个\n'
-              '预计徒步耗时：${_durationText()}',
+              S.plannerSaveSummary(
+                distKm: (_totalDistM / 1000.0).toStringAsFixed(2),
+                ascentM: stats == null ? null : displayElevation(stats.ascentM),
+                waypoints: _waypoints.length,
+                duration: _durationText(),
+              ),
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -472,11 +483,11 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: const Text(S.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('保存并推演天气'),
+            child: const Text(S.plannerSaveAndForecast),
           ),
         ],
       ),
@@ -484,7 +495,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
 
     if (confirmed == true && mounted) {
       final name = nameCtrl.text.trim().isEmpty
-          ? '手绘规划线路'
+          ? S.plannerUntitledRoute
           : nameCtrl.text.trim();
       // 海拔齐全时按剖面样点保存，详情页的海拔剖面、爬升与配速都能用上；
       // 来源名注明海拔是公开高程数据估算。不齐时只存手绘点、海拔留空，不编造。
@@ -498,8 +509,8 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
             ? [for (final e in _profile.elevM) e]
             : List.filled(_points.length, null),
         sourceName: withElev
-            ? '用户手绘规划（Trail Studio）· ${S.plannerElevSource}'
-            : '用户手绘规划（Trail Studio）',
+            ? S.plannerSourceNameWithElev
+            : S.plannerSourceName,
         importedAtUtc: DateTime.now().toUtc(),
         description: descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
         waypoints: List.of(_waypoints),
@@ -519,18 +530,19 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
 
   void _showExportModal() {
     if (_points.length < 2) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('至少需要 2 个轨迹点才能导出')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(S.plannerNeedTwoPointsExport)),
+      );
       return;
     }
 
     final tempRoute = HikingRoute(
       id: 'export-temp',
-      name: '手绘规划线路',
+      name: S.plannerUntitledRoute,
       origin: RouteOrigin.planned,
       segments: [List.of(_points)],
       elevationsM: List.filled(_points.length, null),
-      sourceName: '用户规划',
+      sourceName: S.plannerExportSourceName,
       waypoints: List.of(_waypoints),
     );
 
@@ -543,41 +555,34 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              '导出规划轨迹',
+              S.plannerExportTitle,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const HelpText(
-              '可导出为标准 GPX 或 KML 格式，在两步路、奥维互动地图或户外手表中加载：',
-              size: 12,
-            ),
+            const HelpText(S.plannerExportNote, size: 12),
             const SizedBox(height: 16),
             FilledButton.icon(
               icon: const Icon(Icons.copy),
-              label: const Text('复制 GPX 内容到剪贴板'),
+              label: const Text(S.plannerCopyGpx),
               onPressed: () {
                 final gpxStr = RouteExporter.toGpx(tempRoute);
                 Clipboard.setData(ClipboardData(text: gpxStr));
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('GPX 文本已复制到剪贴板！可直接粘贴保存为 .gpx 文件使用'),
-                  ),
+                  const SnackBar(content: Text(S.plannerGpxCopied)),
                 );
               },
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               icon: const Icon(Icons.copy),
-              label: const Text('复制 KML 内容到剪贴板（奥维/两步路推荐）'),
+              label: const Text(S.plannerCopyKml),
               onPressed: () {
                 final kmlStr = RouteExporter.toKml(tempRoute);
                 Clipboard.setData(ClipboardData(text: kmlStr));
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('KML 文本已复制到剪贴板！可直接粘贴保存为 .kml 文件使用'),
-                  ),
+                  const SnackBar(content: Text(S.plannerKmlCopied)),
                 );
               },
             ),
@@ -603,15 +608,15 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('线路规划工坊'),
+        title: const Text(S.plannerTitle),
         actions: [
           IconButton(
-            tooltip: '撤销',
+            tooltip: S.plannerUndo,
             icon: const Icon(Icons.undo),
             onPressed: _points.isEmpty && _undoStack.isEmpty ? null : _undo,
           ),
           IconButton(
-            tooltip: '反向走法（反穿）',
+            tooltip: S.plannerReverse,
             icon: const Icon(Icons.swap_calls),
             onPressed: _points.length < 2 ? null : _reverse,
           ),
@@ -625,7 +630,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                 enabled: _points.length >= 2,
                 child: const ListTile(
                   leading: Icon(Icons.file_upload_outlined),
-                  title: Text('导出 GPX / KML'),
+                  title: Text(S.plannerExportMenu),
                 ),
               ),
               PopupMenuItem(
@@ -633,7 +638,7 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                 enabled: _points.isNotEmpty || _waypoints.isNotEmpty,
                 child: const ListTile(
                   leading: Icon(Icons.delete_outline),
-                  title: Text('清空重画'),
+                  title: Text(S.plannerClearMenu),
                 ),
               ),
             ],
@@ -786,12 +791,12 @@ class _RoutePlannerScreenState extends ConsumerState<RoutePlannerScreen> {
                     ButtonSegment(
                       value: PlannerMode.draw,
                       icon: Icon(Icons.edit_road),
-                      label: Text('打点画线'),
+                      label: Text(S.plannerModeDraw),
                     ),
                     ButtonSegment(
                       value: PlannerMode.waypoint,
                       icon: Icon(Icons.add_location_alt),
-                      label: Text('标记营地/水源'),
+                      label: Text(S.plannerModeWaypoint),
                     ),
                   ],
                   selected: {_mode},
@@ -1119,8 +1124,7 @@ class _PlannerHud extends StatelessWidget {
             Text(
               !hasLine
                   ? (pointCount == 0 ? S.plannerHintEmpty : S.plannerHintEdit)
-                  : '$durationText${stats == null ? ' · ${S.plannerNoClimb}' : ''}'
-                        ' · $pointCount 点 / $waypointCount 航点',
+                  : '$durationText${stats == null ? ' · ${S.plannerNoClimb}' : ''}${S.plannerCounts(pointCount, waypointCount)}',
               style: muted,
             ),
             if (hasLine && profile.elevM.isNotEmpty) ...[
@@ -1147,7 +1151,7 @@ class _PlannerHud extends StatelessWidget {
                 const Spacer(),
                 FilledButton.icon(
                   icon: const Icon(Icons.check),
-                  label: const Text('完成并查天气'),
+                  label: const Text(S.plannerFinish),
                   onPressed: onSave,
                 ),
               ],

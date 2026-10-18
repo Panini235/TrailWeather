@@ -5,6 +5,7 @@ import '../../data/settings/settings_repository.dart';
 import '../../data/weather/meteoblue_provider.dart';
 import '../../data/weather/meteoblue_settings.dart';
 import '../widgets/common.dart';
+import '../strings.dart';
 
 /// meteoblue 密钥配置（仅存本机，不上传）与本机调用计数。
 class MeteoblueCredentialsCard extends ConsumerStatefulWidget {
@@ -38,7 +39,7 @@ class _MeteoblueCredentialsCardState
     }
     if (mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('已保存（仅本机）')));
+          .showSnackBar(const SnackBar(content: Text(S.saved)));
     }
   }
 
@@ -57,21 +58,13 @@ class _MeteoblueCredentialsCardState
                 const Icon(Icons.vpn_key_outlined, size: 16),
                 const SizedBox(width: 6),
                 const Expanded(
-                  child: Text(
-                    'meteoblue（逐点海拔，按次计费）',
-                    style: TextStyle(fontSize: 14),
-                  ),
+                  child: Text(S.meteoblueTitle, style: TextStyle(fontSize: 14)),
                 ),
                 ConfiguredStatus(configured: mb.configured),
               ],
             ),
             const SizedBox(height: 4),
-            const HelpText(
-              '在 meteoblue 账户的 Weather API 页面获取 key。每次查询约 8000 credits'
-              '（免费版 1 年 1000 万 ≈ 1,250 次），所以只在节点详情“多来源对比”或地图选点里'
-              '点“查询此点”时才请求，按节点海拔计算；3 小时内重复查询同一点使用缓存。'
-              '密钥仅保存在本机。',
-            ),
+            const HelpText(S.meteoblueHelp),
             const SizedBox(height: 8),
             TextField(
               controller: _key,
@@ -84,15 +77,17 @@ class _MeteoblueCredentialsCardState
             ),
             const SizedBox(height: 6),
             Text(
-              '本机已发起 ${mb.networkCalls} 次请求（约 ${(used / 10000).toStringAsFixed(1)} 万 credits）；'
-              '剩余额度以 meteoblue 后台为准。',
+              S.meteoblueUsage(
+                mb.networkCalls,
+                (used / 10000).toStringAsFixed(1),
+              ),
               style: const TextStyle(fontSize: 11),
             ),
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.tonal(
                 onPressed: _save,
-                child: const Text('保存', style: TextStyle(fontSize: 13)),
+                child: const Text(S.save, style: TextStyle(fontSize: 13)),
               ),
             ),
           ],

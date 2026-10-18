@@ -10,6 +10,7 @@ import 'package:trailweather/data/weather/departure_windows.dart';
 import 'package:trailweather/data/weather/risk_rules.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
 import 'package:trailweather/ui/detail/detail_state.dart';
+import 'package:trailweather/ui/detail/ridge_band.dart';
 import 'package:trailweather/ui/share/share_cards.dart';
 import 'package:trailweather/ui/share/share_graphics.dart';
 import 'package:trailweather/ui/share/share_image.dart';
@@ -184,7 +185,7 @@ void main() {
         expect(find.text('大风提示'), findsOneWidget);
         expect(find.text('较强降水提示'), findsOneWidget);
         expect(find.byType(RouteSketch), findsOneWidget);
-        expect(find.byType(ShareElevationProfile), findsOneWidget);
+        expect(find.byType(RidgeBandGraphic), findsOneWidget);
         expect(find.text(kShareSlogan), findsOneWidget);
         expect(find.byType(QrImageView), findsOneWidget);
         expect(find.textContaining('数据：Open-Meteo'), findsOneWidget);
@@ -192,6 +193,41 @@ void main() {
       },
     );
   }
+
+  testWidgets('线路分享卡用山脊天气带：编号与列表一致，行程模式铺出日落后的路段', (tester) async {
+    final c = _routeCard();
+    // 每 20 分钟到达一个节点；来源只有一个整点，之后的节点无数据（中性色）。
+    final rows = [
+      for (final (i, r) in _rows().indexed)
+        NodeWxRow(
+          node: r.node,
+          validUtc: _t.add(Duration(minutes: 20 * i)),
+          point: r.point,
+          sharedWithPrev: false,
+        ),
+    ];
+    await _pumpCard(
+      tester,
+      RouteShareCard(
+        route: c.route,
+        timeLabel: '行程 10/17 08:00 出发',
+        tripMode: true,
+        reversed: false,
+        summary: c.summary,
+        dayPrecip: null,
+        hints: c.hints,
+        rows: rows,
+        settings: c.settings,
+        sourceName: c.sourceName,
+        fetchedAtUtc: c.fetchedAtUtc,
+        sunsetUtc: _t.add(const Duration(minutes: 90)),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    final band = tester.widget<RidgeBandGraphic>(find.byType(RidgeBandGraphic));
+    expect(band.keyNodes, pickKeyNodes(rows));
+    expect(band.nightFromIndex, 5); // 第一个晚于日落到达的节点（100 分钟）
+  });
 
   testWidgets('出发窗口分享卡：格子、图例、最早未触发时刻与宣传条', (tester) async {
     final day1 = DateTime(2026, 10, 17);

@@ -54,7 +54,10 @@ class _ConclusionCard extends StatelessWidget {
             ],
             if (!summary.hasAnyData)
               Text(
-                '当前选定时间与来源没有可用数据（${summary.nodesWithData}/${summary.totalNodes} 节点有数据）。信息不足时无法给出摘要。',
+                S.detailSummaryNoData(
+                  summary.nodesWithData,
+                  summary.totalNodes,
+                ),
                 style: const TextStyle(fontSize: 12, height: 1.5),
               )
             else
@@ -63,14 +66,14 @@ class _ConclusionCard extends StatelessWidget {
                   Expanded(
                     child: _kv(
                       context,
-                      '最低/最高温',
+                      S.detailMinMaxTemp,
                       '${summary.minTempC == null ? S.notProvided : Units.temp(summary.minTempC!, imperial: settings.imperial, digits: 0)} / ${summary.maxTempC == null ? S.notProvided : Units.temp(summary.maxTempC!, imperial: settings.imperial)}',
                     ),
                   ),
                   Expanded(
                     child: _kv(
                       context,
-                      '最大阵风',
+                      S.detailMaxGust,
                       summary.maxGustMs == null
                           ? S.notProvided
                           : Units.windMs(
@@ -83,7 +86,7 @@ class _ConclusionCard extends StatelessWidget {
                     child: _kv(
                       context,
                       // 固定时刻只是一个小时的量，标清楚，避免当成全天。
-                      tripMode ? '行程降水' : '该时次降水',
+                      tripMode ? S.detailTripPrecip : S.detailHourPrecip,
                       summary.totalPrecipMm == null
                           ? S.notProvided
                           : Units.precipMm(
@@ -129,7 +132,7 @@ class _ConclusionCard extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               dense: true,
               leading: const Icon(Icons.date_range),
-              title: const Text('比较出发窗口'),
+              title: const Text(S.detailCompareDepartures),
               trailing: const Icon(Icons.chevron_right),
               onTap: onDepartures,
             ),
@@ -208,7 +211,7 @@ class _Headline extends StatelessWidget {
                           ),
                           if (hints.length > 1)
                             TextSpan(
-                              text: '  等 ${hints.length} 项提示',
+                              text: S.detailMoreHints(hints.length),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
@@ -270,7 +273,7 @@ class _NodeTile extends StatelessWidget {
     } else {
       leading = const Icon(Icons.circle, size: 10);
     }
-    final name = row.node.label ?? '节点 ${index + 1}';
+    final name = row.node.label ?? S.detailNodeFallback(index + 1);
     final ele = row.node.elevationM == null
         ? ''
         : ' · ${row.node.elevationM!.toStringAsFixed(0)} m';
@@ -302,7 +305,7 @@ class _NodeTile extends StatelessWidget {
             ),
           if (wp?.stopMinutes != null)
             Text(
-              '停留 ${wp!.stopMinutes} 分钟',
+              S.detailStopMinutes(wp!.stopMinutes!),
               style: TextStyle(fontSize: 11, color: muted),
             ),
           if (selected)
@@ -503,7 +506,7 @@ class _TransparencyCard extends StatelessWidget {
               text:
                   prov?.granularityStatement() ??
                   caps.spatialResolutionNote ??
-                  '来源未提供空间分辨率，位置颗粒度未确认',
+                  S.detailNoResolution,
             ),
             if (bundle?.sharedGridNote != null) ...[
               const SizedBox(height: 6),
@@ -522,13 +525,16 @@ class _TransparencyCard extends StatelessWidget {
             if (prov != null)
               Text(
                 '${S.fetchedAt}：${prov.fetchedAtUtc.toIso8601String().substring(0, 16)} UTC'
-                '${prov.modelRunUtc == null ? '' : '\n起报/发布：${prov.modelRunUtc!.toIso8601String().substring(0, 16)} UTC'}'
-                '${prov.elevationUsedM == null ? '' : '\n来源使用海拔（模型地形）：${prov.elevationUsedM!.toStringAsFixed(0)} m；轨迹海拔见各节点（两者是不同数据）'}',
+                '${prov.modelRunUtc == null ? '' : S.detailModelRunLine(prov.modelRunUtc!.toIso8601String().substring(0, 16))}'
+                '${prov.elevationUsedM == null ? '' : S.detailSourceElevLine(prov.elevationUsedM!.toStringAsFixed(0))}',
                 style: const TextStyle(fontSize: 11, height: 1.5),
               ),
             TextButton.icon(
               icon: const Icon(Icons.science_outlined, size: 16),
-              label: const Text('查看完整溯源信息', style: TextStyle(fontSize: 12)),
+              label: const Text(
+                S.detailFullProvenance,
+                style: TextStyle(fontSize: 12),
+              ),
               onPressed: prov == null
                   ? null
                   : () {

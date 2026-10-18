@@ -273,7 +273,7 @@ class WxBriefLine extends StatelessWidget {
     final v = wx?.values;
     if (v == null) {
       return Text(
-        '该时次无数据（超出来源范围或未提供）',
+        S.cellsNoDataAtHour,
         style: TextStyle(fontSize: 12, color: Theme.of(context).disabledColor),
       );
     }
@@ -283,9 +283,11 @@ class WxBriefLine extends StatelessWidget {
     final parts = <String>[
       t == null ? S.notProvided : Units.temp(t, imperial: settings.imperial),
       p == null
-          ? '降水：未提供'
-          : '降水 ${Units.precipMm(p, imperial: settings.imperial)}',
-      ws == null ? '风：未提供' : '风 ${Units.windMs(ws, unit: settings.windUnit)}',
+          ? S.cellsPrecipMissing
+          : S.cellsPrecip(Units.precipMm(p, imperial: settings.imperial)),
+      ws == null
+          ? S.cellsWindMissing
+          : S.cellsWind(Units.windMs(ws, unit: settings.windUnit)),
     ];
     return Text(parts.join(' · '), style: const TextStyle(fontSize: 12));
   }
@@ -331,7 +333,7 @@ class KeyWeatherValues extends StatelessWidget {
       childAspectRatio: 2.4,
       children: [
         cell(
-          '气温 / 体感',
+          S.cellsTempFeels,
           t == null && a == null ? S.notProvided : '${temp(t)} / ${temp(a)}',
         ),
         cell(
@@ -341,7 +343,7 @@ class KeyWeatherValues extends StatelessWidget {
               : Units.windMs(gust, unit: settings.windUnit),
           wind == null
               ? null
-              : '持续 ${Units.windMs(wind, unit: settings.windUnit)}',
+              : S.cellsSustained(Units.windMs(wind, unit: settings.windUnit)),
         ),
         cell(
           WxVar.precip.label,
@@ -352,8 +354,8 @@ class KeyWeatherValues extends StatelessWidget {
               ? null
               // 概率高而量为 0：两者来自不同模型（Open-Meteo 概率来自集合预报）。
               : (pp >= 50 && (p ?? 0) < 0.1)
-              ? '概率 ${pp.toStringAsFixed(0)}% · ${S.probVsAmountNote}'
-              : '概率 ${pp.toStringAsFixed(0)}%',
+              ? S.cellsProbWithNote(pp.toStringAsFixed(0))
+              : S.cellsProb(pp.toStringAsFixed(0)),
         ),
         cell(S.phenomenonLabel, phen?.label ?? S.notProvided),
       ],

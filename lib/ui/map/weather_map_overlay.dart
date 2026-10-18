@@ -859,10 +859,10 @@ class WeatherMapPanel extends StatelessWidget {
         t.day,
       ).difference(DateTime(today.year, today.month, today.day)).inDays;
       final day = switch (d) {
-        0 => '今天',
-        1 => '明天',
-        2 => '后天',
-        -1 => '昨天',
+        0 => S.today,
+        1 => S.tomorrow,
+        2 => S.dayAfterTomorrow,
+        -1 => S.yesterday,
         _ => '${t.month}/${t.day}',
       };
       final hm =
@@ -1031,7 +1031,7 @@ class WeatherMapPanel extends StatelessWidget {
                         : sat
                         ? S.wxMapSatelliteNote
                         : '${S.wxMapForecastNote}'
-                              '${c.grid == null ? '' : ' · 格点约 ${c.grid!.spacingKm.round()} km'}',
+                              '${c.grid == null ? '' : S.wxMapGridSpacing(c.grid!.spacingKm.round())}',
                     style: small,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1114,13 +1114,16 @@ class _TyphoonBody extends StatelessWidget {
                           if (t.pressureHpa != null)
                             '${t.pressureHpa!.round()} hPa',
                           if (t.maxWindMs != null)
-                            '最大风速 ${t.maxWindMs!.round()} m/s',
+                            S.wxMapTyphoonMaxWind(t.maxWindMs!.round()),
                           if (t.course != null)
-                            '向${t.course}${t.speedKmh == null ? '' : ' ${t.speedKmh!.round()} km/h'}',
+                            '${S.wxMapTyphoonHeading('${t.course}')}${t.speedKmh == null ? '' : ' ${t.speedKmh!.round()} km/h'}',
                         ].join(' · '),
                         style: const TextStyle(fontSize: 12),
                       ),
-                      Text('发布 ${fmtTime(t.issueUtc)}', style: small),
+                      Text(
+                        S.wxMapTyphoonIssued(fmtTime(t.issueUtc)),
+                        style: small,
+                      ),
                     ],
                   ),
                 ),
@@ -1165,7 +1168,7 @@ class _Legend extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(child: Text('暗 = 地面或低云　亮/彩 = 云顶高、对流强', style: style)),
+          Expanded(child: Text(S.wxMapSatelliteLegend, style: style)),
         ],
       );
     }

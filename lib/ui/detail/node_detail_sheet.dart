@@ -70,14 +70,17 @@ class _NodeComparePanelState extends ConsumerState<NodeComparePanel> {
           ],
         ),
         Text(
-          '${row.node.label ?? '节点'} · ${S.distFromStart} ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km'
+          '${row.node.label ?? S.compareNodeFallback} · ${S.distFromStart} ${(row.node.distFromStartM / 1000).toStringAsFixed(1)} km'
           '${row.node.elevationM == null ? '' : ' · ${S.elevationLabel} ${row.node.elevationM!.toStringAsFixed(0)} m'}',
           style: const TextStyle(fontSize: 13),
         ),
         const SizedBox(height: 2),
         Text(
-          '${S.validTime}：${_fmt(wantUtc)} UTC（${_fmtLocal(wantUtc)} 本地）'
-          '${widget.fixedUtc != null ? '' : '（行程模式：${S.eta}，估算）'}',
+          S.compareValidTime(
+            utc: _fmt(wantUtc),
+            local: _fmtLocal(wantUtc),
+            tripMode: widget.fixedUtc == null,
+          ),
           style: TextStyle(
             fontSize: 11,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -207,7 +210,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
                   )
                 else if (snap.hasError)
                   Text(
-                    '该来源请求失败：${snap.error}',
+                    S.compareSourceFailed('${snap.error}'),
                     style: TextStyle(
                       fontSize: 12,
                       color: SemanticInk.danger(context),
@@ -225,7 +228,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
 
   List<Widget> _dataWidgets(BuildContext context, RouteWeatherBundle bundle) {
     if (bundle.result.points.isEmpty) {
-      return [const Text('该来源未返回此位置数据', style: TextStyle(fontSize: 12))];
+      return [const Text(S.compareNoPointData, style: TextStyle(fontSize: 12))];
     }
     final point = bundle.result.points.first;
     final nearest = _nearestHour(point, wantUtc);
@@ -237,7 +240,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
         ),
         const SizedBox(height: 4),
         Text(
-          '该来源的时间范围：${_range(point)}。${S.outOfRangeDetail}',
+          S.compareSourceRange(_range(point)),
           style: TextStyle(
             fontSize: 11,
             height: 1.4,
@@ -254,7 +257,10 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(
-            '来源最近有效时次：${nearest.validFromUtc.toIso8601String().substring(5, 16)} UTC（与请求时刻相差 $diffMin 分钟）',
+            S.compareNearestHour(
+              nearest.validFromUtc.toIso8601String().substring(5, 16),
+              diffMin,
+            ),
             style: TextStyle(fontSize: 11, color: SemanticInk.caution(context)),
           ),
         ),
@@ -264,7 +270,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
       const SizedBox(height: 4),
       Text(
         '${S.fetchedAt}：${prov.fetchedAtUtc.toIso8601String().substring(0, 16)} UTC'
-        '${prov.modelRunUtc == null ? '' : ' · 起报 ${prov.modelRunUtc!.toIso8601String().substring(11, 16)} UTC'}'
+        '${prov.modelRunUtc == null ? '' : S.compareModelRun(prov.modelRunUtc!.toIso8601String().substring(11, 16))}'
         '${bundle.result.stale ? ' · ${S.staleData}' : ''}',
         style: TextStyle(
           fontSize: 10,
@@ -277,7 +283,7 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
   String _range(WxPointForecast p) {
     final f = p.firstValidUtc;
     final l = p.lastValidUtc;
-    if (f == null || l == null) return '未返回时间序列';
+    if (f == null || l == null) return S.compareNoSeries;
     return '${f.toIso8601String().substring(5, 16)} → ${l.toIso8601String().substring(5, 16)} UTC';
   }
 

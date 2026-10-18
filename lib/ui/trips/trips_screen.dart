@@ -72,7 +72,7 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('删除“${route.name}”？'),
+        title: Text(S.tripsDeleteTitle(route.name)),
         content: const Text(S.deleteTripDetail),
         actions: [
           TextButton(
@@ -119,8 +119,8 @@ class _TripsScreenState extends ConsumerState<TripsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.offline_pin_outlined),
-              title: const Text('离线行程包'),
-              subtitle: const Text('查看已保存的线路与预报'),
+              title: const Text(S.tripsOfflineTitle),
+              subtitle: const Text(S.tripsOfflineSubtitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/offline'),
             ),

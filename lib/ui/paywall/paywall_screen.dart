@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/monetization/subscription_models.dart';
 import '../../data/monetization/subscription_repository.dart';
+import '../strings.dart';
 
 /// 山晴 Pro 会员付费墙。
 class PaywallScreen extends ConsumerStatefulWidget {
@@ -37,7 +38,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🎉 恭喜！您已成功解锁 山晴 Pro 专业会员全量特权！'),
+          content: Text(S.paywallPurchaseSuccess),
           backgroundColor: Color(0xFF2E5D32),
           duration: Duration(seconds: 3),
         ),
@@ -53,7 +54,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     setState(() => _isProcessing = false);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? '已成功恢复 Pro 会员权益！' : '未查询到有效的 Pro 会员订单记录')),
+      SnackBar(
+        content: Text(ok ? S.paywallRestoreSuccess : S.paywallRestoreNotFound),
+      ),
     );
     if (ok) {
       context.pop();
@@ -68,10 +71,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('山晴 Pro'),
+        title: const Text(S.paywallTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          tooltip: '关闭',
+          tooltip: S.close,
           onPressed: () => context.pop(),
         ),
         actions: [
@@ -79,7 +82,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             onPressed: (_isProcessing || !Billing.available)
                 ? null
                 : _handleRestore,
-            child: const Text('恢复购买'),
+            child: const Text(S.paywallRestore),
           ),
         ],
       ),
@@ -116,7 +119,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '专业户外微气候推演',
+                          S.paywallHeadline,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -126,8 +129,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     const SizedBox(height: 6),
                     Text(
                       widget.sourceFeature != null
-                          ? '当前操作涉及 Pro 专享权益：【${widget.sourceFeature}】'
-                          : '以下为 Pro 方案规划，标注“开发中”的功能尚未上线',
+                          ? S.paywallSourceFeature(widget.sourceFeature!)
+                          : S.paywallPlanIntro,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.grey.shade700,
@@ -165,7 +168,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
               // 2. 权益清单对比
               Text(
-                'Pro 权益规划',
+                S.paywallBenefitsTitle,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -205,7 +208,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: const Text(
-                                      '开发中',
+                                      S.paywallInDevelopment,
                                       style: TextStyle(fontSize: 9),
                                     ),
                                   ),
@@ -248,7 +251,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
               // 3. 套餐卡片选择
               Text(
-                '选择适合你的订阅方案',
+                S.paywallChoosePlan,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -283,14 +286,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       )
                     : Text(
                         sub.isPro
-                            ? '已是 Pro 专业会员'
+                            ? S.paywallAlreadyPro
                             : !Billing.available
-                            ? '支付未接入，暂不可开通'
+                            ? S.paywallBillingUnavailable
                             : (_selectedPlan == SubscriptionPlan.yearly
-                                  ? '立即开始 7 天免费试用（试用后 ¥98/年）'
+                                  ? S.paywallCtaYearly
                                   : (_selectedPlan == SubscriptionPlan.monthly
-                                        ? '立即开通月度会员（¥18/月）'
-                                        : '一次性购买终身会员（¥198）')),
+                                        ? S.paywallCtaMonthly
+                                        : S.paywallCtaLifetime)),
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -302,8 +305,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               if (Billing.available)
                 Text(
                   _selectedPlan == SubscriptionPlan.lifetime
-                      ? '终身买断一次性付费，尊享后续算法升级，无需续费。'
-                      : '试用期内可随时在应用商店或设置中取消，不产生扣费。自动续订，可随时取消。',
+                      ? S.paywallLifetimeNote
+                      : S.paywallSubscriptionNote,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
@@ -312,7 +315,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               Center(
                 child: TextButton(
                   onPressed: () => context.pop(),
-                  child: const Text('返回，继续免费使用'),
+                  child: const Text(S.paywallContinueFree),
                 ),
               ),
             ],

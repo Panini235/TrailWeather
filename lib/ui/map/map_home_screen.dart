@@ -332,9 +332,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     } catch (_) {
       if (!mounted || _searchQuery != query) return;
       setState(() => _searching = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('地点候选加载失败；仍可使用本地线路或导入轨迹。')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text(S.mapPlaceSearchFailed)));
     }
   }
 
@@ -352,7 +351,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
         content: Text(
           routes.isEmpty
               ? S.placeMovedNoRoutes
-              : '已在 ${place.name} 附近找到 ${routes.length} 条可直接分析的线路。',
+              : S.mapPlaceRoutesFound(place.name, routes.length),
         ),
       ),
     );
@@ -456,7 +455,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
     } catch (_) {
       if (mounted && interactive) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('定位失败。你仍可手动点选地图查询天气。')));
+            .showSnackBar(const SnackBar(content: Text(S.mapLocateFailed)));
       }
     } finally {
       if (mounted) setState(() => _locating = false);
@@ -508,9 +507,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                     );
               _myWxSource =
                   '${caps.displayName}'
-                  '${bundle.result.stale ? ' · 旧预报' : ''}'
-                  '${bundle.result.refreshing ? ' · 更新中' : ''}'
-                  '${bundle.result.refreshFailed ? ' · 更新失败' : ''}';
+                  '${bundle.result.stale ? S.mapWxStaleSuffix : ''}'
+                  '${bundle.result.refreshing ? S.mapWxRefreshingSuffix : ''}'
+                  '${bundle.result.refreshFailed ? S.mapWxRefreshFailedSuffix : ''}';
             });
           },
           onError: (Object error) {
@@ -624,7 +623,9 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            routes.isEmpty ? S.osmAreaEmpty : '已加载 ${routes.length} 条 OSM 线路。',
+            routes.isEmpty
+                ? S.osmAreaEmpty
+                : S.mapOsmRoutesLoaded(routes.length),
           ),
         ),
       );

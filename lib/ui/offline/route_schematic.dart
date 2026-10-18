@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../data/routes/route_models.dart';
+import '../strings.dart';
 
 /// 只绘制本地轨迹；不初始化地图或请求瓦片，不将断开的段连接起来。
 class RouteSchematic extends StatelessWidget {
@@ -13,10 +14,10 @@ class RouteSchematic extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      const Text('线路示意图 · 北向上 · 无底图，不能用于定位导航'),
+      const Text(S.offlineSchematicTitle),
       Semantics(
         image: true,
-        label: '${route.name}的已保存轨迹，共${route.segments.length}段；空心点为起点，实心点为终点',
+        label: S.offlineSchematicLabel(route.name, route.segments.length),
         child: SizedBox(
           height: 200,
           width: double.infinity,

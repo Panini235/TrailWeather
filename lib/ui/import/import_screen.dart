@@ -45,13 +45,13 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
-    if (mobile) return const [XTypeGroup(label: '轨迹文件')];
+    if (mobile) return const [XTypeGroup(label: S.importTypeTrack)];
     return const [
       XTypeGroup(
         label: 'GPX / KML / KMZ / GeoJSON',
         extensions: ['gpx', 'kml', 'kmz', 'geojson', 'json', 'xml', 'txt'],
       ),
-      XTypeGroup(label: '所有文件'),
+      XTypeGroup(label: S.importTypeAll),
     ];
   }
 
@@ -64,7 +64,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     try {
       file = await openFile(acceptedTypeGroups: _typeGroups);
     } catch (e) {
-      setState(() => _error = '无法打开文件选择器：$e');
+      setState(() => _error = S.importPickerFailed('$e'));
       return;
     }
     if (file == null) return;
@@ -80,7 +80,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     } on RouteImportException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = '导入失败：$e');
+      setState(() => _error = S.importFailedDetail('$e'));
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -96,7 +96,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     } on RouteImportException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = '导入失败：$e');
+      setState(() => _error = S.importFailedDetail('$e'));
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -129,39 +129,34 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.folder_open),
-                    label: Text(
-                      _loading ? '正在解析…' : '选择 GPX / KML / KMZ / GeoJSON 文件',
-                    ),
+                    label: Text(_loading ? S.importParsing : S.importPickFile),
                   ),
                   const SizedBox(height: 8),
-                  const HelpText(
-                    '支持标准 GPX、KML/KMZ（奥维互动地图/两步路/Google Earth）与 GeoJSON，按文件内容自动识别格式。'
-                    '单文件上限 30MB，超长轨迹自动平滑抽稀保留峰顶与关键地形特征，异常漂移点自动过滤。纯本地解析，不上传云端。',
-                  ),
+                  const HelpText(S.importFormatsHelp),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 8),
-          const Text('或粘贴内容：'),
+          const Text(S.importPasteLabel),
           const SizedBox(height: 4),
           TextField(
             controller: _textCtrl,
             maxLines: 6,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
-              hintText: '<gpx …> 或 {"type": "FeatureCollection", …}',
+              hintText: S.importPasteHint,
             ),
           ),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: _loading ? null : _importPasted,
-            child: const Text('解析并导入'),
+            child: const Text(S.importParseAndImport),
           ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: ErrorCard(title: '导入失败', detail: _error!),
+              child: ErrorCard(title: S.importFailed, detail: _error!),
             ),
           for (final w in _warnings)
             Padding(

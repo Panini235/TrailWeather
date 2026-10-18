@@ -8,6 +8,7 @@ import '../../data/routes/incoming_file_source.dart';
 import '../../data/routes/route_file_import.dart';
 import '../../data/settings/settings_repository.dart';
 import 'import_flow.dart';
+import '../strings.dart';
 
 /// 监听外部应用传入的轨迹文件，解析后走与导入页相同的确认 → 保存 → 打开详情流程。
 /// 首次启动尚未同意隐私说明时先暂存文件，同意并回到主界面后再处理。
@@ -57,7 +58,9 @@ class _IncomingFileListenerState extends ConsumerState<IncomingFileListener> {
     if (_busy || !_handled.add(file.uri)) return;
     _busy = true;
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(SnackBar(content: Text('正在解析 ${file.name}…')));
+    messenger.showSnackBar(
+      SnackBar(content: Text(S.importIncomingParsing(file.name))),
+    );
     try {
       final bytes = await ref.read(incomingFileSourceProvider).readBytes(file);
       final result = await compute(importRouteFile, (
@@ -75,11 +78,13 @@ class _IncomingFileListenerState extends ConsumerState<IncomingFileListener> {
     } on RouteImportException catch (e) {
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
-        SnackBar(content: Text('无法导入 ${file.name}：${e.message}')),
+        SnackBar(content: Text(S.importIncomingFailed(file.name, e.message))),
       );
     } catch (e) {
       messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(SnackBar(content: Text('无法读取 ${file.name}：$e')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(S.importIncomingReadFailed(file.name, '$e'))),
+      );
     } finally {
       _busy = false;
     }

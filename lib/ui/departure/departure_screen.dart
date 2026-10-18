@@ -15,6 +15,7 @@ import '../weather_refresh_clock.dart';
 import '../share/share_cards.dart';
 import '../share/share_image.dart';
 import 'departure_threshold_screen.dart';
+import '../strings.dart';
 import '../tokens.dart';
 
 class DepartureArgs {
@@ -50,13 +51,13 @@ String _date(DateTime d) {
 
 String _stamp(DateTime d) => '${_date(d)} ${_time(d)}';
 String _name(WxVar v) => switch (v) {
-  WxVar.temperature => '气温',
-  WxVar.windGust => '阵风',
-  WxVar.precip => '小时降水',
+  WxVar.temperature => S.departureVarTemp,
+  WxVar.windGust => S.departureVarGust,
+  WxVar.precip => S.departureVarPrecip,
   _ => v.name,
 };
 String _value(WxVar v, double? n) => n == null
-    ? '此来源未提供'
+    ? S.notProvided
     : '${n.toStringAsFixed(1)} ${switch (v) {
         WxVar.temperature => '℃',
         WxVar.windGust => 'm/s',
@@ -137,7 +138,7 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
       if (assessment.startUtc.isBefore(ref.read(weatherNowProvider)())) {
         setState(() {});
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('该出发时刻已过去，请重新选择')));
+            .showSnackBar(const SnackBar(content: Text(S.departurePastSnack)));
       } else {
         context.pop(DepartureSelection(assessment.startUtc, providerId));
       }
@@ -205,22 +206,30 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
     final t = settings.departureThresholds;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final explain = <String>[
-      '比较日期 × 出发时刻的沿途天气。所有时间按设备时区显示，跨时区出行请核对。',
-      '每隔 2 小时比较一次，最多 5 个出发时刻；可左右滑动表格。',
-      '颜色只表示阈值结果，不代表安全等级。灰色为信息不足；红/黄也可能同时缺数据。官方预警未接入；日出未接入，未核验全程是否处于白昼。',
-      '按阈值：阵风 ≥${t.gustYellow}/${t.gustRed} m/s（黄/红）；小时降水 ≥${t.precipYellow} mm（黄）；气温 ≤${t.coldRed}℃（红）；预计到达晚于日落（黄）。',
-      '计算方法：按配速、爬升/下降、休息与航点停留估算 ETA；逐段检查经过小时的两个采样端点，属于保守的时空近似，不是实时实测。点开格子可查看原因、缺口和各节点时次。',
+      S.departureExplainCompare,
+      S.departureExplainSlots,
+      S.departureExplainColors,
+      S.departureExplainThresholds(
+        t.gustYellow,
+        t.gustRed,
+        t.precipYellow,
+        t.coldRed,
+      ),
+      S.departureExplainMethod,
       if (source != null)
-        '单一来源 · ${source.caps.modelOrNetwork} · 最远约 ${source.caps.forecastHorizonDays} 天，以实际返回覆盖为准。',
+        S.departureSingleSource(
+          source.caps.modelOrNetwork,
+          source.caps.forecastHorizonDays,
+        ),
       ?source?.caps.modelOverlapNote,
       ?bundle?.sharedGridNote,
     ];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('出发窗口'),
+        title: const Text(S.departureTitle),
         actions: [
           IconButton(
-            tooltip: '分享图片',
+            tooltip: S.shareImage,
             icon: const Icon(Icons.ios_share),
             onPressed: bundle == null || source == null || !supported
                 ? null
@@ -236,12 +245,12 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
                   ),
           ),
           IconButton(
-            tooltip: '规则与数据说明',
+            tooltip: S.departureRulesTitle,
             icon: const Icon(Icons.info_outline),
             onPressed: () => _showExplain(explain),
           ),
           IconButton(
-            tooltip: '刷新出发窗口',
+            tooltip: S.departureRefreshTooltip,
             onPressed:
                 key == null ||
                     async?.isLoading == true ||
@@ -256,11 +265,14 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           Text(
-            '${args.route.isDemo ? '演示 · ' : ''}${args.route.name}',
+            '${args.route.isDemo ? S.departureDemoPrefix : ''}${args.route.name}',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           Text(
-            '${args.reversed ? '反向行走' : '正向行走'} · 全程约 ${(duration.inMinutes / 60).toStringAsFixed(1)} 小时（估算）',
+            S.departureDirectionDuration(
+              args.reversed ? S.reverseRoute : S.departureForward,
+              (duration.inMinutes / 60).toStringAsFixed(1),
+            ),
             style: TextStyle(fontSize: 12, color: muted),
           ),
           const SizedBox(height: 8),
@@ -273,13 +285,13 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
               OutlinedButton.icon(
                 onPressed: _pickDate,
                 icon: const Icon(Icons.calendar_today, size: 16),
-                label: Text('从 ${_date(_first)} 起'),
+                label: Text(S.departureFromDate(_date(_first))),
               ),
               DropdownButton<int>(
                 value: _days,
                 items: [
                   for (final n in [1, 3, 5])
-                    DropdownMenuItem(value: n, child: Text('$n 天')),
+                    DropdownMenuItem(value: n, child: Text(S.departureDays(n))),
                 ],
                 onChanged: (n) {
                   if (n != null) setState(() => _days = n);
@@ -296,7 +308,9 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
                   }
                 },
                 child: Text(
-                  '首个时刻 ${_two(_firstSlot.hour)}:${_two(_firstSlot.minute)}',
+                  S.departureFirstSlot(
+                    '${_two(_firstSlot.hour)}:${_two(_firstSlot.minute)}',
+                  ),
                 ),
               ),
             ],
@@ -322,19 +336,21 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
           if (!supported)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text('当前线路缺少节点或预计连续行走超过 24 小时。请先导入单日线路；多日拆分尚未完成。'),
+              child: Text(S.departureUnsupported),
             ),
-          if (source == null) const Text('没有可用于比较的来源。请在设置中启用可自动查询的天气来源。'),
+          if (source == null) const Text(S.departureNoSource),
           if (async?.isLoading == true || bundle?.result.refreshing == true)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: LinearProgressIndicator(semanticsLabel: '正在获取出发窗口天气'),
+              child: LinearProgressIndicator(
+                semanticsLabel: S.departureLoadingSemantics,
+              ),
             ),
           if (async?.hasError == true) ...[
-            const Text('天气请求失败或超出来源预报范围。请调整日期或来源后重试。'),
+            const Text(S.departureFetchError),
             TextButton(
               onPressed: () => setState(() => _refresh++),
-              child: const Text('重试出发窗口'),
+              child: const Text(S.departureRetry),
             ),
           ],
           if (supported && (bundle != null || future.isEmpty)) ...[
@@ -388,21 +404,25 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              '✓ 未触发　风 阵风　雨 降水　冷 低温　晚 晚于日落　缺 信息不足　点格子看依据',
+              S.departureLegend,
               style: TextStyle(fontSize: 11, color: muted),
             ),
           ],
           if (bundle != null) ...[
             const SizedBox(height: 8),
             Text(
-              '${bundle.result.stale
-                  ? '旧缓存'
-                  : bundle.result.fromCache
-                  ? '已缓存预报'
-                  : '已获取预报'} · 获取于 ${_stamp(bundle.result.fetchedAtUtc)}',
+              S.departureFetchedAt(
+                bundle.result.stale
+                    ? S.departureStale
+                    : bundle.result.fromCache
+                    ? S.departureCached
+                    : S.departureFetched,
+                _stamp(bundle.result.fetchedAtUtc),
+              ),
               style: TextStyle(fontSize: 12, color: muted),
             ),
-            if (bundle.result.refreshFailed) const Text('刷新失败，保留上次数据及其真实获取时间。'),
+            if (bundle.result.refreshFailed)
+              const Text(S.departureRefreshFailed),
           ],
           const SizedBox(height: 8),
           Align(
@@ -414,12 +434,12 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
                 ),
               ),
               icon: const Icon(Icons.tune),
-              label: const Text('调整出发阈值'),
+              label: const Text(S.departureAdjustThresholds),
             ),
           ),
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
-            title: const Text('规则与数据说明'),
+            title: const Text(S.departureRulesTitle),
             children: [
               for (final e in explain)
                 Padding(
@@ -431,10 +451,7 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
                 ),
               for (final note in args.pace.assumptionNotes())
                 Text('· $note', style: const TextStyle(fontSize: 12)),
-              const Text(
-                '· 日落采用来源提供的终点日落，按终点经度近似归属出发日期；不使用手机所在日期推算线路日落。未考虑山体遮挡，未核验日出和极昼/极夜。',
-                style: TextStyle(fontSize: 12),
-              ),
+              const Text(S.departureSunsetNote, style: TextStyle(fontSize: 12)),
             ],
           ),
         ],
@@ -484,9 +501,9 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SharePreviewPage(
-          title: '分享出发窗口',
+          title: S.departureShareTitle,
           fileName: 'shanqing-departures-${_date(dates.first)}.png',
-          shareText: '${args.route.name} · 出发窗口对比 · 山晴徒步天气',
+          shareText: S.departureShareText(args.route.name),
           card: DepartureShareCard(
             routeName: args.route.name,
             isDemo: args.route.isDemo,
@@ -503,8 +520,12 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
             startsUtc: starts,
             sourceName: sourceName,
             fetchedAtUtc: bundle.result.fetchedAtUtc,
-            thresholdText:
-                '阈值：阵风 ≥${t.gustYellow}/${t.gustRed} m/s（黄/红），小时降水 ≥${t.precipYellow} mm（黄），气温 ≤${t.coldRed}℃（红），晚于日落（黄）。',
+            thresholdText: S.departureShareThresholds(
+              t.gustYellow,
+              t.gustRed,
+              t.precipYellow,
+              t.coldRed,
+            ),
           ),
         ),
       ),
@@ -521,7 +542,10 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
           shrinkWrap: true,
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           children: [
-            Text('规则与数据说明', style: Theme.of(ctx).textTheme.titleMedium),
+            Text(
+              S.departureRulesTitle,
+              style: Theme.of(ctx).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             for (final e in lines)
               Padding(
@@ -543,11 +567,10 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
     final today = DateTime(now.year, now.month, now.day);
     final d = DateTime(day.year, day.month, day.day);
     final diff = d.difference(today).inDays;
-    const week = ['一', '二', '三', '四', '五', '六', '日'];
     final head = switch (diff) {
-      0 => '今天',
-      1 => '明天',
-      _ => '周${week[d.weekday - 1]}',
+      0 => S.today,
+      1 => S.tomorrow,
+      _ => S.departureWeekday(d.weekday),
     };
     return '$head\n${d.month}/${d.day}';
   }
@@ -577,18 +600,18 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
     );
     if (start.isBefore(now)) {
       return box(
-        '过',
+        S.departureGlyphPast,
         colors.surfaceContainerHighest.withValues(alpha: 0.5),
         colors.onSurfaceVariant,
-        tip: '已过去',
+        tip: S.departureTipPast,
       );
     }
     if (bundle == null || providerId == null) {
       return box(
-        '缺',
+        S.departureGlyphMissing,
         colors.surfaceContainerHighest,
         colors.onSurface,
-        tip: '信息不足',
+        tip: S.departureTipInsufficient,
       );
     }
     final a = assessDeparture(
@@ -613,9 +636,13 @@ class _DepartureScreenState extends ConsumerState<DepartureScreen> {
     return Padding(
       padding: const EdgeInsets.all(2),
       child: Semantics(
-        label: '${_stamp(start)} 出发，${a.label}，预计 ${_stamp(a.finishUtc)} 到达',
+        label: S.departureCellSemantics(
+          _stamp(start),
+          a.label,
+          _stamp(a.finishUtc),
+        ),
         child: Tooltip(
-          message: '${a.label} · 约 ${_time(a.finishUtc)} 到达',
+          message: S.departureCellTooltip(a.label, _time(a.finishUtc)),
           child: TextButton(
             key: ValueKey('departure-${start.toIso8601String()}'),
             style: TextButton.styleFrom(
@@ -645,15 +672,15 @@ String departureGlyphs(DepartureAssessment a) {
   final glyphs = <String>[];
   for (final f in a.findings) {
     final g = switch (f.variable) {
-      WxVar.windGust => '风',
-      WxVar.precip => '雨',
-      WxVar.temperature => '冷',
-      _ => f.sunsetUtc != null ? '晚' : '!',
+      WxVar.windGust => S.departureGlyphWind,
+      WxVar.precip => S.departureGlyphRain,
+      WxVar.temperature => S.departureGlyphCold,
+      _ => f.sunsetUtc != null ? S.departureGlyphLate : '!',
     };
     if (!glyphs.contains(g)) glyphs.add(g);
   }
   final shown = glyphs.take(2).toList();
-  if (a.insufficient) shown.add('缺');
+  if (a.insufficient) shown.add(S.departureGlyphMissing);
   return shown.isEmpty ? '✓' : shown.join('');
 }
 
@@ -666,22 +693,25 @@ class _DepartureEvidence extends ConsumerWidget {
     final a = assessment;
     final past = a.startUtc.isBefore(ref.read(weatherNowProvider)());
     return Scaffold(
-      appBar: AppBar(title: const Text('出发依据')),
+      appBar: AppBar(title: const Text(S.departureEvidenceTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(a.label, style: Theme.of(context).textTheme.headlineSmall),
           Text(
-            '出发 ${_stamp(a.startUtc)}\n预计到达 ${_stamp(a.finishUtc)}（估算；设备时区）',
+            S.departureEvidenceTimes(_stamp(a.startUtc), _stamp(a.finishUtc)),
           ),
           Text(
-            '来源 ${a.bundle.result.providerId} · 获取 ${_stamp(a.bundle.result.fetchedAtUtc)}',
+            S.departureEvidenceSource(
+              a.bundle.result.providerId,
+              _stamp(a.bundle.result.fetchedAtUtc),
+            ),
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: past ? null : () => Navigator.of(context).pop(true),
             icon: const Icon(Icons.schedule),
-            label: Text(past ? '该出发时刻已过去' : '用这个时间查看行程'),
+            label: Text(past ? S.departurePast : S.departureUseThis),
           ),
           const SizedBox(height: 12),
           for (final finding in a.findings)
@@ -697,62 +727,87 @@ class _DepartureEvidence extends ConsumerWidget {
                     ),
                     if (finding.sample != null) ...[
                       Text(
-                        '${args.nodes[finding.sample!.nodeIndex].describe()}\n经过小时 ${_stamp(finding.sample!.hourUtc)}',
+                        S.departureNodePassHour(
+                          args.nodes[finding.sample!.nodeIndex].describe(),
+                          _stamp(finding.sample!.hourUtc),
+                        ),
                       ),
                       Text(
-                        '原始有效时次 ${_stamp(finding.sample!.sourceTimesUtc[finding.variable]!)}',
+                        S.departureRawValidTime(
+                          _stamp(
+                            finding.sample!.sourceTimesUtc[finding.variable]!,
+                          ),
+                        ),
                       ),
                       Text(
-                        '模型 ${finding.sample!.point!.provenance.modelKnown ? finding.sample!.point!.provenance.modelOrNetwork : '未知（${finding.sample!.point!.provenance.modelOrNetwork}）'}',
+                        S.departureModel(
+                          finding.sample!.point!.provenance.modelKnown
+                              ? finding.sample!.point!.provenance.modelOrNetwork
+                              : S.departureModelUnknown(
+                                  finding
+                                      .sample!
+                                      .point!
+                                      .provenance
+                                      .modelOrNetwork,
+                                ),
+                        ),
                       ),
                     ],
                     if (finding.sunsetUtc != null)
-                      Text('终点日落 ${_stamp(finding.sunsetUtc!)}（日期归属近似）'),
+                      Text(S.departureSunset(_stamp(finding.sunsetUtc!))),
                   ],
                 ),
               ),
             ),
-          if (a.findings.isEmpty) const Text('已提供的数据没有触发当前阈值；这不是安全保证。'),
+          if (a.findings.isEmpty) const Text(S.departureNoFindings),
           for (final gap in a.gaps)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text('信息不足 · $gap'),
+              child: Text(S.departureGap(gap)),
             ),
           for (final e in a.missingValues.entries)
-            if (e.value > 0) Text('${_name(e.key)}：${e.value} 个节点小时缺失，此来源未提供'),
+            if (e.value > 0) Text(S.departureMissing(_name(e.key), e.value)),
           Text(
-            '完整天气采样 ${a.samples.where((s) => s.complete).length}/${a.samples.length} 个采样（逐小时气温/阵风/降水，整点抵达另核对气温）；共享查询点不算独立证据。',
+            S.departureSampleSummary(
+              a.samples.where((s) => s.complete).length,
+              a.samples.length,
+            ),
           ),
           if (a.bundle.sharedGridNote != null) Text(a.bundle.sharedGridNote!),
           const SizedBox(height: 12),
-          const Text('各节点与原始时次', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            S.departureNodesTitle,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           if (a.bundle.result.providerId.startsWith('open-meteo:'))
-            const Text(
-              'Open-Meteo：小时降水和阵风使用该小时结束时的记录；气温使用小时起点的瞬时值。下面保留每项原始有效时次。',
-            ),
+            const Text(S.departureOpenMeteoNote),
           for (var i = 0; i < args.nodes.length; i++)
             ExpansionTile(
               key: ValueKey('departure-node-$i'),
               title: Text(args.nodes[i].describe()),
-              subtitle: Text('预计到达 ${_stamp(a.etasUtc[i])}（估算）'),
+              subtitle: Text(S.departureNodeEta(_stamp(a.etasUtc[i]))),
               children: [
                 if (departurePoint(a.bundle, i) case final p?)
                   _provenance(p.provenance),
                 for (final s in a.samples.where((s) => s.nodeIndex == i))
                   ListTile(
                     title: Text(
-                      '${s.instantOnly ? '抵达整点' : '经过小时'} ${_stamp(s.hourUtc)}',
+                      '${s.instantOnly ? S.departureArrivalHour : S.departurePassingHour} ${_stamp(s.hourUtc)}',
                     ),
                     subtitle: Text(
                       [
                         for (final v in s.sourceTimesUtc.keys)
-                          '${_name(v)}：${_value(v, s.values[v])} · 原始时次 ${_stamp(s.sourceTimesUtc[v]!)}',
+                          S.departureSampleLine(
+                            _name(v),
+                            _value(v, s.values[v]),
+                            _stamp(s.sourceTimesUtc[v]!),
+                          ),
                       ].join('\n'),
                     ),
                   ),
               ],
             ),
-          const Text('预报不是实测；采样、ETA 与日期归属均有近似。日出和官方预警未接入，仍需核对现场与官方信息。'),
+          const Text(S.departureFootnote),
         ],
       ),
     );

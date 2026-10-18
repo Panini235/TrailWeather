@@ -133,15 +133,15 @@ class WeatherCacheNotice extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final time = result.fetchedAtUtc.toLocal();
     final fetched =
-        '${time.month}月${time.day}日 '
+        '${S.wxCacheMonthDay(time.month, time.day)} '
         '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}';
     final messages = <String>[
-      if (result.fromCache) '${result.stale ? '旧预报' : '已保存的预报'} · 获取于 $fetched',
-      if (result.refreshing) '正在更新，先显示已保存的数据。',
-      if (result.refreshFailed) '更新失败，继续显示已保存的数据，请稍后重试。',
-      if (result.partialCoverage) '部分时段未覆盖；缺失时段显示“此来源未提供”。',
-      if (result.stale) '已超过来源建议的缓存时效，请勿当作刚更新的天气。',
+      if (result.fromCache) S.wxCacheFetched(result.stale, fetched),
+      if (result.refreshing) S.wxCacheRefreshing,
+      if (result.refreshFailed) S.wxCacheRefreshFailed,
+      if (result.partialCoverage) S.wxCachePartial,
+      if (result.stale) S.wxCacheStale,
     ];
     return Semantics(
       liveRegion: true,
@@ -173,7 +173,7 @@ class WeatherCacheNotice extends StatelessWidget {
               TextButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('重新更新'),
+                label: const Text(S.wxCacheRetry),
               ),
           ],
         ),
@@ -208,7 +208,7 @@ class StaleDataBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${S.staleData}（${S.cachedAt} $mins 分钟前）：已超过来源建议的缓存时效。',
+              S.staleBannerText(mins),
               style: const TextStyle(fontSize: 12),
             ),
           ),
@@ -398,7 +398,7 @@ class ConfiguredStatus extends StatelessWidget {
   const ConfiguredStatus({
     super.key,
     required this.configured,
-    this.missingLabel = '未配置',
+    this.missingLabel = S.settingsNotConfigured,
   });
 
   final bool configured;
@@ -438,16 +438,17 @@ String fetchErrorText(Object error) {
       DioExceptionType.connectionError ||
       DioExceptionType.connectionTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.sendTimeout => '网络不可用或连接超时',
-      DioExceptionType.badResponse =>
-        '来源返回错误（HTTP ${error.response?.statusCode ?? '?'}）',
-      DioExceptionType.cancel => '请求已取消',
-      _ => '请求失败',
+      DioExceptionType.sendTimeout => S.fetchErrorNetwork,
+      DioExceptionType.badResponse => S.fetchErrorHttp(
+        '${error.response?.statusCode ?? '?'}',
+      ),
+      DioExceptionType.cancel => S.fetchErrorCancelled,
+      _ => S.fetchErrorFailed,
     };
   }
-  if (error is SourceHttpException) return '来源返回错误（${error.message}）';
+  if (error is SourceHttpException) return S.fetchErrorSource(error.message);
   if (error is WxOutOfRange) return error.message;
-  if (error is FormatException) return '响应格式无法识别';
+  if (error is FormatException) return S.fetchErrorFormat;
   final text = error.toString();
   return text.length > 120 ? '${text.substring(0, 120)}…' : text;
 }

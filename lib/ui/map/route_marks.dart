@@ -102,7 +102,9 @@ MarkerLayer routeEndpointLayer(HikingRoute route, Basemap basemap) {
     ),
   );
   if (route.isLoop) {
-    return MarkerLayer(markers: [badge(pts.first, '起终', Semantic.go)]);
+    return MarkerLayer(
+      markers: [badge(pts.first, S.mapLoopStartEnd, Semantic.go)],
+    );
   }
   return MarkerLayer(
     markers: [

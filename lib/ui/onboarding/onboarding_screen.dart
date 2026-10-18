@@ -70,7 +70,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Semantics(
                 header: true,
                 child: Text(
-                  '出发前，看懂沿途天气',
+                  S.onboardingHeadline,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -78,7 +78,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                '导入一条徒步线路，按出发时间查看沿途预报。\n不需要注册账号，也可以先从示例线路开始。',
+                S.onboardingIntro,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colors.onSurfaceVariant,
                   height: 1.6,
@@ -87,18 +87,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const SizedBox(height: 24),
               const _GuideStep(
                 icon: Icons.file_upload_outlined,
-                title: '带上你的线路',
-                description: '支持 GPX、KML、KMZ 和 GeoJSON，也可以在地图上手绘。',
+                title: S.onboardingStepRouteTitle,
+                description: S.onboardingStepRouteBody,
               ),
               const _GuideStep(
                 icon: Icons.schedule_outlined,
-                title: '选择出发时间',
-                description: '查看同一时刻的天气，或结合配速估算沿途到达时间。',
+                title: S.onboardingStepTimeTitle,
+                description: S.onboardingStepTimeBody,
               ),
               const _GuideStep(
                 icon: Icons.cloud_outlined,
-                title: '核对来源与更新时间',
-                description: '预报不是实测；缺失数据和超出预报范围的时段会明确说明。',
+                title: S.onboardingStepSourceTitle,
+                description: S.onboardingStepSourceBody,
               ),
               const SizedBox(height: 16),
               DecoratedBox(
@@ -109,7 +109,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Text(
-                    '出发前可在线下载线路与预报，再从首页打开离线行程包。离线底图尚未提供，请另备地图。',
+                    S.onboardingOfflineNote,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
                       height: 1.5,
@@ -148,12 +148,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               FilledButton.icon(
                 onPressed: _finishing ? null : () => _finish(importRoute: true),
                 icon: const Icon(Icons.file_upload_outlined),
-                label: const Text('导入我的线路'),
+                label: const Text(S.onboardingImportMine),
               ),
               const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: _finishing ? null : _finish,
-                child: const Text('先看示例线路'),
+                child: const Text(S.onboardingTryExamples),
               ),
             ],
           ),

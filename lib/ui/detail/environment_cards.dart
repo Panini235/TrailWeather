@@ -94,7 +94,7 @@ class _AltitudeWeatherCardState extends ConsumerState<AltitudeWeatherCard> {
                 children: [
                   header,
                   Text(
-                    '暂时无法获取：${fetchErrorText(snap.error!)}',
+                    S.envFetchFailed(fetchErrorText(snap.error!)),
                     style: const TextStyle(fontSize: 12),
                   ),
                 ],
@@ -118,7 +118,7 @@ class _AltitudeWeatherCardState extends ConsumerState<AltitudeWeatherCard> {
                   ),
                 const SizedBox(height: 4),
                 Text(
-                  '${fz == null ? '' : '0℃ 层约 ${fz.toStringAsFixed(0)} m。'}${S.altitudeCardNote}',
+                  '${fz == null ? '' : S.envFreezingLevel(fz.toStringAsFixed(0))}${S.altitudeCardNote}',
                   style: TextStyle(fontSize: 11, height: 1.4, color: muted),
                 ),
               ],
@@ -172,7 +172,7 @@ class _AltitudeRow extends StatelessWidget {
             child: Text(
               g == null
                   ? '—'
-                  : '阵风 ${Units.windMs(g, unit: settings.windUnit)}',
+                  : S.envGust(Units.windMs(g, unit: settings.windUnit)),
               style: const TextStyle(fontSize: 12),
             ),
           ),
@@ -249,19 +249,19 @@ class _AirQualityCardState extends ConsumerState<AirQualityCard> {
                 const SizedBox(height: 4),
                 if (snap.hasError)
                   Text(
-                    '暂时无法获取：${fetchErrorText(snap.error!)}',
+                    S.envFetchFailed(fetchErrorText(snap.error!)),
                     style: const TextStyle(fontSize: 12),
                   )
                 else if (h == null)
-                  const Text(
-                    '该时刻不在空气质量预报范围（约 5 天）。',
-                    style: TextStyle(fontSize: 12),
-                  )
+                  const Text(S.envAqiOutOfRange, style: TextStyle(fontSize: 12))
                 else ...[
                   Text(
                     h.usAqi == null
                         ? 'AQI：${S.notProvided}'
-                        : 'AQI ${h.usAqi!.toStringAsFixed(0)}（${usAqiCategory(h.usAqi!)}，美国标准）',
+                        : S.envAqiValue(
+                            h.usAqi!.toStringAsFixed(0),
+                            usAqiCategory(h.usAqi!),
+                          ),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -274,7 +274,7 @@ class _AirQualityCardState extends ConsumerState<AirQualityCard> {
                 ],
                 const SizedBox(height: 4),
                 Text(
-                  '${AirQualityService.attribution}。近地面浓度；山脊若在逆温层之上，实际空气可能明显好于此值。',
+                  S.envAqiNote(AirQualityService.attribution),
                   style: TextStyle(fontSize: 11, height: 1.4, color: muted),
                 ),
               ],

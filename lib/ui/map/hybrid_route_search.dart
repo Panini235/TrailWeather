@@ -90,7 +90,7 @@ class HybridRouteSearchResults extends StatelessWidget {
                 const _SectionTitle(
                   icon: Icons.route_outlined,
                   title: S.directRoutes,
-                  subtitle: '有完整几何，可直接进入沿途天气分析',
+                  subtitle: S.mapSearchRoutesSubtitle,
                 ),
                 for (final route in routes.take(6))
                   ListTile(
@@ -111,7 +111,7 @@ class HybridRouteSearchResults extends StatelessWidget {
                 const _SectionTitle(
                   icon: Icons.place_outlined,
                   title: S.placeCandidates,
-                  subtitle: '先定位到区域，再查附近 OSM 线路',
+                  subtitle: S.mapSearchPlacesSubtitle,
                 ),
                 for (final place in places.take(5))
                   ListTile(
@@ -137,16 +137,16 @@ class HybridRouteSearchResults extends StatelessWidget {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.public, size: 20),
-                  title: const Text('徒步星球 · 全球经典路线'),
-                  subtitle: const Text('44+ 条雪山/冰川/森林/峡谷世界顶级徒步线路'),
+                  title: const Text(S.mapSearchPlanetTitle),
+                  subtitle: const Text(S.mapSearchPlanetSubtitle),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/planet'),
                 ),
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.edit_road, size: 20),
-                title: const Text('线路规划工坊 (Trail Studio)'),
-                subtitle: const Text('在地图上手绘规划、标记营地水源、即时推演天气与耗时'),
+                title: const Text(S.mapSearchPlannerTitle),
+                subtitle: const Text(S.mapSearchPlannerSubtitle),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/planner'),
               ),

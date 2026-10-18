@@ -109,9 +109,11 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Semantics(
-          label:
-              '${S.ridgeBandTitle}：${rows.length} 个节点，$flagged 个触发天气提示'
-              '${_profile.hasElevation ? '' : '，${S.ridgeNoElevation}'}',
+          label: S.ridgeBandSemantics(
+            rows.length,
+            flagged,
+            hasElevation: _profile.hasElevation,
+          ),
           child: SizedBox(
             height: widget.height,
             child: LayoutBuilder(
@@ -170,6 +172,56 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
   }
 }
 
+/// 山脊天气带的静态版本（分享图用）：不播放画出动画、不响应点击，固定浅色卡片配色。
+///
+/// [keyNodes] 中的节点在山脊上画成连续编号的徽章（1..K），与分享图的示意图和节点列表一致；
+/// 其余节点仍画小圆点。着色、图标与夜色规则和 App 内的 [RidgeWeatherBand] 相同。
+class RidgeBandGraphic extends StatelessWidget {
+  const RidgeBandGraphic({
+    super.key,
+    required this.route,
+    required this.rows,
+    this.keyNodes = const [],
+    this.nightFromIndex,
+    this.height = 120,
+  });
+
+  final HikingRoute route;
+  final List<NodeWxRow> rows;
+  final List<int> keyNodes;
+  final int? nightFromIndex;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final profile = _Profile.of(route);
+    return SizedBox(
+      height: height,
+      child: LayoutBuilder(
+        builder: (context, c) => CustomPaint(
+          size: Size(c.maxWidth, height),
+          painter: _RidgePainter(
+            geom: _Geometry(size: Size(c.maxWidth, height), profile: profile),
+            rows: rows,
+            classes: [for (final r in rows) classifyNodeWx(r.wx)],
+            selected: null,
+            nightFromIndex: nightFromIndex,
+            keyNodes: keyNodes,
+            progress: kAlwaysCompleteAnimation,
+            fill: scheme.primary.withValues(alpha: 0.10),
+            neutral: scheme.outlineVariant,
+            label: scheme.onSurfaceVariant,
+            guide: scheme.onSurface,
+            night: Palette.night.withValues(alpha: 0.10),
+            textDirection: Directionality.of(context),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SelectedLine extends StatelessWidget {
   const _SelectedLine({
     required this.row,
@@ -187,10 +239,10 @@ class _SelectedLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final n = row.node;
     final parts = [
-      n.label ?? '节点 ${index + 1}',
+      n.label ?? S.ridgeNodeN(index + 1),
       '${(n.distFromStartM / 1000).toStringAsFixed(1)} km',
       if (n.elevationM != null) '${n.elevationM!.round()} m',
-      if (eta != null) '$eta 到达',
+      if (eta != null) S.ridgeArrive(eta!),
       cls.label,
     ];
     return Row(
@@ -303,6 +355,7 @@ class _RidgePainter extends CustomPainter {
     required this.classes,
     required this.selected,
     required this.nightFromIndex,
+    this.keyNodes = const [],
     required this.progress,
     required this.fill,
     required this.neutral,
@@ -317,6 +370,9 @@ class _RidgePainter extends CustomPainter {
   final List<NodeWxClass> classes;
   final int? selected;
   final int? nightFromIndex;
+
+  /// 画成编号徽章的节点（分享图）；App 内为空。
+  final List<int> keyNodes;
   final Animation<double> progress;
   final Color fill, neutral, label, guide, night;
   final TextDirection textDirection;
@@ -390,6 +446,11 @@ class _RidgePainter extends CustomPainter {
       if (nx > revealX) continue;
       final ny = g.y(n.elevationM ?? p.eleAt(n.distFromStartM));
       final color = rows[i].wx == null ? neutral : nodeWxColor(classes[i]);
+      final k = keyNodes.indexOf(i);
+      if (k >= 0) {
+        _numberBadge(canvas, Offset(nx, ny), k + 1, color);
+        continue;
+      }
       final isSel = i == s;
       canvas
         ..drawCircle(
@@ -475,6 +536,24 @@ class _RidgePainter extends CustomPainter {
     tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
   }
 
+  void _numberBadge(Canvas canvas, Offset c, int n, Color color) {
+    canvas
+      ..drawCircle(c, 8, Paint()..color = Colors.white)
+      ..drawCircle(c, 6.5, Paint()..color = color);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: '$n',
+        style: const TextStyle(
+          fontSize: 8,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: textDirection,
+    )..layout();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+  }
+
   void _text(
     Canvas canvas,
     String s,
@@ -497,6 +576,7 @@ class _RidgePainter extends CustomPainter {
       old.rows != rows ||
       old.selected != selected ||
       old.nightFromIndex != nightFromIndex ||
+      old.keyNodes != keyNodes ||
       old.geom.size != geom.size ||
       old.geom.profile != geom.profile ||
       old.fill != fill;

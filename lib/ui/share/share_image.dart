@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/app_links.dart';
 import '../theme.dart';
+import '../strings.dart';
 
 /// 把一张“分享卡片”渲染成 PNG，交给系统分享面板（微信 / QQ / X / Threads 等）。
 ///
@@ -89,7 +90,7 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
         ),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('分享失败：$e')));
+      messenger.showSnackBar(SnackBar(content: Text(S.shareFailed(e))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -146,7 +147,7 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.ios_share),
-        label: const Text('分享图片'),
+        label: const Text(S.shareImage),
       ),
     );
   }
@@ -211,7 +212,7 @@ class ShareCardFrame extends StatelessWidget {
                       Icon(Icons.terrain, size: 16, color: scheme.primary),
                       const SizedBox(width: 6),
                       Text(
-                        '山晴 · 徒步天气',
+                        S.shareBrand,
                         style: TextStyle(fontSize: 12, color: scheme.primary),
                       ),
                     ],
@@ -281,7 +282,7 @@ class SharePromoBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '导入轨迹，按出发时间查看沿途天气\n扫码下载测试版',
+                  S.shareCallToAction,
                   style: TextStyle(
                     fontSize: 11,
                     color: scheme.onPrimaryContainer,
@@ -298,7 +299,7 @@ class SharePromoBar extends StatelessWidget {
               size: 76,
               padding: EdgeInsets.zero,
               backgroundColor: Colors.white,
-              semanticsLabel: '下载二维码',
+              semanticsLabel: S.shareQrLabel,
             ),
           ),
         ],

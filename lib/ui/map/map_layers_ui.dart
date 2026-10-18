@@ -331,7 +331,7 @@ class _TiandituKeyCardState extends ConsumerState<TiandituKeyCard> {
                         .showSnackBar(const SnackBar(content: Text(S.saved)));
                   }
                 },
-                child: const Text('保存', style: TextStyle(fontSize: 13)),
+                child: const Text(S.save, style: TextStyle(fontSize: 13)),
               ),
             ),
           ],
@@ -476,7 +476,7 @@ class CustomTileSourcesCard extends ConsumerWidget {
                   style: const TextStyle(fontSize: 11),
                 ),
                 trailing: IconButton(
-                  tooltip: '删除',
+                  tooltip: S.delete,
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => notifier.removeCustomTileSource(c.id),
                 ),
@@ -565,8 +565,8 @@ class _CustomTileSourceDialogState extends State<_CustomTileSourceDialog> {
     setState(() {
       _error =
           error ??
-          (name.isEmpty ? '请填写名称' : null) ??
-          (zoom == null || zoom < 1 || zoom > 22 ? '最大缩放级别需为 1–22' : null);
+          (name.isEmpty ? S.mapTileNameRequired : null) ??
+          (zoom == null || zoom < 1 || zoom > 22 ? S.mapTileZoomInvalid : null);
     });
     if (_error != null) return;
     Navigator.of(context).pop(
@@ -582,7 +582,7 @@ class _CustomTileSourceDialogState extends State<_CustomTileSourceDialog> {
         subdomains: subs,
         maxNativeZoom: zoom!,
         overlayOnly: _overlayOnly,
-        note: '用户自定义图源：可用性与授权由使用者自行确认。',
+        note: S.mapCustomTileNote,
         builtIn: false,
       ),
     );
@@ -603,14 +603,14 @@ class _CustomTileSourceDialogState extends State<_CustomTileSourceDialog> {
           children: [
             TextField(
               controller: _name,
-              decoration: dense.copyWith(labelText: '名称'),
+              decoration: dense.copyWith(labelText: S.mapTileName),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _url,
               keyboardType: TextInputType.url,
               decoration: dense.copyWith(
-                labelText: 'URL 模板',
+                labelText: S.mapTileUrlTemplate,
                 hintText: 'https://{s}.example.com/{z}/{x}/{y}.png',
               ),
             ),
@@ -618,7 +618,7 @@ class _CustomTileSourceDialogState extends State<_CustomTileSourceDialog> {
             TextField(
               controller: _subdomains,
               decoration: dense.copyWith(
-                labelText: '子域名（可选，逗号分隔）',
+                labelText: S.mapTileSubdomains,
                 hintText: 'a,b,c',
               ),
             ),
@@ -626,17 +626,17 @@ class _CustomTileSourceDialogState extends State<_CustomTileSourceDialog> {
             TextField(
               controller: _maxZoom,
               keyboardType: TextInputType.number,
-              decoration: dense.copyWith(labelText: '最大原生缩放级别'),
+              decoration: dense.copyWith(labelText: S.mapTileMaxZoom),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _attribution,
-              decoration: dense.copyWith(labelText: '署名（地图角标显示）'),
+              decoration: dense.copyWith(labelText: S.mapTileAttribution),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Text('坐标系', style: TextStyle(fontSize: 13)),
+                const Text(S.mapTileDatum, style: TextStyle(fontSize: 13)),
                 const Spacer(),
                 SegmentedButton<TileDatum>(
                   segments: const [

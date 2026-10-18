@@ -37,7 +37,7 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
     labels: [
       for (final r in widget.rows)
         r.node.label ??
-            '${(r.node.distFromStartM / 1000).toStringAsFixed(1)} km 处',
+            S.layeringAtKm((r.node.distFromStartM / 1000).toStringAsFixed(1)),
     ],
     sunriseUtc: widget.sunriseUtc,
     sunsetUtc: widget.sunsetUtc,
@@ -182,12 +182,12 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
     final parts = [
       for (final l in plan.layers)
         '${l.name}${switch (l.wear[_scene]!) {
-          Wear.worn => '穿着',
-          Wear.packed => '放背包',
-          Wear.none => '不需要',
+          Wear.worn => S.layeringWorn,
+          Wear.packed => S.layeringPackedAway,
+          Wear.none => S.layeringNotNeeded,
         }}',
     ];
-    return '${S.layeringTitle}，${layerSceneLabel(_scene)}时：${parts.join('，')}';
+    return S.layeringFigureSemantics(layerSceneLabel(_scene), parts);
   }
 
   void _showBasis(BuildContext context, LayerPlan plan) {

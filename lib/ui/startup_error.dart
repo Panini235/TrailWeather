@@ -10,7 +10,7 @@ class StartupErrorApp extends StatelessWidget {
 
   final Object error;
 
-  String get _diagnostics => '版本：$kAppVersion\n错误：$error';
+  String get _diagnostics => S.startupDiagnostics(kAppVersion, '$error');
 
   @override
   Widget build(BuildContext context) => MaterialApp(

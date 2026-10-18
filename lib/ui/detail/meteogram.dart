@@ -159,9 +159,12 @@ class _NodeMeteogramState extends State<NodeMeteogram>
       final p = h.values[WxVar.precip];
       if (p != null) mm = (mm ?? 0) + p;
     }
-    return '${S.meteogramTitle}：${hours.length} 小时，'
-        '${lo == null ? '气温未提供' : '气温 ${lo.round()} 到 ${hi!.round()} 度'}，'
-        '${mm == null ? '降水未提供' : '降水合计约 ${mm.toStringAsFixed(1)} 毫米'}';
+    return S.meteogramSemantics(
+      hours: hours.length,
+      tempLo: lo?.round(),
+      tempHi: hi?.round(),
+      precipMm: mm?.toStringAsFixed(1),
+    );
   }
 }
 
@@ -184,11 +187,14 @@ class _Readout extends StatelessWidget {
     final prob = v[WxVar.precipProb];
     final uv = v[WxVar.uvIndex];
     final parts = [
-      '${t.hour.toString().padLeft(2, '0')}时',
-      '${temp(v[WxVar.temperature])} / 体感 ${temp(v[WxVar.apparentTemp])}',
+      S.meteogramHour(t.hour.toString().padLeft(2, '0')),
+      S.meteogramTempFeels(
+        temp(v[WxVar.temperature]),
+        temp(v[WxVar.apparentTemp]),
+      ),
       '${mm == null ? '—' : Units.precipMm(mm, imperial: settings.imperial)}'
           '${prob == null ? '' : ' ${prob.round()}%'}',
-      '阵风 ${gust == null ? '—' : Units.windMs(gust, unit: settings.windUnit)}'
+      '${S.envGust(gust == null ? '—' : Units.windMs(gust, unit: settings.windUnit))}'
           '${dir == null ? '' : ' ${Units.windDirectionLabel(dir).split(' ').first}'}',
       if (uv != null && uv >= 1) 'UV ${uv.round()}',
     ];
@@ -362,7 +368,7 @@ class _MeteogramPainter extends CustomPainter {
         );
       }
     }
-    _label(canvas, '云', const Offset(0, 18), muted);
+    _label(canvas, S.meteogramCloud, const Offset(0, 18), muted);
 
     // ---- 降水概率（列底色）与降水量（柱）----
     for (var i = 0; i < n; i++) {
@@ -520,7 +526,7 @@ class _MeteogramPainter extends CustomPainter {
     for (var i = 0; i < n; i++) {
       final t = hours[i].validFromUtc.toLocal();
       if (t.hour % 3 != 0) continue;
-      final text = t.hour == 0 ? '${t.day}日' : '${t.hour}';
+      final text = t.hour == 0 ? S.meteogramDay(t.day) : '${t.hour}';
       _label(
         canvas,
         text,
