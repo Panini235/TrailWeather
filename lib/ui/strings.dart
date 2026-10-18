@@ -167,6 +167,18 @@ abstract final class S {
   static const tapAgainForDetail = '再点一次查看节点详情';
   static const offRouteWaypoint = '偏离线路超过 300 m，未计入沿途时间线';
   static const sharedGridNotePrefix = '网格说明';
+  static const nearbyMarksPrefix = '附近';
+  static const nearbyMarksTitle = '附近标记（不单独查询天气，按本节点预报）';
+  static const nearbyMarkTooltip = '天气见最近的节点';
+  static String nearbyOffset(double m) => m < 1000
+      ? '相距约 ${(m / 10).round() * 10} m'
+      : '相距约 ${(m / 1000).toStringAsFixed(1)} km';
+  static const nearbyMarksNote =
+      '打卡点、水源、补给点等普通标记挂在最近的节点上，不单独占一行，天气按该节点的预报；'
+      '营地、垭口、险段、下撤点、休息点和设了停留时长的标记仍是独立节点。';
+  static const foldedSameForecast = '预报同上';
+  static const foldedNote = '标“预报同上”的节点与上方节点落在同一网格、同一小时，数据完全相同，默认折叠，点开可逐个查看。';
+  static String foldedNodes(int n) => '另 $n 个节点';
 
   // 节点
   static const nodeDetail = '节点详情';

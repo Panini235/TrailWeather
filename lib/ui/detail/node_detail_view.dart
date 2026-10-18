@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/geo.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/weather_models.dart';
@@ -110,6 +111,18 @@ class _NodeDetailViewState extends State<NodeDetailView> {
           ),
         ),
         if (wp != null) _markedRow(wp),
+        if (node.nearbyWaypoints.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            S.nearbyMarksTitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          for (final n in node.nearbyWaypoints)
+            _markedRow(n, offsetM: Geo.distanceM(node.pos, n.point)),
+        ],
         const SizedBox(height: 10),
         // 先回答“到这里时天气怎样”：4 个关键值放大，其余指标收进“更多指标”。
         if (wx == null)
@@ -208,14 +221,16 @@ class _NodeDetailViewState extends State<NodeDetailView> {
     children: [child],
   );
 
-  Widget _markedRow(RouteWaypoint wp) => Row(
+  /// [offsetM]：普通航点与本节点的直线距离（挂在节点上的航点才有）。
+  Widget _markedRow(RouteWaypoint wp, {double? offsetM}) => Row(
     children: [
       WaypointMarker(type: wp.type, size: 14),
       const SizedBox(width: 6),
       Expanded(
         child: Text(
           '${_shortLabel(wp.type)} · ${wp.name}'
-          '${wp.stopMinutes == null ? '' : ' · 停留 ${wp.stopMinutes} 分钟'}',
+          '${wp.stopMinutes == null ? '' : ' · 停留 ${wp.stopMinutes} 分钟'}'
+          '${offsetM == null ? '' : ' · ${S.nearbyOffset(offsetM)}'}',
           style: const TextStyle(fontSize: 13),
           overflow: TextOverflow.ellipsis,
         ),

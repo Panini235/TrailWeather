@@ -12,6 +12,7 @@ class RouteNode {
     required this.distFromStartM,
     this.label,
     this.waypoint,
+    this.nearbyWaypoints = const [],
   });
 
   /// 在展平几何中的索引。
@@ -25,8 +26,12 @@ class RouteNode {
   /// 起点名/终点/高点等标注（可空）。
   final String? label;
 
-  /// 吸附到此节点的航点（营地、休息点等）；决定图标、名称与停留时长。
+  /// 吸附到此节点的关键航点（营地、休息点等）；决定图标、名称与停留时长。
   final RouteWaypoint? waypoint;
+
+  /// 挂在此节点上的普通航点（打卡点、水源、补给点），按沿线距离就近归属。
+  /// 它们不单独查询天气，界面只显示名称；天气是本节点的预报。
+  final List<RouteWaypoint> nearbyWaypoints;
 
   String describe() {
     final ele = elevationM == null
@@ -47,8 +52,9 @@ class RouteNode {
 /// 规则：
 /// 1. 必含起点、终点；
 /// 2. 有海拔数据时必含最高点（常见风险位置）；
-/// 3. 其余按 spacingM 等距采样；
-/// 4. 上限 maxNodes，超出时均匀抽稀但保留关键点。
+/// 3. 关键航点（见 [isKeyWaypoint]）必为节点；普通航点不占节点，挂到最近的节点上；
+/// 4. 其余按 spacingM 等距采样；
+/// 5. 上限 maxNodes，超出时均匀抽稀但保留关键点。
 List<RouteNode> sampleRoute({
   required List<LatLng> points,
   required List<double?> elevations,
@@ -84,8 +90,18 @@ List<RouteNode> sampleRoute({
     }
   }
   if (maxIdx >= 0) keyIdx.add(maxIdx);
-  // 航点（营地/休息点等）必为节点：用户关心的位置一定查天气。
-  keyIdx.addAll(waypointsAt.keys.where((i) => i >= 0 && i < points.length));
+  // 关键航点（营地/垭口/休息点等）必为节点：用户关心的位置一定查天气。
+  final keyWaypoints = <int, RouteWaypoint>{};
+  final minorWaypoints = <(int, RouteWaypoint)>[];
+  for (final MapEntry(key: i, value: wp) in waypointsAt.entries) {
+    if (i < 0 || i >= points.length) continue;
+    if (isKeyWaypoint(wp)) {
+      keyWaypoints[i] = wp;
+    } else {
+      minorWaypoints.add((i, wp));
+    }
+  }
+  keyIdx.addAll(keyWaypoints.keys);
 
   final selected = <int>{...keyIdx};
   var nextAt = 0.0;
@@ -112,8 +128,19 @@ List<RouteNode> sampleRoute({
     list = keep.toList()..sort();
   }
 
+  // 普通航点按沿线距离归到最近的节点（距离相同时归前一个）。
+  final nearby = <int, List<RouteWaypoint>>{};
+  minorWaypoints.sort((a, b) => a.$1.compareTo(b.$1));
+  for (final (i, wp) in minorWaypoints) {
+    var best = list.first;
+    for (final j in list) {
+      if ((cum[j] - cum[i]).abs() < (cum[best] - cum[i]).abs()) best = j;
+    }
+    (nearby[best] ??= []).add(wp);
+  }
+
   String? labelOf(int i) {
-    final wp = waypointsAt[i];
+    final wp = keyWaypoints[i];
     if (wp != null) return wp.name;
     if (i == 0) return '起点';
     if (i == points.length - 1) return '终点';
@@ -129,10 +156,28 @@ List<RouteNode> sampleRoute({
         elevationM: elevations[i],
         distFromStartM: cum[i],
         label: labelOf(i),
-        waypoint: waypointsAt[i],
+        waypoint: keyWaypoints[i],
+        nearbyWaypoints: List.unmodifiable(nearby[i] ?? const []),
       ),
   ];
 }
+
+/// 航点分级：是否作为独立的天气节点。
+///
+/// 关键航点（营地、垭口/峰顶、险段、下撤点、休息点，以及设了停留时长的任何航点）
+/// 必为节点，不受节点上限约束；停留时长计入预计到达时间，所以必须落在自己的节点上。
+/// 普通航点（打卡点、水源、补给点）只挂到最近的节点上显示名称：两步路等导出的轨迹
+/// 常在每个路口、拍照点都打标记，逐个成为节点只会得到大量同网格的重复预报。
+bool isKeyWaypoint(RouteWaypoint wp) =>
+    wp.stopMinutes != null ||
+    switch (wp.type) {
+      WaypointType.camp ||
+      WaypointType.pass ||
+      WaypointType.danger ||
+      WaypointType.exit ||
+      WaypointType.rest => true,
+      WaypointType.poi || WaypointType.water || WaypointType.supply => false,
+    };
 
 /// 航点吸附到路径上最近的点（偏离超过 [maxOffsetM] 的航点不进入沿途时间线，
 /// 仍可在地图上显示）。多个航点落到同一点时保留先出现的那个。

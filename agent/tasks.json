@@ -1079,6 +1079,16 @@
    "acceptance": "CI 严格按 pubspec.lock 构建；启动失败有兜底页面；CI 正式签名 APK 在真机冷启动、完成引导、重启保留设置；发布 0.2.0-beta.2",
    "verify": "真机安装 CI 正式包 + logcat 无异常",
    "result": "2026-10-17：根因见 D-038；本地 release 模式（.rc 后缀）包在小米 12S 上启动、引导、重启均正常。CI 39040332592 依赖按锁文件（shared_preferences_android 2.4.28，APK 中已无 JNI 注册类）；正式签名 APK 覆盖安装到真机冷启动正常，logcat 无异常；预发布 v0.2.0-beta.2（main e19ef7c）附 APK 与 iOS 未签名 IPA（构建 39040431412）；beta.1 说明顶部加了改用 beta.2 的提示。"
+  },
+  {
+   "id": "T-193",
+   "p": "P1",
+   "title": "密集节点：时间线折叠“预报同上”、航点分级",
+   "deps": [],
+   "status": "done",
+   "acceptance": "同一查询点且同一小时（数据完全相同）的连续普通节点在时间线默认折叠，可展开；起终点、高点、关键航点不折叠；行程模式下同网格不同小时不折叠。营地/垭口/险段/下撤点/休息点及设了停留时长的航点仍是独立节点；打卡点/水源/补给点不占节点、不计入上限，挂到沿线最近的节点上显示名称，地图上不显示为偏离线路，可在节点详情编辑/移除；离线包保存并兼容旧包；展开/收起动画真机满帧",
+   "verify": "flutter analyze；flutter test test/unit/timeline_fold_test.dart test/widget/route_detail_v2_test.dart；真机 profile 包测帧（VM service Flutter.Frame）",
+   "result": "2026-10-18：见 D-041。analyze 0；全量 406/406（HEAD+本改动的干净副本 385/385）。小米 12S profile 包（干净副本，不含地形 WIP）：香山示例线路固定时刻显示“另 1 个节点 · 1.6 km · 预报同上”，展开后节点 2 与起点数值一致；12 次展开/收起，每次 200 ms 动画 26–27 帧（120 Hz 满帧），动画内 build ≤ 6.6 ms、raster ≤ 7.1 ms。第一版把展开状态放在整页 State，点按首帧 build 10.6 ms，已改为折叠行自持状态。"
   }
  ]
 }

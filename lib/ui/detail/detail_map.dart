@@ -345,8 +345,7 @@ List<Widget> _routeMapLayers({
   VoidCallback? onTileLoaded,
 }) {
   final onRoute = {
-    for (final r in rows)
-      if (r.node.waypoint != null) r.node.waypoint!,
+    for (final r in rows) ...[?r.node.waypoint, ...r.node.nearbyWaypoints],
   };
   final sel = selectedIndex != null && selectedIndex < rows.length
       ? selectedIndex
@@ -380,6 +379,22 @@ List<Widget> _routeMapLayers({
                 child: Opacity(
                   opacity: 0.55,
                   child: WaypointMarker(type: wp.type, size: 14),
+                ),
+              ),
+            ),
+        // 挂在节点上的普通航点：画在自己的位置，点按选中它归属的节点。
+        for (var i = 0; i < rows.length; i++)
+          for (final wp in rows[i].node.nearbyWaypoints)
+            Marker(
+              point: basemap.toDisplay(wp.point),
+              width: 22,
+              height: 22,
+              child: Tooltip(
+                message: '${wp.name}（${S.nearbyMarkTooltip}）',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTapNode == null ? null : () => onTapNode(i),
+                  child: Center(child: WaypointMarker(type: wp.type, size: 14)),
                 ),
               ),
             ),

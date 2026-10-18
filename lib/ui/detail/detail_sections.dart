@@ -292,6 +292,14 @@ class _NodeTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           WxBriefLine(wx: row.wx, settings: settings),
+          if (row.node.nearbyWaypoints.isNotEmpty)
+            Text(
+              '${S.nearbyMarksPrefix}：'
+              '${row.node.nearbyWaypoints.map((w) => w.name).join('、')}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: muted),
+            ),
           if (wp?.stopMinutes != null)
             Text(
               '停留 ${wp!.stopMinutes} 分钟',
@@ -310,6 +318,151 @@ class _NodeTile extends StatelessWidget {
         onPressed: onDetail,
       ),
       onTap: onTap,
+    );
+  }
+}
+
+/// 预报与上方节点相同的普通节点：默认收成一行，点开展开为完整节点行。
+///
+/// 只有同一网格、同一小时的节点才会进到这里（见 [foldTimeline]），折叠不合并不同的数据。
+class _FoldedRun extends StatefulWidget {
+  const _FoldedRun({
+    super.key,
+    required this.rows,
+    required this.tripMode,
+    required this.containsSelected,
+    required this.lowPower,
+    required this.buildTiles,
+  });
+
+  final List<NodeWxRow> rows;
+  final bool tripMode;
+
+  /// 其中含有选中节点（地图或剖面上选的）：收起时高亮这一行。
+  final bool containsSelected;
+  final bool lowPower;
+  final List<Widget> Function() buildTiles;
+
+  @override
+  State<_FoldedRun> createState() => _FoldedRunState();
+}
+
+class _FoldedRunState extends State<_FoldedRun>
+    with SingleTickerProviderStateMixin {
+  /// 展开状态留在这一行自己身上：点按只重建这一小块，不重建整个详情页。
+  bool _expanded = false;
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: Motion.base)
+        ..addStatusListener((s) {
+          if (s == AnimationStatus.dismissed && mounted) setState(() {});
+        });
+  late final Animation<double> _size = CurvedAnimation(
+    parent: _c,
+    curve: Motion.enter,
+    reverseCurve: Motion.exit,
+  );
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+    if (Motion.reduced(context, lowPower: widget.lowPower)) {
+      _c.value = _expanded ? 1 : 0;
+    } else if (_expanded) {
+      _c.forward();
+    } else {
+      _c.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  String _range() {
+    final first = widget.rows.first;
+    final last = widget.rows.last;
+    if (widget.tripMode) {
+      String hm(DateTime utc) {
+        final t = utc.toLocal();
+        return '${_two(t.hour)}:${_two(t.minute)}';
+      }
+
+      final a = hm(first.validUtc);
+      final b = hm(last.validUtc);
+      return a == b ? a : '$a–$b';
+    }
+    String km(NodeWxRow r) => (r.node.distFromStartM / 1000).toStringAsFixed(1);
+    final a = km(first);
+    final b = km(last);
+    return a == b ? '$a km' : '$a–$b km';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final names = [
+      for (final r in widget.rows)
+        for (final w in r.node.nearbyWaypoints) w.name,
+    ];
+    final header = Material(
+      color: widget.containsSelected && !_expanded
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+          : Colors.transparent,
+      child: InkWell(
+        onTap: _toggle,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                child: Icon(Icons.more_vert, size: 16, color: muted),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${S.foldedNodes(widget.rows.length)} · ${_range()}'
+                      ' · ${S.foldedSameForecast}',
+                      style: TextStyle(fontSize: 12, color: muted),
+                    ),
+                    if (names.isNotEmpty)
+                      Text(
+                        '${S.nearbyMarksPrefix}：${names.join('、')}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: muted),
+                      ),
+                  ],
+                ),
+              ),
+              RotationTransition(
+                turns: Tween(begin: 0.0, end: 0.5).animate(_size),
+                child: Icon(Icons.expand_more, size: 20, color: muted),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(button: true, expanded: _expanded, child: header),
+        if (!_c.isDismissed || _expanded)
+          SizeTransition(
+            sizeFactor: _size,
+            alignment: AlignmentDirectional.topStart,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: widget.buildTiles(),
+            ),
+          ),
+      ],
     );
   }
 }

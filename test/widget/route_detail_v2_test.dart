@@ -35,6 +35,7 @@ Future<ProviderContainer> _pump(
   bool missingTemperature = false,
   double width = 900,
   Map<String, Object> initialPrefs = const {},
+  HikingRoute? route,
 }) async {
   tester.view.physicalSize = Size(width, 2400);
   tester.view.devicePixelRatio = 1.0;
@@ -52,7 +53,9 @@ Future<ProviderContainer> _pump(
         ]),
       ],
       child: MaterialApp(
-        home: RouteDetailScreen(args: RouteDetailArgs(route: _route())),
+        home: RouteDetailScreen(
+          args: RouteDetailArgs(route: route ?? _route()),
+        ),
       ),
     ),
   );
@@ -188,6 +191,48 @@ void main() {
     final saved = container.read(favoritesProvider).single;
     expect(saved.waypoints.single.type, WaypointType.camp);
     expect(_tileTitle('营地 · '), findsOneWidget);
+  });
+
+  testWidgets('同网格、同一小时的普通节点折叠成“预报同上”，点开展开、再点收起', (tester) async {
+    // 测试线路约 5 km，全部落在一个近似网格内；默认固定时刻。
+    await _pump(tester);
+    final fold = find.textContaining(' · ${S.foldedSameForecast}');
+    await tester.scrollUntilVisible(fold, 300);
+    await tester.pumpAndSettle();
+    expect(fold, findsOneWidget);
+    expect(find.textContaining(S.foldedNodes(3)), findsOneWidget);
+    expect(_tileTitle('节点 2'), findsNothing);
+    expect(_tileTitle('终点'), findsOneWidget);
+
+    await tester.tap(fold);
+    await tester.pumpAndSettle();
+    expect(_tileTitle('节点 2'), findsOneWidget);
+    expect(_tileTitle('节点 4'), findsOneWidget);
+
+    await tester.tap(fold);
+    await tester.pumpAndSettle();
+    expect(_tileTitle('节点 2'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('普通航点不单独成行：挂在最近节点上显示名称，地图上不算偏离线路', (tester) async {
+    final base = _route();
+    final route = base.copyWith(
+      waypoints: [
+        RouteWaypoint(
+          name: '观景台',
+          point: base.segments.first[20],
+          type: WaypointType.poi,
+        ),
+      ],
+    );
+    await _pump(tester, route: route);
+    final nearby = find.textContaining('${S.nearbyMarksPrefix}：观景台');
+    await tester.scrollUntilVisible(nearby, 300);
+    expect(nearby, findsOneWidget);
+    expect(_tileTitle('观景台'), findsNothing);
+    expect(find.byTooltip('观景台（${S.nearbyMarkTooltip}）'), findsWidgets);
+    expect(find.byTooltip('观景台（${S.offRouteWaypoint}）'), findsNothing);
   });
 
   testWidgets('反向行走：起点海拔变为原终点海拔', (tester) async {
