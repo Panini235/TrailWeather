@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/departure_windows.dart';
+import '../strings.dart';
 
 class DepartureThresholdScreen extends ConsumerStatefulWidget {
   const DepartureThresholdScreen({super.key});
@@ -46,7 +47,7 @@ class _ThresholdState extends ConsumerState<DepartureThresholdScreen> {
       coldRed: v[3],
     );
     if (!t.isValid) {
-      setState(() => _error = '黄色阵风须小于红色阵风；阵风范围 >0–100，降水 >0–200，气温 −80–10。');
+      setState(() => _error = S.departureThresholdInvalid);
       return;
     }
     setState(() {
@@ -62,7 +63,7 @@ class _ThresholdState extends ConsumerState<DepartureThresholdScreen> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = '设置未能保存，请重试';
+          _error = S.departureThresholdSaveFailed;
         });
       }
     }
@@ -70,13 +71,13 @@ class _ThresholdState extends ConsumerState<DepartureThresholdScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('出发窗口阈值')),
+    appBar: AppBar(title: const Text(S.departureThresholdTitle)),
     body: Form(
       key: _form,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('这些规则只用于出发窗口比较。颜色表示触发阈值，不代表安全等级。单位固定如下，不随显示单位变化。'),
+          const Text(S.departureThresholdIntro),
           const SizedBox(height: 16),
           for (var i = 0; i < _fields.length; i++)
             Padding(
@@ -86,10 +87,10 @@ class _ThresholdState extends ConsumerState<DepartureThresholdScreen> {
                 enabled: !_saving,
                 decoration: InputDecoration(
                   labelText: const [
-                    '黄色 · 阵风 ≥（m/s）',
-                    '红色 · 阵风 ≥（m/s）',
-                    '黄色 · 小时降水 ≥（mm）',
-                    '红色 · 气温 ≤（℃）',
+                    S.departureThresholdGustYellow,
+                    S.departureThresholdGustRed,
+                    S.departureThresholdPrecipYellow,
+                    S.departureThresholdColdRed,
                   ][i],
                   border: const OutlineInputBorder(),
                 ),
@@ -99,11 +100,13 @@ class _ThresholdState extends ConsumerState<DepartureThresholdScreen> {
                 ),
                 validator: (text) {
                   final n = double.tryParse(text?.trim() ?? '');
-                  return n == null || !n.isFinite ? '请输入有效数字' : null;
+                  return n == null || !n.isFinite
+                      ? S.departureThresholdInvalidNumber
+                      : null;
                 },
               ),
             ),
-          const Text('预计到达晚于出发日日落：黄色。缺少气温、阵风、降水或日落：信息不足。缺失值不会用 0 或其他变量代替。'),
+          const Text(S.departureThresholdRulesNote),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -115,7 +118,9 @@ class _ThresholdState extends ConsumerState<DepartureThresholdScreen> {
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _saving ? null : _save,
-            child: Text(_saving ? '保存中…' : '保存阈值'),
+            child: Text(
+              _saving ? S.departureThresholdSaving : S.departureThresholdSave,
+            ),
           ),
           TextButton(
             onPressed: _saving
@@ -127,7 +132,7 @@ class _ThresholdState extends ConsumerState<DepartureThresholdScreen> {
                     }
                     _error = null;
                   }),
-            child: const Text('恢复默认值（保存后生效）'),
+            child: const Text(S.departureThresholdReset),
           ),
         ],
       ),

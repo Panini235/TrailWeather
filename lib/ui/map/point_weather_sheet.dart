@@ -149,9 +149,11 @@ class _PointWeatherSheetState extends ConsumerState<PointWeatherSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'WGS-84 ${point.latitude.toStringAsFixed(5)}, '
-            '${point.longitude.toStringAsFixed(5)} · '
-            '查询时刻 ${_formatLocal(requestedAtUtc.toLocal())}',
+            S.pointWxCoordsAndTime(
+              point.latitude.toStringAsFixed(5),
+              point.longitude.toStringAsFixed(5),
+              _formatLocal(requestedAtUtc.toLocal()),
+            ),
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -159,19 +161,16 @@ class _PointWeatherSheetState extends ConsumerState<PointWeatherSheet> {
           ),
           if (widget.locationAtUtc != null)
             Text(
-              '位置读取于 ${_formatLocal(widget.locationAtUtc!.toLocal())} · '
-              '天气按该坐标查询，移动后请重新定位',
+              S.pointWxLocationReadAt(
+                _formatLocal(widget.locationAtUtc!.toLocal()),
+              ),
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           const SizedBox(height: 10),
-          const GranularityNotice(
-            text:
-                '这里展示的是所选坐标附近的网格预报，不是该点实测。'
-                '各来源独立显示，返回坐标、网格颗粒度和缺失项以来源说明为准。',
-          ),
+          const GranularityNotice(text: S.pointWxGridNote),
           const SizedBox(height: 10),
           AltitudeWeatherCard(point: point, atUtc: requestedAtUtc),
           const SizedBox(height: 8),
@@ -197,7 +196,7 @@ class _PointWeatherSheetState extends ConsumerState<PointWeatherSheet> {
   }
 
   static String _formatLocal(DateTime time) =>
-      '${time.month}月${time.day}日 '
+      '${S.mapMonthDay(time.month, time.day)} '
       '${time.hour.toString().padLeft(2, '0')}:'
       '${time.minute.toString().padLeft(2, '0')}';
 }
@@ -316,7 +315,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
             }
             if (snapshot.hasError) {
               return ErrorCard(
-                title: '${caps.displayName} 请求失败',
+                title: S.pointWxSourceFailed(caps.displayName),
                 detail: snapshot.error.toString(),
                 onRetry: _retry,
               );
@@ -330,7 +329,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
                 children: [
                   SourceBadge(caps: caps),
                   const SizedBox(height: 8),
-                  const MissingValueText(label: '该来源未返回此位置数据'),
+                  const MissingValueText(label: S.pointWxNoLocationData),
                 ],
               );
             }
@@ -343,7 +342,7 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
                   SourceBadge(caps: caps),
                   const SizedBox(height: 8),
                   WeatherCacheNotice(result: result, onRetry: _retry),
-                  const MissingValueText(label: '该来源未返回当前时段数据'),
+                  const MissingValueText(label: S.pointWxNoPeriodData),
                 ],
               );
             }
@@ -366,10 +365,9 @@ class _PointSourceCardState extends ConsumerState<_PointSourceCard> {
                 WeatherCacheNotice(result: result, onRetry: _retry),
                 const SizedBox(height: 8),
                 Text(
-                  '有效时次 ${nearest.validFromUtc.toLocal().month}月'
-                  '${nearest.validFromUtc.toLocal().day}日 '
+                  '${S.pointWxValidTime(S.mapMonthDay(nearest.validFromUtc.toLocal().month, nearest.validFromUtc.toLocal().day))} '
                   '${nearest.validFromUtc.toLocal().hour.toString().padLeft(2, '0')}:00'
-                  '${difference == 0 ? '' : ' · 相差 $difference 分钟'}',
+                  '${difference == 0 ? '' : S.pointWxMinutesOff(difference)}',
                   style: const TextStyle(fontSize: 11),
                 ),
                 const SizedBox(height: 8),

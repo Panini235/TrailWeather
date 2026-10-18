@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 
 import '../../data/weather/typhoon.dart';
+import '../strings.dart';
 import '../tokens.dart';
 import 'basemap.dart';
 
@@ -114,7 +115,9 @@ List<Widget> typhoonLayers(List<Typhoon> list, Basemap basemap) {
           width: 70,
           height: 22,
           alignment: const Alignment(0, 1.6),
-          child: Center(child: _Tag('${local.day}日${local.hour}时')),
+          child: Center(
+            child: _Tag(S.mapTyphoonForecastTag(local.day, local.hour)),
+          ),
         ),
       );
     }

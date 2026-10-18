@@ -31,14 +31,17 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _section(context, '显示与使用'),
+          _section(context, S.settingsDisplaySection),
           Card(
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('英制单位', style: TextStyle(fontSize: 14)),
+                  title: const Text(
+                    S.settingsImperial,
+                    style: TextStyle(fontSize: 14),
+                  ),
                   subtitle: const Text(
-                    '温度 °F、距离 mi、降水 in',
+                    S.settingsImperialHint,
                     style: TextStyle(fontSize: 11),
                   ),
                   value: settings.imperial,
@@ -47,7 +50,10 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 ListTile(
                   dense: true,
-                  title: const Text('风速单位', style: TextStyle(fontSize: 14)),
+                  title: const Text(
+                    S.settingsWindUnit,
+                    style: TextStyle(fontSize: 14),
+                  ),
                   trailing: DropdownButton<String>(
                     value: ['km/h', 'm/s', 'mph'].contains(settings.windUnit)
                         ? settings.windUnit
@@ -68,20 +74,32 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               dense: true,
-              title: const Text('主题', style: TextStyle(fontSize: 14)),
+              title: const Text(
+                S.settingsTheme,
+                style: TextStyle(fontSize: 14),
+              ),
               trailing: SegmentedButton<ThemeMode>(
                 segments: const [
                   ButtonSegment(
                     value: ThemeMode.system,
-                    label: Text('系统', style: TextStyle(fontSize: 12)),
+                    label: Text(
+                      S.settingsThemeSystem,
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                   ButtonSegment(
                     value: ThemeMode.light,
-                    label: Text('浅色', style: TextStyle(fontSize: 12)),
+                    label: Text(
+                      S.settingsThemeLight,
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                   ButtonSegment(
                     value: ThemeMode.dark,
-                    label: Text('深色', style: TextStyle(fontSize: 12)),
+                    label: Text(
+                      S.settingsThemeDark,
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
                 selected: {settings.themeMode},
@@ -93,8 +111,8 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.tune),
-              title: const Text('出发窗口阈值'),
-              subtitle: const Text('调整阵风、小时降水和低温规则'),
+              title: const Text(S.departureThresholdTitle),
+              subtitle: const Text(S.settingsThresholdHint),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -108,9 +126,12 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 SwitchListTile(
                   dense: true,
-                  title: const Text('低耗电模式', style: TextStyle(fontSize: 14)),
+                  title: const Text(
+                    S.settingsLowPower,
+                    style: TextStyle(fontSize: 14),
+                  ),
                   subtitle: const Text(
-                    '加大采样间距，并把常规节点上限设为 12（关键航点仍保留）。前台仍检查天气时效，不在后台轮询。',
+                    S.settingsLowPowerHint,
                     style: TextStyle(fontSize: 11),
                   ),
                   value: settings.lowPower,
@@ -119,11 +140,13 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   dense: true,
                   title: Text(
-                    '采样间距：${settings.samplingSpacingKm.toStringAsFixed(1)} km',
+                    S.settingsSamplingSpacing(
+                      settings.samplingSpacingKm.toStringAsFixed(1),
+                    ),
                     style: const TextStyle(fontSize: 14),
                   ),
                   subtitle: const Text(
-                    '线路天气节点的采样间距（工程参数，不代表天气空间分辨率）',
+                    S.settingsSamplingSpacingHint,
                     style: TextStyle(fontSize: 11),
                   ),
                   trailing: SizedBox(
@@ -156,7 +179,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   subtitle: Text(
                     '${Basemap.fromSettings(settings).style.base.name}'
-                    '${settings.overlayLayers.isEmpty ? '' : ' + ${settings.overlayLayers.length} 个叠加层'}',
+                    '${settings.overlayLayers.isEmpty ? '' : S.settingsOverlayCount(settings.overlayLayers.length)}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   trailing: const Icon(Icons.chevron_right),
@@ -179,7 +202,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          _section(context, '天气来源与密钥'),
+          _section(context, S.settingsSourcesSection),
           Card(
             child: Column(
               children: [
@@ -191,7 +214,12 @@ class SettingsScreen extends ConsumerWidget {
                       style: const TextStyle(fontSize: 14),
                     ),
                     subtitle: Text(
-                      '${p.caps.vendor} · 覆盖 ${p.caps.coverage} · 预报 ${p.caps.forecastHorizonDays} 天 · ${p.caps.requiresApiKey ? '需密钥' : '无需密钥'}',
+                      S.settingsProviderSubtitle(
+                        p.caps.vendor,
+                        p.caps.coverage,
+                        p.caps.forecastHorizonDays,
+                        p.caps.requiresApiKey,
+                      ),
                       style: const TextStyle(fontSize: 11),
                     ),
                     value: settings.enabledProviderIds.contains(
@@ -203,7 +231,7 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   dense: true,
                   title: const Text(
-                    '来源能力与授权对照',
+                    S.settingsCapabilities,
                     style: TextStyle(fontSize: 13),
                   ),
                   trailing: const Icon(Icons.chevron_right, size: 18),
@@ -217,10 +245,15 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ExpansionTile(
               leading: const Icon(Icons.vpn_key_outlined, size: 20),
-              title: const Text('数据源密钥', style: TextStyle(fontSize: 14)),
+              title: const Text(
+                S.settingsApiKeys,
+                style: TextStyle(fontSize: 14),
+              ),
               subtitle: Text(
-                '和风：${settings.qweatherConfigured ? '已配置' : '未配置'} · '
-                'meteoblue：${ref.watch(meteoblueSettingsProvider).configured ? '已配置' : '未配置'}',
+                S.settingsApiKeysStatus(
+                  settings.qweatherConfigured,
+                  ref.watch(meteoblueSettingsProvider).configured,
+                ),
                 style: const TextStyle(fontSize: 11),
               ),
               childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
@@ -230,16 +263,19 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          _section(context, '数据与帮助'),
+          _section(context, S.settingsDataSection),
           Card(
             child: Column(
               children: [
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.explore_outlined, size: 20),
-                  title: const Text('查看使用指引', style: TextStyle(fontSize: 13)),
+                  title: const Text(
+                    S.settingsGuide,
+                    style: TextStyle(fontSize: 13),
+                  ),
                   subtitle: const Text(
-                    '导入线路、选择出发时间、核对天气来源',
+                    S.settingsGuideHint,
                     style: TextStyle(fontSize: 11),
                   ),
                   trailing: const Icon(Icons.chevron_right, size: 18),
@@ -269,7 +305,10 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.verified_user_outlined, size: 20),
-                  title: const Text('数据授权与署名', style: TextStyle(fontSize: 13)),
+                  title: const Text(
+                    S.settingsAttribution,
+                    style: TextStyle(fontSize: 13),
+                  ),
                   trailing: const Icon(Icons.chevron_right, size: 18),
                   onTap: () => _showAttribution(context),
                 ),
@@ -286,9 +325,12 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.file_download_outlined, size: 20),
-                  title: const Text('导出我的线路数据', style: TextStyle(fontSize: 13)),
+                  title: const Text(
+                    S.settingsExport,
+                    style: TextStyle(fontSize: 13),
+                  ),
                   subtitle: const Text(
-                    '收藏与导入线路导出为 JSON 文本（本地操作，不上传）',
+                    S.settingsExportHint,
                     style: TextStyle(fontSize: 11),
                   ),
                   trailing: const Icon(Icons.copy, size: 18),
@@ -322,7 +364,7 @@ class SettingsScreen extends ConsumerWidget {
       await showDialog<void>(
         context: context,
         builder: (dCtx) => AlertDialog(
-          title: const Text('导出数据（已复制到剪贴板）'),
+          title: const Text(S.settingsExportDone),
           content: SizedBox(
             width: 420,
             child: SelectableText(text, style: const TextStyle(fontSize: 11)),
@@ -345,7 +387,7 @@ class SettingsScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (dCtx) => AlertDialog(
-        title: const Text('来源能力与授权对照'),
+        title: const Text(S.settingsCapabilities),
         content: SizedBox(
           width: 460,
           child: ListView(
@@ -362,10 +404,17 @@ class SettingsScreen extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        '服务商：${c.vendor}\n模型：${c.modelOrNetwork}\n覆盖：${c.coverage}\n'
-                        '时效：${c.forecastHorizonDays} 天 · 间隔 ${c.intervalHours} h\n'
-                        '空间分辨率：${c.spatialResolutionNote ?? '来源未提供'}\n'
-                        'Web 端：${c.browserNotes}\n授权：${c.license}\n署名：${c.attribution}',
+                        S.settingsCapabilityDetails(
+                          vendor: c.vendor,
+                          model: c.modelOrNetwork,
+                          coverage: c.coverage,
+                          horizonDays: c.forecastHorizonDays,
+                          intervalHours: c.intervalHours,
+                          resolution: c.spatialResolutionNote,
+                          browserNotes: c.browserNotes,
+                          license: c.license,
+                          attribution: c.attribution,
+                        ),
                         style: const TextStyle(fontSize: 11, height: 1.5),
                       ),
                       if (c.modelOverlapNote != null)
@@ -398,15 +447,10 @@ class SettingsScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (dCtx) => AlertDialog(
-        title: const Text('数据授权与署名'),
+        title: const Text(S.settingsAttribution),
         content: const SingleChildScrollView(
           child: Text(
-            '地图瓦片：默认 © 高德地图；可切换 © OpenStreetMap 贡献者。仅在线显示，不预下载。\n\n'
-            '徒步线路与具名路径段（OSM）：© OpenStreetMap 贡献者，ODbL 1.0。线路几何来自 Overpass API 按视野查询；路径段不冒充完整路线，App 展示不构成对路线可通行性或许可进入的担保。\n\n'
-            '天气：Open-Meteo（CC BY 4.0，非商业免费额度；模型来自 NOAA 等机构）；MET Norway Locationforecast 2.0（NLOD 2.0 / CC BY 4.0）。\n\n'
-            '地点搜索：Open-Meteo Geocoding（GeoNames/知识共享数据）。\n\n'
-            '内置示例线路为本项目演示数据（已标注“演示”），非实测。\n\n'
-            '完整对照表与条款链接见 docs/data-sources.md。',
+            S.settingsAttributionBody,
             style: TextStyle(fontSize: 12, height: 1.6),
           ),
         ),
@@ -461,17 +505,16 @@ class _QweatherCredentialsCardState
                 const Icon(Icons.vpn_key_outlined, size: 16),
                 const SizedBox(width: 6),
                 const Expanded(
-                  child: Text('和风天气（大陆直连推荐）', style: TextStyle(fontSize: 14)),
+                  child: Text(
+                    S.settingsQweatherTitle,
+                    style: TextStyle(fontSize: 14),
+                  ),
                 ),
                 ConfiguredStatus(configured: settings.qweatherConfigured),
               ],
             ),
             const SizedBox(height: 4),
-            const HelpText(
-              '在 dev.qweather.com 控制台查看已开通服务的 API Key 与 API Host'
-              '（新账号为专属域名，形如 abc123.qweatherapi.com；旧账号可用 devapi.qweather.com）。'
-              '密钥仅保存在本机。未配置时该来源会显示配置指引，其余来源不受影响。',
-            ),
+            const HelpText(S.settingsQweatherHelp),
             const SizedBox(height: 8),
             TextField(
               controller: _host,
@@ -506,12 +549,11 @@ class _QweatherCredentialsCardState
                         ),
                       );
                   if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('已保存（仅本机）')));
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(content: Text(S.saved)));
                   }
                 },
-                child: const Text('保存', style: TextStyle(fontSize: 13)),
+                child: const Text(S.save, style: TextStyle(fontSize: 13)),
               ),
             ),
           ],
@@ -549,10 +591,10 @@ class _CacheCardState extends ConsumerState<_CacheCard> {
   @override
   Widget build(BuildContext context) {
     final names = {
-      CacheNs.routes: '线路数据',
-      CacheNs.map: '地图/区域查询',
-      CacheNs.weather: '天气数据',
-      CacheNs.user: '用户数据',
+      CacheNs.routes: S.settingsCacheRoutes,
+      CacheNs.map: S.settingsCacheMap,
+      CacheNs.weather: S.settingsCacheWeather,
+      CacheNs.user: S.settingsCacheUser,
     };
     return Card(
       child: Column(
@@ -561,11 +603,18 @@ class _CacheCardState extends ConsumerState<_CacheCard> {
             ListTile(
               dense: true,
               title: Text(
-                '${names[ns]}（${_stats?[ns]?.$1 ?? 0} 条 · ${((_stats?[ns]?.$2 ?? 0) / 1024).toStringAsFixed(0)} KB）',
+                S.settingsCacheEntry(
+                  names[ns],
+                  _stats?[ns]?.$1 ?? 0,
+                  ((_stats?[ns]?.$2 ?? 0) / 1024).toStringAsFixed(0),
+                ),
                 style: const TextStyle(fontSize: 13),
               ),
               trailing: TextButton(
-                child: const Text('清除', style: TextStyle(fontSize: 12)),
+                child: const Text(
+                  S.settingsCacheClear,
+                  style: TextStyle(fontSize: 12),
+                ),
                 onPressed: () async {
                   final cache = CacheStore(ref.read(prefsProvider));
                   await cache.clearNamespace(ns);
