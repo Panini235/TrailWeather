@@ -167,6 +167,18 @@ abstract final class S {
   static const tapAgainForDetail = '再点一次查看节点详情';
   static const offRouteWaypoint = '偏离线路超过 300 m，未计入沿途时间线';
   static const sharedGridNotePrefix = '网格说明';
+  static const nearbyMarksPrefix = '附近';
+  static const nearbyMarksTitle = '附近标记（不单独查询天气，按本节点预报）';
+  static const nearbyMarkTooltip = '天气见最近的节点';
+  static String nearbyOffset(double m) => m < 1000
+      ? '相距约 ${(m / 10).round() * 10} m'
+      : '相距约 ${(m / 1000).toStringAsFixed(1)} km';
+  static const nearbyMarksNote =
+      '打卡点、水源、补给点等普通标记挂在最近的节点上，不单独占一行，天气按该节点的预报；'
+      '营地、垭口、险段、下撤点、休息点和设了停留时长的标记仍是独立节点。';
+  static const foldedSameForecast = '预报同上';
+  static const foldedNote = '标“预报同上”的节点与上方节点落在同一网格、同一小时，数据完全相同，默认折叠，点开可逐个查看。';
+  static String foldedNodes(int n) => '另 $n 个节点';
 
   // 节点
   static const nodeDetail = '节点详情';
@@ -267,6 +279,7 @@ abstract final class S {
           'Open-Meteo（含海拔、空气质量、地点搜索）、MET Norway，以及你自行配置 Key 后的和风天气、meteoblue。'
           '在地图上搜索线路时，当前视野范围会发送给 OpenStreetMap Overpass 服务。'
           '地图瓦片由你选择的底图服务商（高德、天地图、OpenStreetMap 等）提供，请求中包含瓦片坐标。'
+          '打开等高线、地形阴影、手绘规划或 3D 地形预览时，会按瓦片坐标从 AWS（Terrain Tiles 开放数据）下载高程瓦片。'
           '这些服务会按各自的隐私政策处理请求（包括你的 IP 地址）。',
     ),
     (
@@ -298,6 +311,52 @@ abstract final class S {
   // 开屏
   static const splashSkip = '跳过动画';
   static const splashTagline = '出发前，看懂沿途天气';
+
+  // 手绘规划（T-189）
+  static const plannerTerrain = '等高线与地形阴影';
+  static const plannerHintEmpty = '轻触地图任意处开始徒步规划';
+  static const plannerHintEdit = '拖动圆点调整位置，拖线段中间的小点插入新点';
+  static const plannerElevLoading = '海拔加载中…';
+  static const plannerElevUnavailable = '海拔数据暂不可用';
+  static const plannerElevNote =
+      '海拔为公开高程数据估算（SRTM，约 30 m 网格），取整到 10 m；爬升已滤掉 5 m 以内的起伏。';
+  static const plannerDeletePoint = '删除此点';
+  static const plannerPoint = '第';
+  static const plannerPointSuffix = '点';
+  static const plannerAbout = '约';
+  static const plannerNoClimb = '未计爬升';
+  static const plannerElevSource = '海拔：公开高程数据估算（SRTM，约 30 m）';
+  static const plannerHours = '小时';
+  static const plannerMinutes = '分';
+  static const plannerMinutesOnly = '分钟';
+  static const plannerElevRange = '海拔';
+  static const plannerMore = '更多';
+
+  // 地形图层（T-190）
+  static const terrainSection = '地形';
+  static const terrainContours = '等高线';
+  static const terrainContoursNote =
+      '由公开高程数据（SRTM，约 30 m 网格）在本机计算，等高距 25–200 m 随缩放变化，放大到 10 级以上显示；非测绘成果。';
+  static const terrainHillshade = '地形阴影';
+  static const terrainHillshadeNote = '压暗背光坡，一眼看出山形；可叠在任意底图上。';
+  static const terrainIntervalPrefix = '等高距';
+  static const terrainAttribution = '高程：Terrain Tiles（AWS 开放数据）· SRTM（USGS）';
+
+  // 线路 3D 地形预览（T-191）
+  static const route3dTitle = '3D 地形预览';
+  static const route3dLoading = '高程加载中';
+  static const route3dFailed = '高程数据没能加载（国内直连 AWS 有时较慢），稍后再试。';
+  static const route3dRetry = '重试';
+  static const route3dNoRoute = '这条线路没有坐标，无法生成 3D 地形。';
+  static const route3dHint = '单指拖动：旋转、俯仰 · 双指：缩放、平移、扭转 · 双击：复位';
+  static const route3dExLabel = '高程';
+  static const route3dExNone = '高程未放大';
+  static const route3dExPrefix = '高程放大 ×';
+  static const route3dCompass = '转回朝北';
+  static const route3dPartial = '部分区域缺少高程数据，空白处未绘制。';
+  static String route3dNote(int spacingM) =>
+      '地形由公开高程数据（SRTM，约 30 m 网格）在本机生成，网格间距约 $spacingM m；'
+      '线路按地形贴地显示，被山体挡住的路段画成虚线。仅供看山形，非测绘成果。';
 
   // 问题反馈
   static const startupFailedTitle = '山晴没能启动';

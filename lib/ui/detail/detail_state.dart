@@ -106,6 +106,43 @@ List<NodeWxRow> buildNodeRows({
   ];
 }
 
+/// 与上一行是同一条预报：同一查询点（近似网格合并）且同一小时，数据完全相同
+/// （缺失时同为缺失）。行程模式下同一网格、不同小时的节点不算重复。
+bool sameForecastAsPrev(List<NodeWxRow> rows, int i) =>
+    i > 0 &&
+    rows[i].sharedWithPrev &&
+    _hourOf(rows[i].validUtc) == _hourOf(rows[i - 1].validUtc);
+
+DateTime _hourOf(DateTime t) {
+  final u = t.toUtc();
+  return DateTime.utc(u.year, u.month, u.day, u.hour);
+}
+
+/// 时间线条目：展示 [index] 节点；[folded] 是紧随其后、预报与它相同的普通节点。
+class TimelineEntry {
+  TimelineEntry(this.index);
+
+  final int index;
+  final List<int> folded = [];
+}
+
+/// 时间线折叠：连续预报相同的普通节点收进上一条目。
+/// 只折叠没有名称的节点（起终点、高点、关键航点总是单独显示），
+/// 只在数据完全相同时折叠，不同的数据绝不合并。
+List<TimelineEntry> foldTimeline(List<NodeWxRow> rows) {
+  final out = <TimelineEntry>[];
+  for (var i = 0; i < rows.length; i++) {
+    if (out.isNotEmpty &&
+        rows[i].node.label == null &&
+        sameForecastAsPrev(rows, i)) {
+      out.last.folded.add(i);
+    } else {
+      out.add(TimelineEntry(i));
+    }
+  }
+  return out;
+}
+
 /// 线路摘要：按“选定来源”展示，不跨来源拼接。
 class RouteWxSummary {
   const RouteWxSummary({

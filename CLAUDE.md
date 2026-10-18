@@ -45,6 +45,7 @@ lib/data/        business layer; app_providers.dart is the Riverpod wiring hub
   weather/       WeatherProvider adapters → WeatherRepository → ETA / risk rules
   routes/        HikingRoute model, RouteFileImport (GPX/KML/KMZ/GeoJSON), incoming files, Overpass discovery, planet trails, exporter
   settings/      AppSettings + favorites (Notifier + shared_preferences)
+  terrain/       DEM tiles (AWS Terrain Tiles), contours/hillshade compute, 3D preview grid/camera
   monetization/  subscription models/repository (paywall, pro benefits)
 lib/ui/          screens (trips home, map, route detail, settings, import, planet, planner, onboarding, paywall); router.dart (shell); strings.dart
 ```
@@ -60,6 +61,7 @@ lib/ui/          screens (trips home, map, route detail, settings, import, plane
 - **Request discipline:** no weather requests while the map is being dragged. The time slider only previews loaded data and fetches on `onChangeEnd`. Overpass rotates mirrors because the main instance often returns 504.
 - **Data tiers:** `docs/data-hierarchy.md` and `wx_importance.dart` define which variables are decision / prepare / reference data. Decision data is always shown (missing → "未提供"); prepare data surfaces as signals only when a threshold trips; reference data appears only under "更多指标". Clear-sky UV is a separate variable and never stands in for the UV forecast.
 - **Weather map (map tab):** `weather_map_overlay.dart`. Rain/cloud are Open-Meteo model fields fetched as one multi-coordinate grid (≤120 points, refetched only when the stopped view leaves the fetched area), drawn with `drawVertices` (mesh positions computed once per grid, pan/zoom only changes the canvas transform); satellite is Himawari IR via NASA GIBS (last 2 h, every 10 min, all frames preloaded); typhoon is JMA RSMC Tokyo. The timeline is continuous (`WeatherMapController.timeline`): while playing or scrubbing, layers blend linearly between neighbouring frames and only the layer repaints; at rest it settles on a real frame. Label forecast vs observation explicitly.
+- **Terrain (D-039 / D-040):** `DemService` (`demServiceProvider`) loads AWS Terrain Tiles (z6–12, memory-only). `TerrainLayer` computes contours and hillshade per tile in an isolate and overlays any basemap; on GCJ-02 basemaps each tile is warped by its four corner offsets (never one offset per tile). Contour interval ≥ 25 m and elevation numbers rounded to 10 m with "约" (public-map rule: interval > 20 m, elevation accuracy not better than 15 m). The route 3D preview (`ui/detail/route_3d_page.dart`) is self-drawn: one per-vertex-colour `drawVertices` per frame, cells sorted far-to-near. **Never use `drawVertices` with `textureCoordinates` + `ImageShader`: it aborts the raster thread on Impeller/Vulkan.**
 - **Strings:** all user-visible text goes through `S` constants in `lib/ui/strings.dart`. Do not inline UI text in business code.
 - **Tests:** source contract tests use fixtures copied from real API responses (`test/weather/`). The other suites are `test/unit`, `test/widget` and `test/integration/core_flow_test.dart`.
 

@@ -1043,30 +1043,30 @@
    "p": "P1",
    "title": "手绘规划工具：定位、实时距离/爬升/用时、拖动与插点编辑",
    "deps": [],
-   "status": "todo",
+   "status": "done",
    "acceptance": "规划页有定位到我；顶部实时显示距离、累计爬升（DEM 高程，标注来源与精度）、估算用时；可拖动已有点、在线段上插点",
-   "verify": "widget 测试 + 真机",
-   "result": "2026-10-17 用户提出；方案待用户确认。"
+   "verify": "flutter test test/widget/route_planner_screen_test.dart test/unit/terrain_test.dart；真机 profile 打点、拖点、插点、删除、撤销",
+   "result": "2026-10-18：定位到我；底部实时距离、↑↓ 爬升（公开高程数据，取整 10 m 标“约”，5 m 滞回）、估算用时与海拔剖面；拖动圆点、拖中点插点、选中删除，撤销含航点（清空可撤销）；导出 / 清空收进“更多”菜单。真机（小米 12S）：香山 4 点 5.65 km ↑约 660 m ↓约 480 m 约 3 小时 22 分，插点后实时更新；拖点约 106 帧/秒（上一轮）、平移地图 UI p99 1.4 ms、光栅 p99 2.5 ms。D-039。"
   },
   {
    "id": "T-190",
    "p": "P1",
    "title": "等高线 / 地形晕渲可叠加在任意底图上",
    "deps": [],
-   "status": "todo",
+   "status": "done",
    "acceptance": "规划页与地图页可在高德/天地图底图上叠加等高线或晕渲；国内直连可用性与授权核实后接入",
-   "verify": "真机核对国内加载速度",
-   "result": "2026-10-17 用户提出；现有 OpenTopoMap 与天地图地形只能作底图。"
+   "verify": "flutter test test/widget/terrain_layer_test.dart test/unit/terrain_test.dart；真机在高德底图上核对瓦片边界与小地图",
+   "result": "2026-10-18：AWS Terrain Tiles（国内直连约 1.3 s，无需 Key）在本机算等高线（25–200 m，符合自然资规〔2023〕2 号第十九条）与地形阴影，叠在任意底图上；地图页图层面板、详情页小地图图层面板、手绘页都可开关。GCJ-02 底图按瓦片四角偏移插值，修好了真机上瓦片边界错开 2 px 与阴影深线 / 浅线；带纹理坐标的 drawVertices 在 Impeller 上会崩，已改用 drawImageRect。天地图底图因手机未填 Key 未实机核对（叠加方式与高德相同，WGS-84 无需位移）。D-039。"
   },
   {
    "id": "T-191",
    "p": "P2",
    "title": "3D 地形评估",
    "deps": [],
-   "status": "todo",
+   "status": "done",
    "acceptance": "比较 MapLibre（矢量+DEM 地形）替换 flutter_map 与“线路 3D 预览”自绘方案的包体、三端支持、数据授权与工作量，给出结论",
-   "verify": "决策记录",
-   "result": "2026-10-17 用户提出。"
+   "verify": "决策记录 D-040；flutter test test/unit/terrain_mesh_test.dart test/widget/route_3d_page_test.dart；真机帧时间",
+   "result": "2026-10-18：结论：主地图不换 MapLibre（移动端 3D 地形未发布、国内无免 Key 矢量瓦片、需重写全部自绘图层），在线路详情做“3D 地形预览”本机自绘（无新依赖）。小地图右下角进入；地形块 + 贴地线路，被挡路段虚线，高程放大 ×1 / ×1.5 / ×2 常显标注；手势跟手无惯性，仅复位 / 转北 / 切倍数短过渡。真机转动约 115 帧/秒（UI p99 2.3 ms、光栅 p99 2.2 ms），静止 0 帧。D-040。"
   },
   {
    "id": "T-192",
@@ -1079,6 +1079,16 @@
    "acceptance": "CI 严格按 pubspec.lock 构建；启动失败有兜底页面；CI 正式签名 APK 在真机冷启动、完成引导、重启保留设置；发布 0.2.0-beta.2",
    "verify": "真机安装 CI 正式包 + logcat 无异常",
    "result": "2026-10-17：根因见 D-038；本地 release 模式（.rc 后缀）包在小米 12S 上启动、引导、重启均正常。CI 39040332592 依赖按锁文件（shared_preferences_android 2.4.28，APK 中已无 JNI 注册类）；正式签名 APK 覆盖安装到真机冷启动正常，logcat 无异常；预发布 v0.2.0-beta.2（main e19ef7c）附 APK 与 iOS 未签名 IPA（构建 39040431412）；beta.1 说明顶部加了改用 beta.2 的提示。"
+  },
+  {
+   "id": "T-193",
+   "p": "P1",
+   "title": "密集节点：时间线折叠“预报同上”、航点分级",
+   "deps": [],
+   "status": "done",
+   "acceptance": "同一查询点且同一小时（数据完全相同）的连续普通节点在时间线默认折叠，可展开；起终点、高点、关键航点不折叠；行程模式下同网格不同小时不折叠。营地/垭口/险段/下撤点/休息点及设了停留时长的航点仍是独立节点；打卡点/水源/补给点不占节点、不计入上限，挂到沿线最近的节点上显示名称，地图上不显示为偏离线路，可在节点详情编辑/移除；离线包保存并兼容旧包；展开/收起动画真机满帧",
+   "verify": "flutter analyze；flutter test test/unit/timeline_fold_test.dart test/widget/route_detail_v2_test.dart；真机 profile 包测帧（VM service Flutter.Frame）",
+   "result": "2026-10-18：见 D-041。analyze 0；全量 406/406（HEAD+本改动的干净副本 385/385）。小米 12S profile 包（干净副本，不含地形 WIP）：香山示例线路固定时刻显示“另 1 个节点 · 1.6 km · 预报同上”，展开后节点 2 与起点数值一致；12 次展开/收起，每次 200 ms 动画 26–27 帧（120 Hz 满帧），动画内 build ≤ 6.6 ms、raster ≤ 7.1 ms。第一版把展开状态放在整页 State，点按首帧 build 10.6 ms，已改为折叠行自持状态。"
   }
  ]
 }

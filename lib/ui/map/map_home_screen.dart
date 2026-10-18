@@ -32,6 +32,7 @@ import '../widgets/common.dart';
 import '../tokens.dart';
 import '../../core/coord_parse.dart';
 import '../../data/weather/weather_field.dart';
+import 'terrain_layer.dart';
 import 'weather_map_overlay.dart';
 
 /// 地图首页：地图浏览 → 线路发现 → 进入详情。
@@ -678,6 +679,8 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
       ref.watch(settingsProvider),
       tiandituClient: ref.watch(tiandituTileClientProvider),
     );
+    final terrain = terrainLayerFor(ref, basemap);
+    final contoursOn = ref.watch(settingsProvider).terrainContours;
 
     return Scaffold(
       body: Stack(
@@ -699,6 +702,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
             ),
             children: [
               ...basemap.tileLayers(),
+              ?terrain,
               ListenableBuilder(
                 listenable: _wxMap,
                 builder: (context, _) {
@@ -779,7 +783,15 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                 ),
               if (_myFix != null)
                 MarkerLayer(markers: [_myLocationMarker(basemap, _myFix!)]),
-              basemap.attributionWidget(),
+              if (terrain != null && contoursOn)
+                const ContourIntervalBadge(
+                  padding: EdgeInsets.fromLTRB(10, 0, 0, 96),
+                ),
+              basemap.attributionWidget(
+                extra: terrain == null
+                    ? const []
+                    : const [S.terrainAttribution],
+              ),
             ],
           ),
 

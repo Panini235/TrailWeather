@@ -112,6 +112,26 @@ class MapLayerPanel extends ConsumerWidget {
               },
             ),
         const Divider(height: 20),
+        Text(S.terrainSection, style: Theme.of(context).textTheme.titleSmall),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.line_axis, size: 18),
+          title: const Text(S.terrainContours),
+          subtitle: Text(S.terrainContoursNote, style: muted),
+          value: settings.terrainContours,
+          onChanged: notifier.setTerrainContours,
+        ),
+        SwitchListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.terrain_outlined, size: 18),
+          title: const Text(S.terrainHillshade),
+          subtitle: Text(S.terrainHillshadeNote, style: muted),
+          value: settings.terrainHillshade,
+          onChanged: notifier.setTerrainHillshade,
+        ),
+        const Divider(height: 20),
         Text(S.overlayLayers, style: Theme.of(context).textTheme.titleSmall),
         for (final s in sources)
           if (s.id != style.base.id)

@@ -34,7 +34,10 @@ import '../map/basemap.dart';
 import '../map/map_layers_ui.dart';
 import '../map/route_camera.dart';
 import '../map/route_marks.dart';
+import '../map/terrain_layer.dart';
+import '../motion.dart';
 import 'detail_state.dart';
+import 'route_3d_page.dart';
 import 'layering_card.dart';
 import '../share/share_cards.dart';
 import '../share/share_graphics.dart' show hintIcon;
@@ -120,6 +123,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   final ScrollController _scroll = ScrollController();
   final Map<int, GlobalKey> _tileKeys = {};
 
+  /// 时间线折叠：上次构建的条目与折叠行的 key（按条目首节点下标）。
+  List<TimelineEntry> _timeline = const [];
+  final Map<int, GlobalKey> _foldKeys = {};
+
   @override
   void dispose() {
     _scroll.dispose();
@@ -131,7 +138,11 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     setState(() => _selectedNode = i);
     if (!scroll) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = _tileKeys[i]?.currentContext;
+      // 节点被折叠时滚到它所在的折叠行（不自动展开，避免拖动剖面时列表跳动）。
+      final fold = _timeline.where((e) => e.folded.contains(i)).firstOrNull;
+      final ctx =
+          _tileKeys[i]?.currentContext ??
+          (fold == null ? null : _foldKeys[fold.index]?.currentContext);
       if (ctx != null && ctx.mounted) {
         Scrollable.ensureVisible(
           ctx,
@@ -146,6 +157,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     setState(() {
       _reversed = !_reversed;
       _selectedNode = null;
+      _foldKeys.clear(); // 新 key：折叠行回到收起状态
     });
   }
 
@@ -801,8 +813,11 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
 
     final bundle = bundleAsync.value;
     final tripMode = _mode == TimeMode.trip && etas.isNotEmpty;
+    final timeline = _timeline = foldTimeline(rows);
     // 说明类文字统一收进底部“数据说明与来源”，不再逐条铺在沿途内容之间。
     final notes = <String>[
+      if (timeline.any((e) => e.folded.isNotEmpty)) S.foldedNote,
+      if (rows.any((r) => r.node.nearbyWaypoints.isNotEmpty)) S.nearbyMarksNote,
       if (!route.analysisPath.coversAllSegments) S.multiSegmentNote,
       if (_reversed) S.reversedNote,
       if (route.origin == RouteOrigin.planet) S.planetElevationNote,
@@ -818,28 +833,40 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       '时间按设备时区显示。',
     ];
 
+    Widget tile(int i) => _NodeTile(
+      key: _tileKeys.putIfAbsent(i, GlobalKey.new),
+      row: rows[i],
+      index: i,
+      isLast: i == rows.length - 1,
+      tripMode: tripMode,
+      selected: _selectedNode == i,
+      settings: settings,
+      // 第一次点选中（地图/剖面同步高亮），再点打开详情。
+      onTap: () => _selectedNode == i
+          ? _showNodeSheet(rows, settings, initialIndex: i)
+          : _select(i),
+      onDetail: () {
+        _select(i);
+        _showNodeSheet(rows, settings, initialIndex: i);
+      },
+    );
+
     return [
       const SizedBox(height: 4),
       Text(S.weatherAlongRoute, style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 4),
-      for (var i = 0; i < rows.length; i++)
-        _NodeTile(
-          key: _tileKeys.putIfAbsent(i, GlobalKey.new),
-          row: rows[i],
-          index: i,
-          isLast: i == rows.length - 1,
-          tripMode: tripMode,
-          selected: _selectedNode == i,
-          settings: settings,
-          // 第一次点选中（地图/剖面同步高亮），再点打开详情。
-          onTap: () => _selectedNode == i
-              ? _showNodeSheet(rows, settings, initialIndex: i)
-              : _select(i),
-          onDetail: () {
-            _select(i);
-            _showNodeSheet(rows, settings, initialIndex: i);
-          },
-        ),
+      for (final e in timeline) ...[
+        tile(e.index),
+        if (e.folded.isNotEmpty)
+          _FoldedRun(
+            key: _foldKeys.putIfAbsent(e.index, GlobalKey.new),
+            rows: [for (final i in e.folded) rows[i]],
+            tripMode: tripMode,
+            containsSelected: e.folded.contains(_selectedNode),
+            lowPower: settings.lowPower,
+            buildTiles: () => [for (final i in e.folded) tile(i)],
+          ),
+      ],
       const SizedBox(height: 8),
       // 第三层：默认收起。
       ExpansionTile(

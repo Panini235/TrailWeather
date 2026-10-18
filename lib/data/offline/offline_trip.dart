@@ -59,6 +59,8 @@ class OfflineTripPlan {
           'distance': n.distFromStartM,
           'label': n.label,
           'waypoint': n.waypoint?.toJson(),
+          if (n.nearbyWaypoints.isNotEmpty)
+            'nearby': [for (final w in n.nearbyWaypoints) w.toJson()],
         },
     ],
     'times': [for (final t in nodeTimesUtc) t.toUtc().toIso8601String()],
@@ -93,6 +95,11 @@ class OfflineTripPlan {
             waypoint: n['waypoint'] == null
                 ? null
                 : RouteWaypoint.fromJson(n['waypoint'] as Map<String, dynamic>),
+            // 旧离线包没有该字段。
+            nearbyWaypoints: [
+              for (final w in (n['nearby'] as List?) ?? const [])
+                RouteWaypoint.fromJson(w as Map<String, dynamic>),
+            ],
           ),
       ],
       nodeTimesUtc: [
