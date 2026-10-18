@@ -7,6 +7,7 @@ import '../../data/weather/departure_windows.dart';
 import '../../data/weather/risk_rules.dart';
 import '../../data/weather/layering.dart';
 import '../detail/detail_state.dart';
+import '../detail/ridge_band.dart' show RidgeBandGraphic;
 import '../detail/layering_card.dart' show LayerFigurePainter;
 import '../../data/weather/node_wx_class.dart';
 import '../../data/weather/weather_models.dart';
@@ -46,7 +47,7 @@ String shareNodeWeather(NodeWxRow r, AppSettings settings) {
   return parts.isEmpty ? '数据不完整' : parts.join(' · ');
 }
 
-/// 线路天气分享卡（分层：标题 → 三个大数字 → 醒目提示 → 线路示意 + 海拔剖面 → 关键节点）。
+/// 线路天气分享卡（分层：标题 → 三个大数字 → 醒目提示 → 线路示意 + 山脊天气带 → 关键节点）。
 /// 线路分享图版式（D-034）：信息侧重不同，来源与免责说明在每种版式里都保留。
 enum ShareLayout {
   /// 长图：数字、提示、示意图与剖面、关键节点逐条说明。
@@ -170,9 +171,19 @@ class RouteShareCard extends StatelessWidget {
       keyNodes: keys,
       height: layout == ShareLayout.wide ? 250 : 200,
     );
+    // 山脊天气带（与详情页同一套视觉）：行程模式且日落已知时铺出日落后的路段。
+    final sunset = sunsetUtc;
+    final nightFrom = tripMode && sunset != null
+        ? rows.indexWhere((r) => r.validUtc.isAfter(sunset))
+        : -1;
     final profile = ascent == null
         ? null
-        : ShareElevationProfile(route: route, rows: rows, keyNodes: keys);
+        : RidgeBandGraphic(
+            route: route,
+            rows: rows,
+            keyNodes: keys,
+            nightFromIndex: nightFrom < 0 ? null : nightFrom,
+          );
     final Widget keyList = Column(
       children: [
         for (final (n, i) in keys.indexed)
