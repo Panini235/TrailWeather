@@ -68,7 +68,7 @@ class _NodeDetailViewState extends State<NodeDetailView> {
     final wp = node.waypoint;
     final theme = Theme.of(context);
     final wx = row.wx;
-    final label = node.label ?? '节点 ${_idx + 1}';
+    final label = node.label ?? S.detailNodeFallback(_idx + 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,13 +87,13 @@ class _NodeDetailViewState extends State<NodeDetailView> {
               ),
             ),
             IconButton(
-              tooltip: '上一个节点',
+              tooltip: S.nodePrevious,
               icon: const Icon(Icons.chevron_left),
               onPressed: _idx > 0 ? () => _go(_idx - 1) : null,
             ),
             Text('${_idx + 1}/${widget.rows.length}'),
             IconButton(
-              tooltip: '下一个节点',
+              tooltip: S.nodeNext,
               icon: const Icon(Icons.chevron_right),
               onPressed: _idx < widget.rows.length - 1
                   ? () => _go(_idx + 1)
@@ -102,7 +102,7 @@ class _NodeDetailViewState extends State<NodeDetailView> {
           ],
         ),
         Text(
-          '距起点 ${(node.distFromStartM / 1000).toStringAsFixed(1)} km'
+          '${S.nodeDistFromStartKm((node.distFromStartM / 1000).toStringAsFixed(1))}'
           '${node.elevationM == null ? '' : ' · ${node.elevationM!.toStringAsFixed(0)} m'}'
           ' · ${widget.tripMode ? S.arrivalEstimate : S.fixedMoment} ${_fmtLocal(row.validUtc)}',
           style: TextStyle(
@@ -126,7 +126,7 @@ class _NodeDetailViewState extends State<NodeDetailView> {
         const SizedBox(height: 10),
         // 先回答“到这里时天气怎样”：4 个关键值放大，其余指标收进“更多指标”。
         if (wx == null)
-          const GranularityNotice(text: '此来源在该时刻没有数据（超出预报范围或来源未提供）。')
+          const GranularityNotice(text: S.nodeNoDataAtTime)
         else ...[
           KeyWeatherValues(wx: wx, settings: widget.settings),
           // 准备层只在触发时升上来（紫外线很高、高于 0℃ 层、低云……）。
@@ -229,7 +229,7 @@ class _NodeDetailViewState extends State<NodeDetailView> {
       Expanded(
         child: Text(
           '${_shortLabel(wp.type)} · ${wp.name}'
-          '${wp.stopMinutes == null ? '' : ' · 停留 ${wp.stopMinutes} 分钟'}'
+          '${wp.stopMinutes == null ? '' : ' · ${S.detailStopMinutes(wp.stopMinutes!)}'}'
           '${offsetM == null ? '' : ' · ${S.nearbyOffset(offsetM)}'}',
           style: const TextStyle(fontSize: 13),
           overflow: TextOverflow.ellipsis,
@@ -301,7 +301,11 @@ class _NodeDetailViewState extends State<NodeDetailView> {
 
   static String _fmtLocal(DateTime utc) {
     final t = utc.toLocal();
-    return '${t.month}月${t.day}日 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    return S.nodeLocalTime(
+      t.month,
+      t.day,
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+    );
   }
 }
 

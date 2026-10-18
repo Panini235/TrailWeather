@@ -293,10 +293,14 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                 // 国内官方图源排第一（D-034）；没有 Key 时点击直接去填 Key。
                 if (ter != null)
                   hasTdt
-                      ? option(ter.id, '${ter.name}（推荐）', S.miniMapTiandituNote)
+                      ? option(
+                          ter.id,
+                          S.detailMapRecommended(ter.name),
+                          S.miniMapTiandituNote,
+                        )
                       : ListTile(
                           leading: const Icon(Icons.vpn_key_outlined),
-                          title: Text('${ter.name}（推荐）'),
+                          title: Text(S.detailMapRecommended(ter.name)),
                           subtitle: const Text(S.miniMapNeedsTiandituKey),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
@@ -309,7 +313,7 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                           },
                         ),
                 if (topo != null)
-                  option(topo.id, '${topo.name}（海外图源）', topo.note),
+                  option(topo.id, S.detailMapOverseas(topo.name), topo.note),
                 const Divider(height: Space.lg),
                 // 等高线、地形阴影由公开高程数据在本机计算，叠在任意底图上（与地图页共用设置）。
                 Consumer(
@@ -631,7 +635,7 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
                   margin: const EdgeInsets.fromLTRB(12, 0, 64, 12),
                   child: ListTile(
                     title: Text(
-                      '${widget.rows[sel].node.label ?? '节点 ${sel + 1}'} · '
+                      '${widget.rows[sel].node.label ?? S.detailNodeFallback(sel + 1)} · '
                       '${(widget.rows[sel].node.distFromStartM / 1000).toStringAsFixed(1)} km',
                     ),
                     subtitle: WxBriefLine(

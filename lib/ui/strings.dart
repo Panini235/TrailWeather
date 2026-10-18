@@ -430,7 +430,6 @@ abstract final class S {
       '台风：日本气象厅（西北太平洋区域专业气象中心）实况与路径预报，风速为 10 分钟平均，'
       '与中央气象台的 2 分钟平均不同；虚线圆是中心落点的 70% 概率圆，不是风圈。';
 
-  // ==== 迁入批次 A：出发窗口、导入、引导、会员、星球、行程首页、地图页 ====
   // 出发窗口
   static const departureVarTemp = '气温';
   static const departureVarGust = '阵风';
@@ -638,11 +637,7 @@ abstract final class S {
   static String wxMapTyphoonHeading(String course) => '向$course';
   static String wxMapTyphoonIssued(String time) => '发布 $time';
   static const wxMapSatelliteLegend = '暗 = 地面或低云　亮/彩 = 云顶高、对流强';
-  // ==== 批次 A 结束 ====
 
-  // ----
-
-  // ==== 迁入批次 B：离线行程包、设置、反馈、通用组件 ====
   // 离线行程包
   static const offlineCoverageComplete = '所选时段均有数据';
   static String offlineCoverageMissing(int n) => '覆盖不全：缺少 $n 个节点小时';
@@ -888,16 +883,188 @@ abstract final class S {
   static const fetchErrorFailed = '请求失败';
   static String fetchErrorSource(String message) => '来源返回错误（$message）';
   static const fetchErrorFormat = '响应格式无法识别';
-  // ==== 批次 B 结束 ====
 
-  // ----
+  // 手绘规划
+  static const plannerTitle = '线路规划工坊';
+  static const plannerUndo = '撤销';
+  static const plannerReverse = '反向走法（反穿）';
+  static const plannerExportMenu = '导出 GPX / KML';
+  static const plannerClearMenu = '清空重画';
+  static const plannerModeDraw = '打点画线';
+  static const plannerModeWaypoint = '标记营地/水源';
+  static const plannerFinish = '完成并查天气';
+  static String plannerCounts(int points, int waypoints) =>
+      ' · $points 点 / $waypoints 航点';
+  static const plannerReversed = '路线方向已反转（反穿规划）';
+  static const plannerClearTitle = '清空当前规划？';
+  static const plannerClearBody = '此操作将清除已绘制的全部轨迹点与航点。';
+  static const plannerClear = '清空';
+  static const plannerLocateFailed = '定位失败，可以继续在地图上打点。';
+  static String plannerWaypointDefaultName(int n) => '航点 $n';
+  static const plannerAddWaypointTitle = '添加关键航点 (POI)';
+  static const plannerWaypointNameLabel = '航点名称（如：一线天、白家营地）';
+  static const plannerWaypointTypeLabel = '航点类型';
+  static const plannerWaypointDescLabel = '备注（如：可扎营3顶帐篷、有流动山泉）';
+  static const plannerAdd = '添加';
+  static String plannerWaypointAdded(String name, String type) =>
+      '已添加：$name（$type）';
+  static const plannerNeedTwoPoints = '规划轨迹至少需要连接 2 个点';
+  static String plannerDefaultRouteName(int month, int day) =>
+      '手绘规划线路 $month月$day日';
+  static const plannerSaveTitle = '保存手绘路线并查看天气';
+  static const plannerRouteNameLabel = '线路名称';
+  static const plannerDescLabel = '备注说明（可选）';
+  static String plannerSaveSummary({
+    required String distKm,
+    required int? ascentM,
+    required int waypoints,
+    required String duration,
+  }) =>
+      '总里程：$distKm km\n'
+      '${ascentM == null ? '' : '累计爬升：$plannerAbout $ascentM m\n'}'
+      '航点数：$waypoints 个\n'
+      '预计徒步耗时：$duration';
+  static const plannerSaveAndForecast = '保存并推演天气';
+  static const plannerUntitledRoute = '手绘规划线路';
+  static const plannerSourceName = '用户手绘规划（Trail Studio）';
+  static const plannerSourceNameWithElev =
+      '$plannerSourceName· $plannerElevSource';
+  static const plannerExportSourceName = '用户规划';
+  static const plannerNeedTwoPointsExport = '至少需要 2 个轨迹点才能导出';
+  static const plannerExportTitle = '导出规划轨迹';
+  static const plannerExportNote = '可导出为标准 GPX 或 KML 格式，在两步路、奥维互动地图或户外手表中加载：';
+  static const plannerCopyGpx = '复制 GPX 内容到剪贴板';
+  static const plannerGpxCopied = 'GPX 文本已复制到剪贴板！可直接粘贴保存为 .gpx 文件使用';
+  static const plannerCopyKml = '复制 KML 内容到剪贴板（奥维/两步路推荐）';
+  static const plannerKmlCopied = 'KML 文本已复制到剪贴板！可直接粘贴保存为 .kml 文件使用';
+  // 线路详情：控制条与时间设置
+  static String detailDirection({required bool reversed}) =>
+      '$startPoint（绿）→ $endPoint（红）${reversed ? ' · 已反向' : ''}';
+  static const detailRestoreDirection = '恢复原方向';
+  static const detailHourLabel = '时刻';
+  static String detailHourSliderLabel(String hh) => '$hh:00（本地时区）';
+  static String detailPaceSummary(
+    double speedKmh,
+    double ascentMinPer100m,
+    int restMin,
+  ) => '速度 $speedKmh km/h · 上升 $ascentMinPer100m min/100m · 休息 $restMin min';
+  static String detailPaceSpeed(String kmh) => '平地速度：$kmh km/h';
+  static String detailPaceAscent(String min) => '每上升 100 m 加时：$min 分钟';
+  static String detailPaceRest(int min) => '全程休息：$min 分钟';
+  static const detailTimeAndPace = '设置时间与配速';
+  // 线路详情：小地图
+  static String detailMapRecommended(String name) => '$name（推荐）';
+  static String detailMapOverseas(String name) => '$name（海外图源）';
+  static String detailNodeFallback(int n) => '节点 $n';
+  // 线路详情：摘要、节点与来源
+  static String detailSummaryNoData(int withData, int total) =>
+      '当前选定时间与来源没有可用数据（$withData/$total 节点有数据）。信息不足时无法给出摘要。';
+  static const detailMinMaxTemp = '最低/最高温';
+  static const detailMaxGust = '最大阵风';
+  static const detailTripPrecip = '行程降水';
+  static const detailHourPrecip = '该时次降水';
+  static const detailCompareDepartures = '比较出发窗口';
+  static String detailMoreHints(int n) => '  等 $n 项提示';
+  static String detailStopMinutes(int min) => '停留 $min 分钟';
+  static const detailNoResolution = '来源未提供空间分辨率，位置颗粒度未确认';
+  static String detailModelRunLine(String time) => '\n起报/发布：$time UTC';
+  static String detailSourceElevLine(String m) =>
+      '\n来源使用海拔（模型地形）：$m m；轨迹海拔见各节点（两者是不同数据）';
+  static const detailFullProvenance = '查看完整溯源信息';
+  // 线路详情：页面
+  static const detailDownloadOffline = '下载离线行程包';
+  static const detailLoadingWeather = '正在获取线路天气';
+  static String detailShareText(String routeName, String timeLabel) =>
+      '$routeName · $timeLabel · 山晴徒步天气';
+  static String detailDayHead(int month, int day) => '$month月$day日全天';
+  static String detailDayNoPrecip(String head) => '$head：此来源未提供降水量。';
+  static String detailDayPartial(int hours) => '（来源仅覆盖 $hours 小时）';
+  static String detailDayMaxProb(String pct) => '，最大概率 $pct%';
+  static String detailDayDry(String head, String prob, String partial) =>
+      '$head：沿途预报无明显降水（每小时 <0.1 mm）$prob$partial';
+  static String detailDayWet({
+    required String head,
+    required String amount,
+    required String from,
+    required String to,
+    required String prob,
+    required String partial,
+  }) => '$head：沿途降水最多约 $amount，主要在 $from–$to 时$prob$partial';
+  static String detailChipTrip(String t) => '出发 $t';
+  static String detailChipFixed(String t) => '固定 $t';
+  static String detailHintBasis(String basis) => '依据：$basis';
+  static String detailSourceFailed(String source) => '来源请求失败（$source）';
+  static String detailSourceFailedDetail(String error) =>
+      '$error\n数据未获取，以下显示为空，不会用历史值冒充。';
+  static const detailSunsetNote = '日落按终点经度近似归属出发日期；未计山体遮挡，日出未接入。';
+  static const detailSunsetMissing = '日落：此来源未提供出发日终点日落。日出未接入。';
+  static const detailTimeZoneNote = '时间按设备时区显示。';
+  // 节点详情
+  static const nodePrevious = '上一个节点';
+  static const nodeNext = '下一个节点';
+  static String nodeDistFromStartKm(String km) => '距起点 $km km';
+  static const nodeNoDataAtTime = '此来源在该时刻没有数据（超出预报范围或来源未提供）。';
+  static String nodeLocalTime(int month, int day, String hhmm) =>
+      '$month月$day日 $hhmm';
+  // 节点详情：不同海拔与空气质量
+  static String envFetchFailed(String reason) => '暂时无法获取：$reason';
+  static String envFreezingLevel(String m) => '0℃ 层约 $m m。';
+  static String envGust(String wind) => '阵风 $wind';
+  static const envAqiOutOfRange = '该时刻不在空气质量预报范围（约 5 天）。';
+  static String envAqiValue(String aqi, String category) =>
+      'AQI $aqi（$category，美国标准）';
+  static String envAqiNote(String attribution) =>
+      '$attribution。近地面浓度；山脊若在逆温层之上，实际空气可能明显好于此值。';
+  // 节点多来源对比
+  static const compareNodeFallback = '节点';
+  static String compareValidTime({
+    required String utc,
+    required String local,
+    required bool tripMode,
+  }) =>
+      '$validTime：$utc UTC（$local 本地）'
+      '${tripMode ? '（行程模式：$eta，估算）' : ''}';
+  static String compareSourceFailed(String error) => '该来源请求失败：$error';
+  static const compareNoPointData = '该来源未返回此位置数据';
+  static String compareSourceRange(String range) =>
+      '该来源的时间范围：$range。$outOfRangeDetail';
+  static String compareNearestHour(String time, int diffMin) =>
+      '来源最近有效时次：$time UTC（与请求时刻相差 $diffMin 分钟）';
+  static String compareModelRun(String hhmm) => ' · 起报 $hhmm UTC';
+  static const compareNoSeries = '未返回时间序列';
+  // 节点天气数值
+  static const cellsNoDataAtHour = '该时次无数据（超出来源范围或未提供）';
+  static const cellsPrecipMissing = '降水：未提供';
+  static String cellsPrecip(String amount) => '降水 $amount';
+  static const cellsWindMissing = '风：未提供';
+  static String cellsWind(String speed) => '风 $speed';
+  static const cellsTempFeels = '气温 / 体感';
+  static String cellsSustained(String speed) => '持续 $speed';
+  static String cellsProb(String pct) => '概率 $pct%';
+  static String cellsProbWithNote(String pct) => '概率 $pct% · $probVsAmountNote';
+  // 节点未来 24 小时图
+  static String meteogramSemantics({
+    required int hours,
+    required int? tempLo,
+    required int? tempHi,
+    required String? precipMm,
+  }) =>
+      '$meteogramTitle：$hours 小时，'
+      '${tempLo == null ? '气温未提供' : '气温 $tempLo 到 $tempHi 度'}，'
+      '${precipMm == null ? '降水未提供' : '降水合计约 $precipMm 毫米'}';
+  static String meteogramHour(String hh) => '$hh时';
+  static String meteogramTempFeels(String temp, String feels) =>
+      '$temp / 体感 $feels';
+  static const meteogramCloud = '云';
+  static String meteogramDay(int day) => '$day日';
+  // 穿衣卡片
+  static String layeringAtKm(String km) => '$km km 处';
+  static const layeringWorn = '穿着';
+  static const layeringPackedAway = '放背包';
+  static const layeringNotNeeded = '不需要';
+  static String layeringFigureSemantics(String scene, List<String> parts) =>
+      '$layeringTitle，$scene时：${parts.join('，')}';
 
-  // ==== 迁入批次 C：手绘规划与线路详情 ====
-  // ==== 批次 C 结束 ====
-
-  // ----
-
-  // ==== 迁入批次 D：分享图 ====
   // 分享图
   static String shareFailed(Object e) => '分享失败：$e';
   static const shareBrand = '山晴 · 徒步天气';
@@ -943,7 +1110,4 @@ abstract final class S {
   static const shareNoClearDeparture = '所列时段内没有“未触发阈值且信息完整”的出发时刻。';
   static String shareEarliestClear(String stamp) => '最早未触发阈值的出发：$stamp';
   static const shareDepartureDisclaimer = '颜色只表示阈值结果，非安全评分；预报非实测，官方预警与日出未接入。';
-  // ==== 批次 D 结束 ====
-
-  // ----
 }

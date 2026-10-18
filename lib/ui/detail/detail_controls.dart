@@ -20,9 +20,7 @@ class _RouteFactsRow extends StatelessWidget {
     final facts = [
       '${(route.totalDistanceM / 1000).toStringAsFixed(1)} km',
       if (ascent != null) '↑${ascent.toStringAsFixed(0)} m',
-      route.isLoop
-          ? S.loopRoute
-          : '${S.startPoint}（绿）→ ${S.endPoint}（红）${reversed ? ' · 已反向' : ''}',
+      route.isLoop ? S.loopRoute : S.detailDirection(reversed: reversed),
     ].join(' · ');
     return Row(
       children: [
@@ -31,7 +29,7 @@ class _RouteFactsRow extends StatelessWidget {
         TextButton.icon(
           onPressed: onToggleReverse,
           icon: const Icon(Icons.swap_horiz, size: 18),
-          label: Text(reversed ? '恢复原方向' : S.reverseRoute),
+          label: Text(reversed ? S.detailRestoreDirection : S.reverseRoute),
         ),
       ],
     );
@@ -128,14 +126,17 @@ class _TimeControlsCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Text('时刻', style: Theme.of(context).textTheme.labelMedium),
+                  Text(
+                    S.detailHourLabel,
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
                   Expanded(
                     child: Slider(
                       value: hour.toDouble(),
                       min: 0,
                       max: 23,
                       divisions: 23,
-                      label: '${_two(hour)}:00（本地时区）',
+                      label: S.detailHourSliderLabel(_two(hour)),
                       onChanged: onHourPreview,
                       onChangeEnd: (v) => onHourCommit(v.round()),
                     ),
@@ -154,7 +155,11 @@ class _TimeControlsCard extends StatelessWidget {
                   style: TextStyle(fontSize: 13),
                 ),
                 subtitle: Text(
-                  '速度 ${pace.speedKmh} km/h · 上升 ${pace.ascentMinPer100m} min/100m · 休息 ${pace.restMinutesTotal} min',
+                  S.detailPaceSummary(
+                    pace.speedKmh,
+                    pace.ascentMinPer100m,
+                    pace.restMinutesTotal,
+                  ),
                   style: const TextStyle(fontSize: 11),
                 ),
                 trailing: const Icon(Icons.tune, size: 18),
@@ -193,7 +198,7 @@ class _TimeControlsCard extends StatelessWidget {
                 (n) => Text('· $n', style: const TextStyle(fontSize: 11)),
               ),
               const SizedBox(height: 8),
-              Text('平地速度：${speed.toStringAsFixed(1)} km/h'),
+              Text(S.detailPaceSpeed(speed.toStringAsFixed(1))),
               Slider(
                 value: speed,
                 min: 1.5,
@@ -202,7 +207,7 @@ class _TimeControlsCard extends StatelessWidget {
                 label: speed.toStringAsFixed(1),
                 onChanged: (v) => setSheet(() => speed = v),
               ),
-              Text('每上升 100 m 加时：${ascent.toStringAsFixed(0)} 分钟'),
+              Text(S.detailPaceAscent(ascent.toStringAsFixed(0))),
               Slider(
                 value: ascent,
                 min: 4,
@@ -211,7 +216,7 @@ class _TimeControlsCard extends StatelessWidget {
                 label: ascent.toStringAsFixed(0),
                 onChanged: (v) => setSheet(() => ascent = v),
               ),
-              Text('全程休息：$rest 分钟'),
+              Text(S.detailPaceRest(rest)),
               Slider(
                 value: rest.toDouble(),
                 min: 0,
@@ -281,7 +286,7 @@ class _ControlBar extends ConsumerWidget {
           ActionChip(
             avatar: const Icon(Icons.schedule, size: 16),
             label: Text('$timeLabel ${timeOpen ? '▴' : '▾'}'),
-            tooltip: '设置时间与配速',
+            tooltip: S.detailTimeAndPace,
             onPressed: onToggleTime,
           ),
           const SizedBox(width: Space.sm),

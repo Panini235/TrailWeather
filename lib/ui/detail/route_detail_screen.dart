@@ -453,7 +453,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.download_for_offline_outlined),
-            tooltip: '下载离线行程包',
+            tooltip: S.detailDownloadOffline,
             onPressed: () => context.push(
               '/offline/new',
               extra: OfflineDownloadArgs(
@@ -519,7 +519,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           if (bundleAsync.value != null)
             WeatherCacheNotice(result: bundleAsync.value!.result),
           if (bundleAsync.isLoading && !bundleAsync.hasValue)
-            const LinearProgressIndicator(semanticsLabel: '正在获取线路天气')
+            const LinearProgressIndicator(
+              semanticsLabel: S.detailLoadingWeather,
+            )
           else if (!bundleAsync.hasError)
             _ConclusionCard(
               summary: summarizeRows(rows),
@@ -641,7 +643,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           title: S.shareImage,
           fileName:
               'shanqing-${day.year}${_two(day.month)}${_two(day.day)}.png',
-          shareText: '${route.name} · $timeLabel · 山晴徒步天气',
+          shareText: S.detailShareText(route.name, timeLabel),
           card: card(ShareLayout.full),
           variants: [
             for (final l in ShareLayout.values)
@@ -665,29 +667,34 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       dayStartUtc: day.toUtc(),
       precedingHour: bundle.result.providerId.startsWith('open-meteo:'),
     );
-    final head = '${day.month}月${day.day}日全天';
-    if (d.maxDayMm == null) return '$head：此来源未提供降水量。';
+    final head = S.detailDayHead(day.month, day.day);
+    if (d.maxDayMm == null) return S.detailDayNoPrecip(head);
     final partial = d.minHoursCovered < 24
-        ? '（来源仅覆盖 ${d.minHoursCovered} 小时）'
+        ? S.detailDayPartial(d.minHoursCovered)
         : '';
     final prob = d.maxProb == null
         ? ''
-        : '，最大概率 ${d.maxProb!.toStringAsFixed(0)}%';
+        : S.detailDayMaxProb(d.maxProb!.toStringAsFixed(0));
     if (d.firstWetUtc == null) {
-      return '$head：沿途预报无明显降水（每小时 <0.1 mm）$prob$partial';
+      return S.detailDayDry(head, prob, partial);
     }
     final a = d.firstWetUtc!.toLocal();
     final b = d.lastWetUtc!.toLocal().add(const Duration(hours: 1));
-    return '$head：沿途降水最多约 '
-        '${Units.precipMm(d.maxDayMm!, imperial: settings.imperial)}，'
-        '主要在 ${_two(a.hour)}–${_two(b.hour == 0 ? 24 : b.hour)} 时$prob$partial';
+    return S.detailDayWet(
+      head: head,
+      amount: Units.precipMm(d.maxDayMm!, imperial: settings.imperial),
+      from: _two(a.hour),
+      to: _two(b.hour == 0 ? 24 : b.hour),
+      prob: prob,
+      partial: partial,
+    );
   }
 
   /// 顶部时间标签：固定时刻显示“固定 M/d HH:00”，行程模式显示“出发 M/d HH:mm”（设备时区）。
   String _timeChipLabel(DateTime utc) {
     final l = utc.toLocal();
     final t = '${l.month}/${l.day} ${_two(l.hour)}:${_two(l.minute)}';
-    return _mode == TimeMode.trip ? '出发 $t' : '固定 $t';
+    return _mode == TimeMode.trip ? S.detailChipTrip(t) : S.detailChipFixed(t);
   }
 
   Future<void> _openDepartures(HikingRoute route, List<RouteNode> nodes) async {
@@ -733,7 +740,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                 style: const TextStyle(fontSize: 14, height: 1.4),
               ),
               Text(
-                '依据：${h.basis}',
+                S.detailHintBasis(h.basis),
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(ctx).colorScheme.onSurfaceVariant,
@@ -802,8 +809,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       }
       return [
         ErrorCard(
-          title: '来源请求失败（${provider.caps.displayName}）',
-          detail: '${err.toString()}\n数据未获取，以下显示为空，不会用历史值冒充。',
+          title: S.detailSourceFailed(provider.caps.displayName),
+          detail: S.detailSourceFailedDetail(err.toString()),
           onRetry: () => ref.invalidate(
             detailWeatherProvider(DetailFetchKey(nodes: nodes, query: query)),
           ),
@@ -826,11 +833,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           etas.last.difference(etas.first) > const Duration(hours: 12))
         S.longTripNote,
       if (route.totalAscentM == null) S.noElevation,
-      if (tripMode)
-        sunsetKnown
-            ? '日落按终点经度近似归属出发日期；未计山体遮挡，日出未接入。'
-            : '日落：此来源未提供出发日终点日落。日出未接入。',
-      '时间按设备时区显示。',
+      if (tripMode) sunsetKnown ? S.detailSunsetNote : S.detailSunsetMissing,
+      S.detailTimeZoneNote,
     ];
 
     Widget tile(int i) => _NodeTile(
