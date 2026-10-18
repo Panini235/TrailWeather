@@ -10,6 +10,7 @@ import '../../data/weather/risk_rules.dart';
 import '../detail/detail_state.dart';
 import '../detail/node_wx_style.dart';
 import '../tokens.dart';
+import '../strings.dart';
 
 /// 分享图里要编号展示的关键节点（下标），至多 [max] 个，按沿途顺序：
 /// 起点、终点、最高点、命名航点、触发红/黄阈值的节点（红优先），其余不进列表。
@@ -288,8 +289,8 @@ class _SketchPainter extends CustomPainter {
         ..drawCircle(anchor, 3, Paint()..color = ink);
       _badge(canvas, spot, '${n + 1}', color);
       final tag = i == 0
-          ? (loop ? '起终' : '起')
-          : (i == rows.length - 1 && !loop ? '终' : null);
+          ? (loop ? S.shareSketchStartEnd : S.shareSketchStart)
+          : (i == rows.length - 1 && !loop ? S.shareSketchEnd : null);
       if (tag != null) {
         tags.add((spot, tag, i == 0 ? Semantic.go : Semantic.danger));
       }

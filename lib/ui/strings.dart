@@ -307,6 +307,15 @@ abstract final class S {
   static const ridgeBandTitle = '海拔剖面与沿途天气';
   static const ridgeNoElevation = '无海拔数据';
   static const ridgeAfterSunset = '日落后';
+  static String ridgeBandSemantics(
+    int nodes,
+    int flagged, {
+    required bool hasElevation,
+  }) =>
+      '$ridgeBandTitle：$nodes 个节点，$flagged 个触发天气提示'
+      '${hasElevation ? '' : '，$ridgeNoElevation'}';
+  static String ridgeNodeN(int n) => '节点 $n';
+  static String ridgeArrive(String eta) => '$eta 到达';
 
   // 开屏
   static const splashSkip = '跳过动画';
@@ -437,6 +446,51 @@ abstract final class S {
   // ----
 
   // ==== 迁入批次 D：分享图 ====
+  // 分享图
+  static String shareFailed(Object e) => '分享失败：$e';
+  static const shareBrand = '山晴 · 徒步天气';
+  static const shareCallToAction = '导入轨迹，按出发时间查看沿途天气\n扫码下载测试版';
+  static const shareQrLabel = '下载二维码';
+  static const shareSketchStart = '起';
+  static const shareSketchEnd = '终';
+  static const shareSketchStartEnd = '起终';
+  static const shareLayoutFull = '长图·完整';
+  static const shareLayoutBrief = '简图·摘要';
+  static const shareLayoutWide = '横图';
+  static const shareNodeNoData = '此来源无该时刻数据';
+  static const shareNodeIncomplete = '数据不完整';
+  static String shareNodeGust(String gust) => '阵风 $gust';
+  static String shareNodeAtKm(String km) => '$km km 处';
+  static const shareNotProvided = '未提供';
+  static const shareTemp = '气温';
+  static const shareMaxGust = '最大阵风';
+  static const shareDayPrecip = '全天降水';
+  static const shareTripPrecip = '行程降水';
+  static const shareHourPrecip = '该时次降水';
+  static const shareNoNotablePrecip = '无明显降水';
+  static String shareWetHours(String from, String to) => '$from–$to 时';
+  static const shareNoHints = '未触发阈值提示（不代表安全）';
+  static const shareReversed = '反向';
+  static const shareDemoRoute = '演示线路';
+  static String shareSourceLine(String source, String stamp) =>
+      '数据：$source · 获取于 $stamp（设备时区）';
+  static String shareRouteDisclaimer({required bool tripMode}) =>
+      '预报非实测；提示按阈值计算，非官方预警、非安全评分${tripMode ? '；到达时间为配速估算' : ''}。示意图不含地图。';
+  static const shareGearWorn = '出发穿';
+  static const shareGearPacked = '背包带';
+  static const shareGearAccessories = '配件';
+  static const shareGlyphPast = '过';
+  static const shareGlyphMissing = '缺';
+  static const shareDemoSuffix = '（演示）';
+  static String shareDepartureSubtitle({
+    required bool reversed,
+    required String hours,
+  }) => '出发窗口对比 · ${reversed ? '反向' : '正向'} · 全程约 $hours 小时（估算）';
+  static const shareDepartureLegend =
+      '✓ 未触发　风 阵风　雨 降水　冷 低温　晚 晚于日落　缺 信息不足　过 已过去';
+  static const shareNoClearDeparture = '所列时段内没有“未触发阈值且信息完整”的出发时刻。';
+  static String shareEarliestClear(String stamp) => '最早未触发阈值的出发：$stamp';
+  static const shareDepartureDisclaimer = '颜色只表示阈值结果，非安全评分；预报非实测，官方预警与日出未接入。';
   // ==== 批次 D 结束 ====
 
   // ----

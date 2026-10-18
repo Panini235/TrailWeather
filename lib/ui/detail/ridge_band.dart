@@ -109,9 +109,11 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Semantics(
-          label:
-              '${S.ridgeBandTitle}：${rows.length} 个节点，$flagged 个触发天气提示'
-              '${_profile.hasElevation ? '' : '，${S.ridgeNoElevation}'}',
+          label: S.ridgeBandSemantics(
+            rows.length,
+            flagged,
+            hasElevation: _profile.hasElevation,
+          ),
           child: SizedBox(
             height: widget.height,
             child: LayoutBuilder(
@@ -237,10 +239,10 @@ class _SelectedLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final n = row.node;
     final parts = [
-      n.label ?? '节点 ${index + 1}',
+      n.label ?? S.ridgeNodeN(index + 1),
       '${(n.distFromStartM / 1000).toStringAsFixed(1)} km',
       if (n.elevationM != null) '${n.elevationM!.round()} m',
-      if (eta != null) '$eta 到达',
+      if (eta != null) S.ridgeArrive(eta!),
       cls.label,
     ];
     return Row(

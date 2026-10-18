@@ -16,6 +16,7 @@ import '../detail/node_wx_style.dart';
 import 'share_graphics.dart';
 import 'share_image.dart';
 import '../tokens.dart';
+import '../strings.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
 
@@ -33,31 +34,33 @@ String _stamp(DateTime utc) {
 /// 节点在分享图上的一行天气：气温 · 降水 · 阵风（缺失项省略，不显示成 0）。
 String shareNodeWeather(NodeWxRow r, AppSettings settings) {
   final v = r.wx?.values;
-  if (v == null) return '此来源无该时刻数据';
+  if (v == null) return S.shareNodeNoData;
   final parts = <String>[
     if (v[WxVar.temperature] != null)
       Units.temp(v[WxVar.temperature]!, imperial: settings.imperial),
     if ((v[WxVar.precip] ?? 0) >= 0.1)
       Units.precipMm(v[WxVar.precip]!, imperial: settings.imperial),
     if (v[WxVar.windGust] != null)
-      '阵风 ${Units.windMs(v[WxVar.windGust]!, unit: settings.windUnit)}',
+      S.shareNodeGust(
+        Units.windMs(v[WxVar.windGust]!, unit: settings.windUnit),
+      ),
   ];
   final phen = phenomenonOf(r.wx);
   if (phen != null) parts.insert(0, phen.label);
-  return parts.isEmpty ? '数据不完整' : parts.join(' · ');
+  return parts.isEmpty ? S.shareNodeIncomplete : parts.join(' · ');
 }
 
 /// 线路天气分享卡（分层：标题 → 三个大数字 → 醒目提示 → 线路示意 + 山脊天气带 → 关键节点）。
 /// 线路分享图版式（D-034）：信息侧重不同，来源与免责说明在每种版式里都保留。
 enum ShareLayout {
   /// 长图：数字、提示、示意图与剖面、关键节点逐条说明。
-  full('长图·完整', Icons.view_agenda_outlined),
+  full(S.shareLayoutFull, Icons.view_agenda_outlined),
 
   /// 简图：数字、提示与着色剖面，适合群聊与朋友圈一眼看完。
-  brief('简图·摘要', Icons.crop_portrait),
+  brief(S.shareLayoutBrief, Icons.crop_portrait),
 
   /// 横图（约 16:9）：左侧线路示意，右侧数字、提示与剖面，适合 X / Threads / 微博。
-  wide('横图', Icons.crop_landscape);
+  wide(S.shareLayoutWide, Icons.crop_landscape);
 
   const ShareLayout(this.label, this.icon);
   final String label;
@@ -110,23 +113,26 @@ class RouteShareCard extends StatelessWidget {
     final keys = pickKeyNodes(rows);
     String temp(double c) => Units.temp(c, imperial: settings.imperial);
     final tempRange = summary.minTempC == null || summary.maxTempC == null
-        ? '未提供'
+        ? S.shareNotProvided
         : '${temp(summary.minTempC!)}~${temp(summary.maxTempC!)}';
     final day = dayPrecip;
     final (precipLabel, precipValue, precipSub) = day != null
         ? (
-            '全天降水',
+            S.shareDayPrecip,
             day.maxDayMm == null
-                ? '未提供'
+                ? S.shareNotProvided
                 : Units.precipMm(day.maxDayMm!, imperial: settings.imperial),
             day.firstWetUtc == null
-                ? '无明显降水'
-                : '${_two(day.firstWetUtc!.toLocal().hour)}–${_endHour(day.lastWetUtc!)} 时',
+                ? S.shareNoNotablePrecip
+                : S.shareWetHours(
+                    _two(day.firstWetUtc!.toLocal().hour),
+                    _endHour(day.lastWetUtc!),
+                  ),
           )
         : (
-            tripMode ? '行程降水' : '该时次降水',
+            tripMode ? S.shareTripPrecip : S.shareHourPrecip,
             summary.totalPrecipMm == null
-                ? '未提供'
+                ? S.shareNotProvided
                 : Units.precipMm(
                     summary.totalPrecipMm!,
                     imperial: settings.imperial,
@@ -138,13 +144,13 @@ class RouteShareCard extends StatelessWidget {
 
     final Widget stats = Row(
       children: [
-        _stat(context, Icons.thermostat, '气温', tempRange, null),
+        _stat(context, Icons.thermostat, S.shareTemp, tempRange, null),
         _stat(
           context,
           Icons.air,
-          '最大阵风',
+          S.shareMaxGust,
           summary.maxGustMs == null
-              ? '未提供'
+              ? S.shareNotProvided
               : Units.windMs(summary.maxGustMs!, unit: settings.windUnit),
           null,
         ),
@@ -154,7 +160,7 @@ class RouteShareCard extends StatelessWidget {
     final Widget hintsView = sorted.isEmpty
         ? _pill(
             Icons.check_circle_outline,
-            '未触发阈值提示（不代表安全）',
+            S.shareNoHints,
             SemanticInk.goOnLight,
           )
         : Wrap(
@@ -200,7 +206,7 @@ class RouteShareCard extends StatelessWidget {
                     children: [
                       Text(
                         '${tripMode ? '${_two(rows[i].validUtc.toLocal().hour)}:${_two(rows[i].validUtc.toLocal().minute)}  ' : ''}'
-                        '${rows[i].node.label ?? '${(rows[i].node.distFromStartM / 1000).toStringAsFixed(1)} km 处'}'
+                        '${rows[i].node.label ?? S.shareNodeAtKm((rows[i].node.distFromStartM / 1000).toStringAsFixed(1))}'
                         '${rows[i].node.elevationM == null ? '' : ' · ${rows[i].node.elevationM!.toStringAsFixed(0)} m'}',
                         style: const TextStyle(
                           fontSize: 13,
@@ -273,13 +279,13 @@ class RouteShareCard extends StatelessWidget {
         timeLabel,
         '${(route.totalDistanceM / 1000).toStringAsFixed(1)} km',
         if (ascent != null) '↑${ascent.toStringAsFixed(0)} m',
-        if (reversed) '反向',
-        if (route.isDemo && !route.name.contains('示例')) '演示线路',
+        if (reversed) S.shareReversed,
+        if (route.isDemo && !route.name.contains('示例')) S.shareDemoRoute,
       ].join(' · '),
       body: body,
       footer: [
-        '数据：$sourceName · 获取于 ${_stamp(fetchedAtUtc)}（设备时区）',
-        '预报非实测；提示按阈值计算，非官方预警、非安全评分${tripMode ? '；到达时间为配速估算' : ''}。示意图不含地图。',
+        S.shareSourceLine(sourceName, _stamp(fetchedAtUtc)),
+        S.shareRouteDisclaimer(tripMode: tripMode),
       ],
     );
   }
@@ -335,10 +341,10 @@ class RouteShareCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (worn.isNotEmpty) line('出发穿', worn),
-              if (packed.isNotEmpty) line('背包带', packed),
+              if (worn.isNotEmpty) line(S.shareGearWorn, worn),
+              if (packed.isNotEmpty) line(S.shareGearPacked, packed),
               if (plan.accessories.isNotEmpty)
-                line('配件', [
+                line(S.shareGearAccessories, [
                   for (final a in plan.accessories) accessoryLabel(a.item),
                 ]),
             ],
@@ -446,12 +452,12 @@ class RouteShareCard extends StatelessWidget {
 /// 出发窗口分享卡中的一个格子。
 class DepartureShareCell {
   const DepartureShareCell.past()
-    : glyph = '过',
+    : glyph = S.shareGlyphPast,
       level = null,
       insufficient = false,
       past = true;
   const DepartureShareCell.missing()
-    : glyph = '缺',
+    : glyph = S.shareGlyphMissing,
       level = null,
       insufficient = true,
       past = false;
@@ -531,9 +537,11 @@ class DepartureShareCard extends StatelessWidget {
       }
     }
     return ShareCardFrame(
-      title: '$routeName${isDemo ? '（演示）' : ''}',
-      subtitle:
-          '出发窗口对比 · ${reversed ? '反向' : '正向'} · 全程约 ${durationHours.toStringAsFixed(1)} 小时（估算）',
+      title: '$routeName${isDemo ? S.shareDemoSuffix : ''}',
+      subtitle: S.shareDepartureSubtitle(
+        reversed: reversed,
+        hours: durationHours.toStringAsFixed(1),
+      ),
       body: [
         Table(
           defaultColumnWidth: const FixedColumnWidth(52),
@@ -580,21 +588,21 @@ class DepartureShareCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '✓ 未触发　风 阵风　雨 降水　冷 低温　晚 晚于日落　缺 信息不足　过 已过去',
+          S.shareDepartureLegend,
           style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 6),
         Text(
           best == null
-              ? '所列时段内没有“未触发阈值且信息完整”的出发时刻。'
-              : '最早未触发阈值的出发：${_stamp(best)}',
+              ? S.shareNoClearDeparture
+              : S.shareEarliestClear(_stamp(best)),
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ],
       footer: [
-        '数据：$sourceName · 获取于 ${_stamp(fetchedAtUtc)}（设备时区）',
+        S.shareSourceLine(sourceName, _stamp(fetchedAtUtc)),
         thresholdText,
-        '颜色只表示阈值结果，非安全评分；预报非实测，官方预警与日出未接入。',
+        S.shareDepartureDisclaimer,
       ],
     );
   }
