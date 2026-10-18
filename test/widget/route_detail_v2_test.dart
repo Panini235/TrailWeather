@@ -115,6 +115,20 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('结论卡写明时间模式；固定时刻可一键改按出发时间看', (tester) async {
+    await _pump(tester);
+    expect(find.textContaining('全线同一时刻'), findsOneWidget);
+    await tester.tap(find.text(S.detailSwitchToTrip));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
+    expect(find.textContaining('全线同一时刻'), findsNothing);
+    expect(find.textContaining('（配速估算）'), findsOneWidget);
+    expect(find.text(S.detailSwitchToTrip), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('显示行进方向；点节点选中，再点或点详情打开节点详情', (tester) async {
     await _pump(tester);
 

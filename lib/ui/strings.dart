@@ -992,6 +992,10 @@ abstract final class S {
   }) => '$head：沿途降水最多约 $amount，主要在 $from–$to 时$prob$partial';
   static String detailChipTrip(String t) => '出发 $t';
   static String detailChipFixed(String t) => '固定 $t';
+  static String detailModeFixed(String hhmm) => '全线同一时刻 $hhmm，不是按出发时间推算';
+  static String detailModeTrip(String start, String end) =>
+      '$start 出发 → 约 $end 到达（配速估算）';
+  static const detailSwitchToTrip = '按出发时间看';
   static String detailHintBasis(String basis) => '依据：$basis';
   static String detailSourceFailed(String source) => '来源请求失败（$source）';
   static String detailSourceFailedDetail(String error) =>
@@ -1081,6 +1085,18 @@ abstract final class S {
   static String shareNodeGust(String gust) => '阵风 $gust';
   static String shareNodeAtKm(String km) => '$km km 处';
   static const shareNotProvided = '未提供';
+  static const shareModeFixed = '固定时刻';
+  static String shareFixedModeNotice(String hhmm) =>
+      '这张图是全线同一时刻（$hhmm）的天气快照，每个节点都取这一小时，'
+      '不是按出发时间推算的行程。约好出发时间的话，建议改按行程分享。';
+  static const shareModeTrip = '行程模式';
+  static String shareModeFixedTitle(String stamp) => '全线同一时刻 · $stamp';
+  static const shareModeFixedNote = '各节点都取这一小时的预报，没有按出发时间和行走时间推算。';
+  static String shareModeTripTitle(String start, String end) =>
+      '$start 出发 → 约 $end 到达';
+  static String shareModeTripNote(String? sunset) =>
+      '按配速估算到达各节点的时刻，天气取到达时的预报'
+      '${sunset == null ? '' : ' · 日落 $sunset'}';
   static const shareTemp = '气温';
   static const shareMaxGust = '最大阵风';
   static const shareDayPrecip = '全天降水';

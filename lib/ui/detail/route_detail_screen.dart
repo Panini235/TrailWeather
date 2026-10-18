@@ -533,6 +533,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
               hints: hints,
               onShowHints: () => _showHints(hints),
               onDepartures: () => _openDepartures(route, nodes),
+              modeLabel: tripMode
+                  ? S.detailModeTrip(_clock(etas.first), _clock(etas.last))
+                  : S.detailModeFixed(_clock(query.fixedUtc)),
+              onSwitchToTrip: _mode == TimeMode.fixed ? _switchToTrip : null,
             ),
           if (!bundleAsync.hasError && rows.isNotEmpty) ...[
             const SizedBox(height: Space.md),
@@ -618,7 +622,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     Widget card(ShareLayout layout) => RouteShareCard(
       layout: layout,
       route: route,
-      timeLabel: timeLabel,
       tripMode: _mode == TimeMode.trip,
       reversed: _reversed,
       summary: summarizeRows(rows),
@@ -645,6 +648,17 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
               'shanqing-${day.year}${_two(day.month)}${_two(day.day)}.png',
           shareText: S.detailShareText(route.name, timeLabel),
           card: card(ShareLayout.full),
+          // 固定时刻是“全线同一小时”的快照：分享前提醒一次，并给出改按行程看的入口。
+          notice: _mode == TimeMode.fixed
+              ? ShareModeNotice(
+                  text: S.shareFixedModeNotice(_clock(query.fixedUtc)),
+                  actionLabel: S.detailSwitchToTrip,
+                  onAction: () {
+                    Navigator.of(context).pop();
+                    _switchToTrip();
+                  },
+                )
+              : null,
           variants: [
             for (final l in ShareLayout.values)
               ShareVariant(
@@ -689,6 +703,19 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       partial: partial,
     );
   }
+
+  /// 本地 HH:mm。
+  String _clock(DateTime utc) {
+    final l = utc.toLocal();
+    return '${_two(l.hour)}:${_two(l.minute)}';
+  }
+
+  /// 从固定时刻切到行程模式（同一天，默认出发时刻），并展开时间设置方便改出发时间。
+  void _switchToTrip() => setState(() {
+    _mode = TimeMode.trip;
+    _timeOpen = true;
+    _selectedNode = null;
+  });
 
   /// 顶部时间标签：固定时刻显示“固定 M/d HH:00”，行程模式显示“出发 M/d HH:mm”（设备时区）。
   String _timeChipLabel(DateTime utc) {

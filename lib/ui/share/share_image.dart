@@ -37,6 +37,7 @@ class SharePreviewPage extends StatefulWidget {
     required this.fileName,
     this.shareText,
     this.variants,
+    this.notice,
   });
 
   final String title;
@@ -48,6 +49,9 @@ class SharePreviewPage extends StatefulWidget {
 
   /// 多种版式：预览页顶部可切换，分享当前选中的版式。
   final List<ShareVariant>? variants;
+
+  /// 预览页顶部的提醒（不进图片），例如固定时刻模式的说明。
+  final Widget? notice;
 
   @override
   State<SharePreviewPage> createState() => _SharePreviewPageState();
@@ -104,6 +108,7 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
         child: Column(
           children: [
+            ?widget.notice,
             if (widget.variants case final variants? when variants.length > 1)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -122,7 +127,7 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
                 ),
               ),
             // 横图比屏幕宽：预览时按屏宽缩小显示；RepaintBoundary 在缩放之内，
-            // 导出的图片仍是卡片原始尺寸（640 宽）× pixelRatio。
+            // 导出的图片仍是卡片原始尺寸（横图 820 宽）× pixelRatio。
             FittedBox(
               fit: BoxFit.scaleDown,
               child: RepaintBoundary(
@@ -148,6 +153,54 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
               )
             : const Icon(Icons.ios_share),
         label: const Text(S.shareImage),
+      ),
+    );
+  }
+}
+
+/// 分享预览页顶部的提醒条：一句说明 + 一个操作。
+class ShareModeNotice extends StatelessWidget {
+  const ShareModeNotice({
+    super.key,
+    required this.text,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String text;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: scheme.surfaceContainerHigh,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 4, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.schedule, size: 18, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(onPressed: onAction, child: Text(actionLabel)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -182,7 +235,7 @@ class ShareCardFrame extends StatelessWidget {
   final List<Widget> body;
   final List<String> footer;
 
-  /// 竖版 360；横图 640。
+  /// 竖版 360；横图 820。
   final double width;
 
   @override
