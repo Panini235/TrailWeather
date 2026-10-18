@@ -675,7 +675,16 @@ go_router 18.1.0 等），已按 CLAUDE.md 还原；工作区地形阴影代码�
 对方已还原；之后所有命令都带镜像变量，锁文件未再变化。
 **未做**：未提交、未推送、未跑 CI。
 
-## Round 36 — 2026-10-18（T-165 收尾：分享卡山脊天气带、内联中文迁入 S）
+## Round 36 — 2026-10-18（T-169 高德空白瓦片被缓存）
+
+**用户要求**：修复 T-169（项目线程，从设置卡片启动）。
+**完成**：读 flutter_map 8.3.2 源码定位原因（见 D-042）；新增 `lib/data/map/tile_cache.dart`（`AmapTileCacheGuard`、`isBlankTile`），
+`Basemap` 的高德图层改用带守卫的 `NetworkTileProvider`；user-guide 已知问题一行更新。
+**验证**：flutter analyze 0；flutter test 442/442。新增 `test/unit/amap_tile_cache_test.dart`：用内存缓存 + MockClient 走 flutter_map
+真实加载路径，复现“第一次空白被缓存、重开后仍空白且不再请求”，并验证加守卫后重新请求拿到正常瓦片、旧空白缓存被覆盖。
+**未做**：真机清除前后对比（云端会话，无法连手机，也无法直连高德采样真实空白瓦片）。
+
+## Round 37 — 2026-10-18（T-165 收尾：分享卡山脊天气带、内联中文迁入 S）
 
 **任务**：T-165 剩余部分；来源一致度需用户决定，本轮不动。
 **完成**：

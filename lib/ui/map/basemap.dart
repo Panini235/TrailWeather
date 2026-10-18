@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../core/gcj02.dart';
+import '../../data/map/tile_cache.dart';
 import '../../data/map/tile_sources.dart';
 import '../../data/settings/settings_repository.dart';
 
@@ -77,7 +78,8 @@ class Basemap {
       : b;
 
   /// flutter_map 没有 `{-y}` 占位符：转为 `{y}` + tms 翻转。
-  /// 天地图图层用 [tiandituClient]（外部传入的 client 不会被 TileLayer 关闭）。
+  /// 天地图图层用 [tiandituClient]（外部传入的 client 不会被 TileLayer 关闭）；
+  /// 高德图层用 [amapTileCacheGuard]，空白瓦片不进磁盘缓存（T-169）。
   TileLayer _layer(
     TileSourceDef def,
     String template, {
@@ -91,9 +93,11 @@ class Basemap {
       userAgentPackageName: 'app.shanqing.hiking',
       maxNativeZoom: def.maxNativeZoom,
       tms: template.contains('{-y}'),
-      tileProvider: client == null
-          ? null
-          : NetworkTileProvider(httpClient: client),
+      tileProvider: client != null
+          ? NetworkTileProvider(httpClient: client)
+          : _isAmapTemplate(template)
+          ? NetworkTileProvider(cachingProvider: amapTileCacheGuard)
+          : null,
       errorTileCallback: onTileError == null
           ? null
           : (_, _, _) => onTileError(),
@@ -104,6 +108,11 @@ class Basemap {
               return tileWidget;
             },
     );
+  }
+
+  static bool _isAmapTemplate(String template) {
+    final uri = Uri.tryParse(template.replaceAll('{s}', '1'));
+    return uri != null && isAmapTileUrl(uri);
   }
 
   /// 底图 + 叠加层（自下而上）。在地图 children 中展开使用。
