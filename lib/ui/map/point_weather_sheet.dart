@@ -64,9 +64,11 @@ Stream<RouteWeatherBundle> watchPointWeather(
 
 /// 与请求时刻最接近的小时数据；相差超过 3 小时视为无当前时段数据。
 WxHourValue? nearestPointHour(WxPointForecast point, DateTime requestedAtUtc) {
+  final exact = point.hourAt(requestedAtUtc);
+  if (exact != null) return exact;
   WxHourValue? best;
   var bestMinutes = 1 << 30;
-  for (final hour in point.hours) {
+  for (final hour in point.displayHours) {
     final minutes = hour.validFromUtc
         .difference(requestedAtUtc)
         .inMinutes

@@ -129,6 +129,7 @@ class _NodeDetailViewState extends State<NodeDetailView> {
           const GranularityNotice(text: S.nodeNoDataAtTime)
         else ...[
           KeyWeatherValues(wx: wx, settings: widget.settings),
+          WeatherHourNotice(wx: wx),
           // 准备层只在触发时升上来（紫外线很高、高于 0℃ 层、低云……）。
           if (signalsFor(wx, elevationM: node.elevationM) case final sig
               when sig.isNotEmpty) ...[

@@ -44,7 +44,7 @@ void main() {
     dir = await Directory.systemTemp.createTemp('shanqing-offline-test-');
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
-    source = OfflineWeatherFixture();
+    source = OfflineWeatherFixture()..extraHours = 1;
     weather = WeatherRepository(
       cache: CacheStore(prefs, maxEntriesPerNamespace: 1),
       providers: [source],
@@ -109,6 +109,20 @@ void main() {
       expect((await restarted.list()).single.id, trip.id);
     });
   }
+
+  test('旧包缺最后一条累计记录：最后一小时保留气温，核心指标覆盖不足', () async {
+    source.extraHours = 0;
+    final trip = await download(hours: 24);
+    final wx = trip.hourFor(
+      0,
+      trip.plan.endUtc.subtract(const Duration(hours: 1)),
+    )!;
+    expect(wx.values[WxVar.temperature], 12);
+    expect(wx.values[WxVar.precip], isNull);
+    // complete 统计时次，核心变量覆盖单独统计，不能把有气温等同于降水齐全。
+    expect(trip.coverage.complete, isTrue);
+    expect(trip.coverage.coreVariables, 23 * trip.plan.nodes.length);
+  });
 
   test('反向线路、营地、停留、配速、预计到达与完整溯源均原样保存', () async {
     source.extraHours = 12;

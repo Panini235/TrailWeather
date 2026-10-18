@@ -197,15 +197,18 @@ class OfflineTrip {
         : null;
   }
 
-  WxHourValue? hourFor(int nodeIndex, DateTime time) =>
-      pointFor(nodeIndex)?.hourAt(time.toUtc());
+  WxHourValue? hourFor(int nodeIndex, DateTime time) {
+    final utc = time.toUtc();
+    if (utc.isBefore(plan.startUtc) || !utc.isBefore(plan.endUtc)) return null;
+    return pointFor(nodeIndex)?.hourAt(utc);
+  }
 
   OfflineCoverage get coverage {
     var available = 0;
     var core = 0;
     for (var n = 0; n < plan.nodes.length; n++) {
       final byHour = {
-        for (final h in pointFor(n)?.hours ?? <WxHourValue>[])
+        for (final h in pointFor(n)?.displayHours ?? <WxHourValue>[])
           h.validFromUtc: h,
       };
       for (var i = 0; i < plan.hourCount; i++) {

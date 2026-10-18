@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'weather_cells.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../core/units.dart';
@@ -80,7 +82,7 @@ class _NodeMeteogramState extends State<NodeMeteogram>
     ).subtract(Duration(hours: widget.hoursBefore));
     final to = from.add(Duration(hours: widget.span));
     return [
-      for (final h in widget.point.hours)
+      for (final h in widget.point.displayHours)
         if (!h.validFromUtc.isBefore(from) && h.validFromUtc.isBefore(to)) h,
     ];
   }
@@ -109,6 +111,7 @@ class _NodeMeteogramState extends State<NodeMeteogram>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Readout(hour: hours[sel], settings: widget.settings),
+        WeatherHourNotice(wx: hours[sel]),
         const SizedBox(height: Space.xs),
         LayoutBuilder(
           builder: (context, c) {

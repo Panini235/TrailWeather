@@ -4,6 +4,17 @@
 /// 迁移到 ARB/gen-l10n 时只需把这些常量改为生成访问器，
 /// 不需要改动业务代码（见 docs/architecture.md）。
 abstract final class S {
+  static String wxIntervalNote(String labels, String start, String end) =>
+      '$labels：$start–$end；瞬时指标取标注整点，未做小时内插值。';
+  static String wxPreviousThreeHourNote(
+    String labels,
+    String start,
+    String end,
+  ) => '$labels：前三小时 $start–$end，并非单小时概率。';
+  static String wxUnknownIntervalNote(String labels) =>
+      '$labels：来源标注小时的值，区间起止未确认，未作时间偏移。';
+  static String wxOriginalTimes(String times) => '来源原始时次（UTC）：\n$times';
+
   static const appTitle = '山晴';
 
   // 通用
@@ -415,7 +426,7 @@ abstract final class S {
   static const wxMapFailed = '天气图获取失败，稍后重试';
   static const wxMapZoomIn = '放大到省市范围查看';
   static const wxMapForecastNote = '模式预报 · Open-Meteo · 非雷达实况';
-  static const wxMapPrecipUnit = '前一小时降水 mm';
+  static const wxMapPrecipUnit = '随后一小时降水 mm';
   static const wxMapCloudUnit = '云量 %';
   static const wxMapSatelliteNote = '红外云图（实况）· Himawari-9 · NASA GIBS';
   static const wxMapSatelliteTime = '观测';
@@ -424,7 +435,7 @@ abstract final class S {
   static const wxMapLocate = '定位';
   static const wxMapInfo =
       '降水、云量：Open-Meteo 模式预报，按网格点取值后在点间平滑显示，不是雷达或卫星实况；'
-      '降水为该时刻前一小时累计。播放和拖动时，相邻两个整点（或两张云图）之间是线性过渡，'
+      '降水为标注整点起一小时累计，云量按标注整点。播放和拖动时，相邻两个整点（或两张云图）之间是线性过渡，'
       '只为画面连贯；停下后显示的是整点数据。卫星云图：日本 Himawari-9 红外通道，经 NASA GIBS 提供，'
       '颜色越亮越冷，代表云顶越高；约 10 分钟一张，有 20–40 分钟延迟。'
       '台风：日本气象厅（西北太平洋区域专业气象中心）实况与路径预报，风速为 10 分钟平均，'

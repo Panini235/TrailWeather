@@ -48,6 +48,65 @@ class WxVarTile extends StatelessWidget {
   }
 }
 
+/// 瞬时值和区间值分开解释；长按可追溯来源原始时次。
+class WeatherHourNotice extends StatelessWidget {
+  const WeatherHourNotice({super.key, required this.wx});
+  final WxHourValue wx;
+
+  @override
+  Widget build(BuildContext context) {
+    String clock(DateTime t) {
+      final l = t.toLocal();
+      return '${l.month}/${l.day} ${l.hour.toString().padLeft(2, '0')}:00';
+    }
+
+    final labels = wx.intervalVariables.map((v) => v.label).join('、');
+    final unknown = wx.unconfirmedIntervalVariables
+        .map((v) => v.label)
+        .join('、');
+    final threeHour = wx.precedingThreeHourVariables
+        .map((v) => v.label)
+        .join('、');
+    if (labels.isEmpty && unknown.isEmpty && threeHour.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final text = [
+      if (labels.isNotEmpty)
+        S.wxIntervalNote(
+          labels,
+          clock(wx.validFromUtc),
+          clock(wx.validFromUtc.add(const Duration(hours: 1))),
+        ),
+      if (threeHour.isNotEmpty)
+        S.wxPreviousThreeHourNote(
+          threeHour,
+          clock(wx.validFromUtc.subtract(const Duration(hours: 3))),
+          clock(wx.validFromUtc),
+        ),
+      if (unknown.isNotEmpty) S.wxUnknownIntervalNote(unknown),
+    ].join('\n');
+    return Tooltip(
+      message: S.wxOriginalTimes(
+        wx.sourceTimesUtc.entries
+            .where((e) => wx.values[e.key] != null)
+            .map((e) => '${e.key.label} ${e.value.toIso8601String()}')
+            .join('\n'),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            height: 1.4,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MissingValue extends StatelessWidget {
   const MissingValue({super.key});
 
@@ -182,6 +241,7 @@ class WxVarGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        WeatherHourNotice(wx: wx),
         if (phen != null && !exclude.contains(WxVar.precip))
           Padding(
             padding: const EdgeInsets.only(bottom: 4),

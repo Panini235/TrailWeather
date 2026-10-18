@@ -288,10 +288,12 @@ class _SourceNodeCardState extends ConsumerState<_SourceNodeCard> {
   }
 
   WxHourValue? _nearestHour(WxPointForecast p, DateTime utc) {
-    if (p.hours.isEmpty) return null;
+    final exact = p.hourAt(utc);
+    if (exact != null) return exact;
+    if (p.displayHours.isEmpty) return null;
     WxHourValue? best;
     var bestDiff = 1 << 30;
-    for (final h in p.hours) {
+    for (final h in p.displayHours) {
       final d = h.validFromUtc.difference(utc).inMinutes.abs();
       if (d < bestDiff) {
         bestDiff = d;

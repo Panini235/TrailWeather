@@ -518,6 +518,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             ),
           if (bundleAsync.value != null)
             WeatherCacheNotice(result: bundleAsync.value!.result),
+          if (rows.firstOrNull?.wx case final wx?) WeatherHourNotice(wx: wx),
           if (bundleAsync.isLoading && !bundleAsync.hasValue)
             const LinearProgressIndicator(
               semanticsLabel: S.detailLoadingWeather,
@@ -629,7 +630,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           ? summarizeDayPrecip(
               points: bundle.result.points,
               dayStartUtc: DateTime(_date.year, _date.month, _date.day).toUtc(),
-              precedingHour: bundle.result.providerId.startsWith('open-meteo:'),
             )
           : null,
       hints: hints,
@@ -679,7 +679,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     final d = summarizeDayPrecip(
       points: bundle.result.points,
       dayStartUtc: day.toUtc(),
-      precedingHour: bundle.result.providerId.startsWith('open-meteo:'),
     );
     final head = S.detailDayHead(day.month, day.day);
     if (d.maxDayMm == null) return S.detailDayNoPrecip(head);

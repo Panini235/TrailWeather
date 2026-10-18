@@ -323,3 +323,7 @@ vec/img/ter/cva/cia/cta 六个图层实测（原始记录：claude/zealous-cori-
 ## 内置徒步星球目录（2026-10-15复核）
 
 上游 SpaceZephyr/trail-planet 公开仓库未提供许可证，GitHub license=null、license接口404，README没有授权声明。代码原MIT标注已纠正。正式分发前须取得作者及上游数据所需权利，或移除/替换该数据；当前仍是发布阻塞。
+
+## 展示小时与来源区间
+
+2026-10-18：各页面按标注整点起的一小时统一区间指标，原始时次留在缓存与溯源。规则、来源依据和未确认的和风边界见 [天气时间语义](weather-time-semantics.md)。

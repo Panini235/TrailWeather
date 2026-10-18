@@ -73,14 +73,15 @@ List<NodeWxRow> _rows({bool withWx = true}) => [
               lon: 117,
               provenance: _prov(),
               hours: [
-                WxHourValue(
-                  validFromUtc: _t,
-                  values: {
-                    WxVar.temperature: 10.0,
-                    WxVar.precip: i == 2 ? 4.0 : 0.0,
-                    WxVar.windGust: i == 4 ? 19.0 : 5.0,
-                  },
-                ),
+                for (final t in [_t, _t.add(const Duration(hours: 1))])
+                  WxHourValue(
+                    validFromUtc: t,
+                    values: {
+                      WxVar.temperature: 10.0,
+                      WxVar.precip: i == 2 ? 4.0 : 0.0,
+                      WxVar.windGust: i == 4 ? 19.0 : 5.0,
+                    },
+                  ),
               ],
             )
           : null,

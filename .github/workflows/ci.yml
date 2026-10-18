@@ -14,6 +14,11 @@ on:
       - 'docs/**'
       - 'agent/**'
   workflow_dispatch:
+    inputs:
+      device_test:
+        description: '同时构建与正式版并存的 Android 真机测试包'
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -91,6 +96,20 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: flutter build apk --release
+
+      - name: Android 真机测试包（可选，无正式签名）
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.device_test }}
+        run: |
+          # CI debug 证书与本机不同；独立 .qa 包避免覆盖用户正式版及 .dev 数据。
+          sed -i 's/applicationIdSuffix = ".dev"/applicationIdSuffix = ".qa"/g' android/app/build.gradle.kts
+          flutter build apk --profile --target-platform android-arm64 --dart-define=SHANQING_DEV_PROXY=127.0.0.1:7897
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.device_test }}
+        with:
+          name: android-device-test
+          path: build/app/outputs/flutter-apk/app-profile.apk
+          retention-days: 7
 
       - name: 记录签名证书指纹
         run: |
