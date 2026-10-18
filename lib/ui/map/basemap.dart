@@ -126,10 +126,12 @@ class Basemap {
       ),
   ];
 
-  Widget attributionWidget() {
+  /// [extra]：本机计算图层的署名（如等高线用到的高程数据）。
+  Widget attributionWidget({List<String> extra = const []}) {
     final texts = <String>{
       style.base.attribution,
       for (final o in style.overlays) o.$1.attribution,
+      ...extra,
     }.where((t) => t.trim().isNotEmpty);
     return RichAttributionWidget(
       attributions: [

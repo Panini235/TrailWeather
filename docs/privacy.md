@@ -18,6 +18,7 @@
 首次启动（以及隐私说明版本提升后）会进入引导页，展示摘要与“查看隐私说明”全文入口；
 “我已阅读并同意隐私说明”默认不勾选，勾选后才能继续，未同意前不能返回关闭引导页。
 同意前收到的外部轨迹文件只暂存，同意后再解析。同意记录为 `AppSettings.privacyAcceptedVersion`（本机）。
+当前版本 2（2026-10-18，新增 AWS 高程瓦片请求）。
 App 内全文见“设置 → 隐私说明”（`lib/ui/privacy/privacy_screen.dart`，文案在 `S.privacySections`），本文件与其保持一致。
 
 ## 离开设备的数据
@@ -29,6 +30,7 @@ App 内全文见“设置 → 隐私说明”（`lib/ui/privacy/privacy_screen.d
 | 线路沿途天气 / 地图点位天气 | 采样节点或所选点坐标（约 4 位小数）、海拔（部分来源）、时间窗 | Open-Meteo / MET Norway；你自行配置 Key 后的和风天气、meteoblue |
 | 海拔、空气质量 | 节点或所选点坐标 | Open-Meteo（elevation / air-quality） |
 | 地图显示 | 瓦片坐标（标准地图行为）；天地图另含你填写的 Key | 所选底图服务商（高德、天地图、OpenStreetMap 等）或你自定义的图源 |
+| 等高线、地形阴影、手绘海拔、3D 地形预览 | 高程瓦片坐标（与地图瓦片同类，可推知你在看的区域） | AWS（Terrain Tiles 开放数据，s3.amazonaws.com），仅在打开这些功能时 |
 | “搜索此区域”线路 | 地图视野边界 | Overpass API（OSM），仅在你点击时 |
 | 地点搜索 | 你输入的搜索词 | Open-Meteo Geocoding |
 | 问题反馈 | 无自动发送；你点击后在浏览器打开 GitHub Issues，诊断信息需你手动粘贴 | GitHub |

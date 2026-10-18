@@ -136,6 +136,7 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                     onTileLoaded: customLayer
                         ? () => _anyTileLoaded = true
                         : null,
+                    terrain: terrainLayerFor(ref, basemap),
                   ),
                 ),
                 if (customLayer && _tileFailed)
@@ -185,6 +186,21 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                   right: 58,
                   child: TiandituErrorBanner(compact: true),
                 ),
+                if (route.flatPoints.length >= 2)
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: _mapButton(
+                      context,
+                      tooltip: S.route3dTitle,
+                      icon: Icons.view_in_ar_outlined,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => Route3DPage(route: route),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -250,50 +266,77 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
         final topo = findTileSource('opentopomap', const []);
         final ter = findTileSource('tianditu_ter', const []);
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Space.lg,
-                  0,
-                  Space.lg,
-                  Space.sm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      S.miniMapLayers,
-                      style: Theme.of(ctx).textTheme.titleMedium,
-                    ),
-                    const HelpText(S.miniMapLayersHint),
-                  ],
-                ),
-              ),
-              option('', S.miniMapFollowSettings, base?.name),
-              // 国内官方图源排第一（D-034）；没有 Key 时点击直接去填 Key。
-              if (ter != null)
-                hasTdt
-                    ? option(ter.id, '${ter.name}（推荐）', S.miniMapTiandituNote)
-                    : ListTile(
-                        leading: const Icon(Icons.vpn_key_outlined),
-                        title: Text('${ter.name}（推荐）'),
-                        subtitle: const Text(S.miniMapNeedsTiandituKey),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const MapSourcesPage(),
-                            ),
-                          );
-                        },
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Space.lg,
+                    0,
+                    Space.lg,
+                    Space.sm,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        S.miniMapLayers,
+                        style: Theme.of(ctx).textTheme.titleMedium,
                       ),
-              if (topo != null)
-                option(topo.id, '${topo.name}（海外图源）', topo.note),
-            ],
+                      const HelpText(S.miniMapLayersHint),
+                    ],
+                  ),
+                ),
+                option('', S.miniMapFollowSettings, base?.name),
+                // 国内官方图源排第一（D-034）；没有 Key 时点击直接去填 Key。
+                if (ter != null)
+                  hasTdt
+                      ? option(ter.id, '${ter.name}（推荐）', S.miniMapTiandituNote)
+                      : ListTile(
+                          leading: const Icon(Icons.vpn_key_outlined),
+                          title: Text('${ter.name}（推荐）'),
+                          subtitle: const Text(S.miniMapNeedsTiandituKey),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const MapSourcesPage(),
+                              ),
+                            );
+                          },
+                        ),
+                if (topo != null)
+                  option(topo.id, '${topo.name}（海外图源）', topo.note),
+                const Divider(height: Space.lg),
+                // 等高线、地形阴影由公开高程数据在本机计算，叠在任意底图上（与地图页共用设置）。
+                Consumer(
+                  builder: (ctx, ref, _) {
+                    final s = ref.watch(settingsProvider);
+                    return Column(
+                      children: [
+                        SwitchListTile(
+                          secondary: const Icon(Icons.line_axis),
+                          title: const Text(S.terrainContours),
+                          subtitle: const Text(S.terrainContoursNote),
+                          value: s.terrainContours,
+                          onChanged: notifier.setTerrainContours,
+                        ),
+                        SwitchListTile(
+                          secondary: const Icon(Icons.terrain_outlined),
+                          title: const Text(S.terrainHillshade),
+                          subtitle: const Text(S.terrainHillshadeNote),
+                          value: s.terrainHillshade,
+                          onChanged: notifier.setTerrainHillshade,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -343,6 +386,7 @@ List<Widget> _routeMapLayers({
   bool attribution = false,
   VoidCallback? onTileError,
   VoidCallback? onTileLoaded,
+  Widget? terrain,
 }) {
   final onRoute = {
     for (final r in rows) ...[?r.node.waypoint, ...r.node.nearbyWaypoints],
@@ -352,6 +396,7 @@ List<Widget> _routeMapLayers({
       : null;
   return [
     ...basemap.tileLayers(onTileError: onTileError, onTileLoaded: onTileLoaded),
+    ?terrain,
     PolylineLayer(
       polylines: [
         for (final seg in route.segments)
@@ -458,7 +503,11 @@ List<Widget> _routeMapLayers({
           ),
         ],
       ),
-    if (attribution) basemap.attributionWidget(),
+    if (terrain != null && attribution) const ContourIntervalBadge(),
+    if (attribution)
+      basemap.attributionWidget(
+        extra: terrain == null ? const [] : const [S.terrainAttribution],
+      ),
   ];
 }
 
@@ -530,6 +579,7 @@ class _RouteFullMapPageState extends ConsumerState<_RouteFullMapPage> {
                   Navigator.of(context).pop(basemap.toBusiness(p)),
             ),
             children: _routeMapLayers(
+              terrain: terrainLayerFor(ref, basemap),
               basemap: basemap,
               route: widget.route,
               rows: widget.rows,

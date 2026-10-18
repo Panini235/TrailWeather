@@ -9,6 +9,7 @@ import 'routes/route_models.dart';
 import 'routes/sample_routes.dart';
 import 'settings/favorites_repository.dart';
 import 'settings/settings_repository.dart';
+import 'terrain/dem.dart';
 import 'weather/air_quality.dart';
 import 'weather/altitude_profile.dart';
 import 'weather/met_norway_provider.dart';
@@ -125,4 +126,11 @@ final localRoutesProvider = Provider<List<HikingRoute>>((ref) {
   final samples = ref.watch(sampleRoutesProvider).value ?? const [];
   final favs = ref.watch(favoritesProvider);
   return [...samples, ...favs];
+});
+
+/// 公开高程数据瓦片（等高线、地形阴影、手绘线路海拔剖面共用一份内存缓存，D-039）。
+final demServiceProvider = Provider<DemService>((ref) {
+  final s = DemService();
+  ref.onDispose(s.dispose);
+  return s;
 });
