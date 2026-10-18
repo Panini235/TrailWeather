@@ -710,10 +710,10 @@
    "p": "P0",
    "title": "统一天气各页面的瞬时值与小时累计时间语义",
    "deps": [],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "在统一天气模型中保留逐变量原始时次/有效区间；固定时刻、行程节点、未来小时、离线页和出发窗口一致解释；Open-Meteo前一小时降水/阵风与MET下一小时降水分别处理，不能整体平移瞬时气温；旧离线包仍可读并说明语义。",
-   "verify": "官方字段契约、跨小时边界fixture、应用出发时刻后各页面一致性回归；本地analyze/test通过后一次CI。",
-   "result": "2026-10-16：T-130已在独立评估器中正确对齐Open-Meteo累计量并保留原始时次；现有NodeWxRow/hourAt与未来小时列表仍按来源原始记录展示，需明确区间并统一查询语义，避免用户把之前一小时累计量当作当前/之后一小时。不能把本轮局部对齐声称为所有天气页面已统一整改。 2026-10-18：集中 hourAt/displayHours 时间语义；已接入节点、图表、对比、点位、离线、全天摘要及降水图；缓存保留原始时次，来源端点缺失不补值；待本轮 CI/真机。见 docs/weather-time-semantics.md。 本地 flutter analyze 0 issues、flutter test 451/451；等待 CI 构建与 .qa 真机检查。"
+   "verify": "flutter analyze --no-pub；flutter test --no-pub（451/451）；CI 39120608464；小米 12S .qa 数值/区间核对",
+   "result": "2026-10-18（04011d2，D-044）：hourAt/displayHours 集中处理瞬时值与区间值；接入节点、时间图、多来源对比、点位、离线、全天摘要、降水地图。保留原始 hours/sourceTimesUtc，旧缓存不二次偏移；缺累计端点则 null；meteoblue basic 概率保留前三小时；和风区间未确认单独标注。analyze 0、451/451；CI 39120608464 Web/APK/.qa 全绿。小米 12S：节点与时间图的 20:00 气温取原始 12:00Z 10.2°C（显示10），20–21阵风取原始13:00Z 13.3km/h（显示13），区间标签一致；独立 API 响应对照见 docs/verification/time-and-import-2026-10-18/。未验 iOS 真机。"
   },
   {
    "id": "T-159",
@@ -1095,10 +1095,10 @@
    "p": "P1",
    "title": "Android“用山晴打开”先显示 GoRouter 404 页",
    "deps": [],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "冷启动与运行中两种情况下，从文件管理器/微信以 VIEW 打开 GPX/KML/KMZ/GeoJSON（file:// 与 content://）都直接出现导入确认框，不出现“Page Not Found”；SEND 分享不回退。",
-   "verify": "真机 adb：am start -a android.intent.action.VIEW -t application/gpx+xml -d <uri> -n app.shanqing.hiking.dev/dev.trailweather.trailweather.MainActivity；冷启动与 onNewIntent 各一次",
-   "result": "2026-10-18 T-143 真机测试中发现：Flutter 默认深链处理把 intent 的 data URI 当路由交给 GoRouter（GoException: no routes for location: content://…），导入框被压在错误页下面。可能的修法：AndroidManifest 加 flutter_deeplinking_enabled=false，或在 GoRouter redirect 中把非 / 开头的 location 重定向到 /。证据 docs/verification/offline-device-2026-10-18/26-bug-open-with-gorouter-page-not-found.jpg。 2026-10-18：旧 .dev 包以合成 GPX 冷启动复现 404（tool/device_incoming_smoke.py 失败）；AndroidManifest 关闭 Flutter 默认深链，保留 incoming_file 通道；待 CI 产物真机回归。 本地 flutter analyze 0 issues、flutter test 451/451；等待 CI 构建与 .qa 真机检查。"
+   "verify": "tool/device_incoming_smoke.py；CI 39120608464 .qa；docs/verification/time-and-import-2026-10-18/",
+   "result": "2026-10-18（04011d2）：旧 .dev 合成 GPX 的 file/content VIEW 冷启动可复现 GoRouter 404。关闭 Flutter 默认深链，文件只经 incoming_file 通道。CI 全绿后在小米 12S 的 .qa 包通过 file/content VIEW 冷启动及运行中打开、SEND 冷启动及运行中接收（均实际显示导入确认，无404）；保存后普通入口冷启动只保留1条合成线路，不重复导入。使用有权读取的合成夹具；未逐一测试微信/两步路/奥维真实应用。证据见 verification。"
   },
   {
    "id": "T-195",

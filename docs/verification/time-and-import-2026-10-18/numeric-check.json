@@ -1,0 +1,11 @@
+{
+  "display_hour_local": "2026-10-18 20:00",
+  "instant_source_utc": "2026-10-18T12:00",
+  "temperature_c": 10.2,
+  "interval_source_utc": "2026-10-18T13:00",
+  "gust_kmh": 13.3,
+  "precip_mm": 0.0,
+  "probability_pct": 0,
+  "temperature_and_gust_differ_from_wrong_hour": true,
+  "node_and_meteogram_match": true
+}
