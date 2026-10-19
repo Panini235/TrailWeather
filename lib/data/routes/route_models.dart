@@ -4,15 +4,24 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart';
 
-/// 线路数据来源。区分已有徒步路线、路径数据、用户导入线路、徒步星球经典线路、手绘规划线路。
-enum RouteOrigin { demo, import, osm, osmPath, planet, planned }
+/// 线路数据来源。区分演示、用户导入、OSM 关系/路径段与手绘规划线路。
+enum RouteOrigin {
+  demo,
+  import,
+  osm,
+  osmPath,
+
+  /// 仅兼容已保存的旧收藏与离线包；不再提供对应目录、数据或加载入口。
+  planet,
+  planned,
+}
 
 String routeOriginLabel(RouteOrigin o) => switch (o) {
   RouteOrigin.demo => '内置示例（演示数据）',
   RouteOrigin.import => '用户导入',
   RouteOrigin.osm => 'OpenStreetMap 徒步路线关系',
   RouteOrigin.osmPath => 'OpenStreetMap 具名徒步路径段',
-  RouteOrigin.planet => '徒步星球（全球经典）',
+  RouteOrigin.planet => '历史线路（原目录已移除）',
   RouteOrigin.planned => '手绘规划线路',
 };
 

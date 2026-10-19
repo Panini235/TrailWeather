@@ -55,7 +55,6 @@ void main() {
     final d = summarizeDayPrecip(
       points: [_point(rain)],
       dayStartUtc: dayStartUtc,
-      precedingHour: true,
     );
     expect(d.maxDayMm, 70);
     // 前一小时累计：08:00 记录对应 07–08 时 → 降水从 07 时开始，最后一段为 20–21 时。
@@ -71,17 +70,8 @@ void main() {
         _point({0: 9.0, 24: 2.0}),
       ],
       dayStartUtc: dayStartUtc,
-      precedingHour: true,
     );
     expect(d.maxDayMm, 2.0);
-    final same = summarizeDayPrecip(
-      points: [
-        _point({0: 9.0, 24: 2.0}),
-      ],
-      dayStartUtc: dayStartUtc,
-      precedingHour: false,
-    );
-    expect(same.maxDayMm, 9.0);
   });
 
   test('沿途取最大；全无降水量返回 null 而不是 0', () {
@@ -91,7 +81,6 @@ void main() {
         _point({10: 3.0, 11: 2.0}),
       ],
       dayStartUtc: dayStartUtc,
-      precedingHour: true,
     );
     expect(d.maxDayMm, 5.0);
 
@@ -100,7 +89,6 @@ void main() {
         WxPointForecast(lat: 0, lon: 0, provenance: _prov(), hours: const []),
       ],
       dayStartUtc: dayStartUtc,
-      precedingHour: true,
     );
     expect(none.maxDayMm, isNull);
     expect(none.minHoursCovered, 0);

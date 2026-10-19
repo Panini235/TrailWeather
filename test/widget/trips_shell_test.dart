@@ -119,8 +119,7 @@ void main() {
     expect(find.text(S.myTrips), findsOneWidget);
     expect(find.text(S.emptyTripsTitle), findsOneWidget);
     expect(find.widgetWithText(FilledButton, S.importRoute), findsOneWidget);
-    // 徒步星球线路库在测试版隐藏（B-011）。
-    expect(find.text(S.planetEntry), findsNothing);
+    expect(find.textContaining('徒步星球'), findsNothing);
     // 底部导航三个分支
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text(S.tabMap), findsOneWidget);
@@ -175,6 +174,45 @@ void main() {
     expect(find.text(S.myTrips), findsOneWidget);
     expect(find.text('年度会员'), findsNothing);
     expect(find.textContaining('山晴 Pro'), findsNothing);
+  });
+
+  testWidgets('已移除的线路目录旧链接返回首页', (tester) async {
+    await _pumpApp(tester, await _prefs());
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(Navigator).first),
+    );
+    final router = container.read(appRouterProvider);
+    router.go('/planet');
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/');
+    expect(find.text(S.myTrips), findsOneWidget);
+    expect(find.textContaining('徒步星球'), findsNothing);
+  });
+
+  testWidgets('旧目录收藏与导入线路混存仍可读取，不清空或重标来源', (tester) async {
+    final prefs = await _prefs();
+    final legacy = _trip('legacy-route', '历史收藏线路').toJson()
+      ..['origin'] = 'planet'
+      ..['sourceName'] = '历史目录来源'
+      ..['sourceLicense'] = '许可未核验';
+    final saved = jsonEncode([
+      legacy,
+      _trip('imported-route', '用户导入线路').toJson(),
+    ]);
+    await prefs.setString('favorites.v1', saved);
+    await _pumpApp(tester, prefs);
+
+    expect(find.text('历史收藏线路'), findsOneWidget);
+    expect(find.text('用户导入线路'), findsOneWidget);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(Navigator).first),
+    );
+    final routes = container.read(favoritesProvider);
+    expect(routes, hasLength(2));
+    expect(routes.first.toJson(), legacy);
+    expect(prefs.getString('favorites.v1'), saved);
+    expect(find.textContaining('历史线路（原目录已移除）'), findsOneWidget);
   });
 
   testWidgets('外部应用传入文件：解析 → 确认 → 保存到行程', (tester) async {

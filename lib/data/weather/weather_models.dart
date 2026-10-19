@@ -290,17 +290,42 @@ class WxHourValue {
     required this.validFromUtc,
     required this.values,
     this.symbols,
+    this.intervalVariables = const {},
+    this.unconfirmedIntervalVariables = const {},
+    this.precedingThreeHourVariables = const {},
+    this.sourceTimesUtc = const {},
   });
 
-  /// 该小时起有效（UTC 整点）。
+  /// 来源原始时次（UTC 整点）；原始记录的区间变量可能对应前一小时。
+  /// hourAt/displayHours 返回的展示记录则以该时刻为区间起点。
   final DateTime validFromUtc;
   final Map<WxVar, double?> values;
+
+  /// 展示记录中明确对应 [validFromUtc, validFromUtc + 1h) 的变量。
+  final Set<WxVar> intervalVariables;
+
+  /// 来源只标“当前小时”，尚未确认起止的区间变量；不擅自偏移。
+  final Set<WxVar> unconfirmedIntervalVariables;
+
+  /// 仍按来源时次展示的前三小时区间，不能当作单小时概率。
+  final Set<WxVar> precedingThreeHourVariables;
+
+  /// 展示值对应的来源原始时次（含缺失值的预期时次），原始快照不改写。
+  final Map<WxVar, DateTime> sourceTimesUtc;
 
   /// 来源专属符号（如 MET symbol_code / WMO code），仅用于图标。
   final Map<String, String>? symbols;
 
   /// 天气现象粗略图标编码（供 UI 使用，未识别返回 null）。
   String? get iconCode => symbols?['met_symbol'] ?? symbols?['wmo_code'];
+}
+
+enum WxTimeBasis {
+  instant,
+  precedingHour,
+  followingHour,
+  sourceHour,
+  precedingThreeHours,
 }
 
 /// 单点（一个查询坐标）的整段时间序列。
@@ -353,14 +378,103 @@ class WxPointForecast {
       ? null
       : hours.last.validFromUtc.add(const Duration(hours: 1));
 
-  /// 取某个 UTC 时刻所在小时的值；越界返回 null。
-  /// 注意：不做任何时间插值，避免制造虚假精度。
-  WxHourValue? hourAt(DateTime utc) {
-    final t = DateTime.utc(utc.year, utc.month, utc.day, utc.hour);
+  /// 来源原始记录：仅供编码、溯源与适配器契约使用。
+  WxHourValue? rawHourAt(DateTime utc) {
+    final u = utc.toUtc();
+    final t = DateTime.utc(u.year, u.month, u.day, u.hour);
     for (final h in hours) {
       if (h.validFromUtc == t) return h;
     }
     return null;
+  }
+
+  /// 每个展示小时：瞬时指标取整点，区间指标统一取该整点起的一小时。
+  /// 不插值，不以相邻小时补缺；原始 hours 永不改写，旧缓存同样适用。
+  WxHourValue? hourAt(DateTime utc) {
+    final u = utc.toUtc();
+    final t = DateTime.utc(u.year, u.month, u.day, u.hour);
+    final raw = rawHourAt(t);
+    if (raw == null) return null;
+    return _displayHour(raw, rawHourAt(t.add(const Duration(hours: 1))));
+  }
+
+  WxHourValue _displayHour(WxHourValue raw, WxHourValue? next) {
+    final t = raw.validFromUtc;
+    final values = <WxVar, double?>{};
+    final times = <WxVar, DateTime>{};
+    final intervals = <WxVar>{};
+    final unconfirmed = <WxVar>{};
+    final threeHour = <WxVar>{};
+    for (final v in WxVar.values) {
+      final basis = timeBasis(v);
+      final shifted = basis == WxTimeBasis.precedingHour;
+      values[v] = (shifted ? next : raw)?.values[v];
+      times[v] = shifted ? t.add(const Duration(hours: 1)) : t;
+      if (basis == WxTimeBasis.precedingHour ||
+          basis == WxTimeBasis.followingHour) {
+        intervals.add(v);
+      }
+      if (basis == WxTimeBasis.sourceHour) unconfirmed.add(v);
+      if (basis == WxTimeBasis.precedingThreeHours) threeHour.add(v);
+    }
+    return WxHourValue(
+      validFromUtc: t,
+      values: values,
+      symbols: provenance.providerId.startsWith('meteoblue:')
+          ? next?.symbols
+          : raw.symbols,
+      intervalVariables: intervals,
+      unconfirmedIntervalVariables: unconfirmed,
+      precedingThreeHourVariables: threeHour,
+      sourceTimesUtc: times,
+    );
+  }
+
+  Iterable<WxHourValue> get displayHours sync* {
+    final byTime = {for (final h in hours) h.validFromUtc: h};
+    for (final h in hours) {
+      yield _displayHour(
+        h,
+        byTime[h.validFromUtc.add(const Duration(hours: 1))],
+      );
+    }
+  }
+
+  /// 按官方变量说明集中维护；未确认的区间不猜测、不偏移。
+  WxTimeBasis timeBasis(WxVar v) {
+    final id = provenance.providerId;
+    if (id.startsWith('open-meteo:')) {
+      return const {
+            WxVar.precip,
+            WxVar.precipProb,
+            WxVar.windGust,
+            WxVar.snowfall,
+          }.contains(v)
+          ? WxTimeBasis.precedingHour
+          : WxTimeBasis.instant;
+    }
+    if (id.startsWith('met.no:')) {
+      return const {WxVar.precip, WxVar.precipProb}.contains(v)
+          ? WxTimeBasis.followingHour
+          : WxTimeBasis.instant;
+    }
+    if (id.startsWith('meteoblue:')) {
+      // basic 包的 POP 即使在 data_1h 中也对应前三小时，不能改造成单小时概率。
+      if (v == WxVar.precipProb) return WxTimeBasis.precedingThreeHours;
+      return const {
+            WxVar.precip,
+            WxVar.windSpeed,
+            WxVar.windDir,
+            WxVar.snowFraction,
+          }.contains(v)
+          ? WxTimeBasis.precedingHour
+          : WxTimeBasis.instant;
+    }
+    if (id.startsWith('qweather:') &&
+        const {WxVar.precip, WxVar.precipProb}.contains(v)) {
+      return WxTimeBasis.sourceHour;
+    }
+    return WxTimeBasis.instant;
   }
 }
 

@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'weather_cells.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../core/units.dart';
@@ -80,7 +82,7 @@ class _NodeMeteogramState extends State<NodeMeteogram>
     ).subtract(Duration(hours: widget.hoursBefore));
     final to = from.add(Duration(hours: widget.span));
     return [
-      for (final h in widget.point.hours)
+      for (final h in widget.point.displayHours)
         if (!h.validFromUtc.isBefore(from) && h.validFromUtc.isBefore(to)) h,
     ];
   }
@@ -105,11 +107,14 @@ class _NodeMeteogramState extends State<NodeMeteogram>
     }
     final arrival = _arrivalIndex(hours);
     final sel = (_selected ?? arrival).clamp(0, hours.length - 1);
+    final at = widget.arrivalUtc;
+    final showReadout =
+        _selected != null &&
+        hours[sel].validFromUtc !=
+            DateTime.utc(at.year, at.month, at.day, at.hour);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Readout(hour: hours[sel], settings: widget.settings),
-        const SizedBox(height: Space.xs),
         LayoutBuilder(
           builder: (context, c) {
             final geom = _Geom(width: c.maxWidth, count: hours.length);
@@ -143,6 +148,21 @@ class _NodeMeteogramState extends State<NodeMeteogram>
           },
         ),
         const SizedBox(height: Space.xs),
+        if (showReadout) ...[
+          Row(
+            children: [
+              Expanded(
+                child: _Readout(hour: hours[sel], settings: widget.settings),
+              ),
+              IconButton(
+                tooltip: S.close,
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => setState(() => _selected = null),
+              ),
+            ],
+          ),
+          WeatherHourNotice(wx: hours[sel]),
+        ],
         _Legend(color: muted),
       ],
     );
@@ -187,7 +207,7 @@ class _Readout extends StatelessWidget {
     final prob = v[WxVar.precipProb];
     final uv = v[WxVar.uvIndex];
     final parts = [
-      S.meteogramHour(t.hour.toString().padLeft(2, '0')),
+      S.meteogramViewing(t.month, t.day, t.hour.toString().padLeft(2, '0')),
       S.meteogramTempFeels(
         temp(v[WxVar.temperature]),
         temp(v[WxVar.apparentTemp]),
@@ -201,7 +221,6 @@ class _Readout extends StatelessWidget {
     return Text(
       parts.join('  ·  '),
       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-      maxLines: 2,
     );
   }
 }

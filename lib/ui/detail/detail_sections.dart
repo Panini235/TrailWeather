@@ -2,8 +2,7 @@ part of 'route_detail_screen.dart';
 
 // 详情页：结论卡、节点行与数据说明。
 
-/// 结论卡：沿途摘要 3 个数 + 最多 3 条提示 + 出发窗口入口。
-/// 结论卡顶部的时间模式说明：固定时刻用醒目的提醒色，并给出切到行程模式的入口。
+/// 结论卡的时间上下文，固定时刻保留切到行程模式的入口。
 class _ModeLine extends StatelessWidget {
   const _ModeLine({
     required this.tripMode,
@@ -18,9 +17,7 @@ class _ModeLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = tripMode
-        ? theme.colorScheme.primary
-        : SemanticInk.caution(context);
+    final color = theme.colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.only(top: Space.xs),
       child: Row(
@@ -242,7 +239,7 @@ class _Headline extends StatelessWidget {
     final theme = Theme.of(context);
     final top = hints.firstOrNull;
     final color = top == null
-        ? SemanticInk.go(context)
+        ? theme.colorScheme.onSurfaceVariant
         : _hintInk(context, top);
     return InkWell(
       onTap: onTap,
@@ -253,14 +250,17 @@ class _Headline extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              top == null ? Icons.check_circle_outline : hintIcon(top),
-              size: 22,
+              top == null ? Icons.info_outline : hintIcon(top),
+              size: top == null ? 16 : 22,
               color: color,
             ),
             const SizedBox(width: Space.sm),
             Expanded(
               child: top == null
-                  ? Text(S.noHintsTriggered, style: theme.textTheme.bodyMedium)
+                  ? Text(
+                      S.noHintsTriggered,
+                      style: theme.textTheme.bodySmall?.copyWith(color: color),
+                    )
                   : Text.rich(
                       TextSpan(
                         children: [

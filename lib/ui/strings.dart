@@ -4,6 +4,23 @@
 /// 迁移到 ARB/gen-l10n 时只需把这些常量改为生成访问器，
 /// 不需要改动业务代码（见 docs/architecture.md）。
 abstract final class S {
+  static String wxIntervalNote(String labels, String start, String end) =>
+      '$labels：$start–$end；瞬时指标取标注整点，未做小时内插值。';
+  static String wxPreviousThreeHourNote(
+    String labels,
+    String start,
+    String end,
+  ) => '$labels：前三小时 $start–$end，并非单小时概率。';
+  static String wxUnknownIntervalNote(String labels) =>
+      '$labels：来源标注小时的值，区间起止未确认，未作时间偏移。';
+  static String wxOriginalTimes(String times) => '来源原始时次（UTC）：\n$times';
+  static const wxTimeDetails = '时段说明';
+  static String wxIntervalShort(String labels, String start, String end) =>
+      '$labels：$start–$end';
+  static String wxThreeHourShort(String labels, String start, String end) =>
+      '$labels：前三小时 $start–$end';
+  static String wxUnknownIntervalShort(String labels) => '$labels：区间起止未确认';
+
   static const appTitle = '山晴';
 
   // 通用
@@ -49,8 +66,6 @@ abstract final class S {
       '从两步路、六只脚、奥维等导出 GPX / KML / KMZ，导入后按出发时间查看沿途天气。';
   static const openWithHint = '也可以在两步路、奥维、微信或文件管理器里打开轨迹文件时，选择“山晴”直接导入。';
   static const exampleRoutes = '示例线路';
-  static const planetEntry = '徒步星球 · 全球经典线路';
-  static const planetEntryHint = '44 条经典线路，可直接体验沿途天气';
   static const saveToTrips = '保存到我的行程';
   static const importPrivacyNote =
       '线路将保存在本机（不上传）。注意：线路数据可能包含住宅、常去出发点等敏感位置，分享前请自行判断。';
@@ -116,7 +131,8 @@ abstract final class S {
   static const cachedAt = '缓存于';
   static const fetchedAt = '数据获取于';
   static const noElevation = '此线路无海拔数据，未显示海拔剖面，配速未计入爬升影响';
-  static const planetElevationNote = '经典线路的海拔由路线剖面按距离线性插值得到，为估算值；高点位置与爬升量仅供参考。';
+  static const legacyCatalogueElevationNote =
+      '历史目录线路的海拔由路线剖面按距离线性插值得到，为估算值；高点位置与爬升量仅供参考。';
   static const longTripNote =
       '按当前配速估算全程超过 12 小时：行程模式按连续行走推算，未计入夜间宿营。'
       '多日线路的后段到达时间与对应天气仅供参考，请按每日行程分段查看。';
@@ -126,6 +142,7 @@ abstract final class S {
   static const save = '保存';
   static const onDemandQuery = '查询此点（消耗 1 次额度）';
   static const altitudeCardTitle = '同一地点不同海拔';
+  static const altitudeExploreTitle = '海拔影响（模型估算）';
   static const altitudeCardNote = 'Open-Meteo 按海拔统计降尺度的模型估算，非实测；▶ 为当前节点/地面海拔。';
   static const airQualityTitle = '空气质量（雾霾）';
   static const phenomenonLabel = '天气现象';
@@ -133,7 +150,7 @@ abstract final class S {
   static const shareImage = '分享图片';
   static const shareNeedsData = '天气数据加载完成后才能分享';
   static const probVsAmountNote = '概率与降水量来自不同模型，可能不一致';
-  static const noHintsTriggered = '当前数据未触发任何阈值提示（这不代表安全）。';
+  static const noHintsTriggered = '已覆盖数据未触发提示阈值，不代表安全。';
   static const dataNotesTitle = '数据说明与来源';
   static const dataNotesSubtitle = '颗粒度、模型、官方预警与线路来源';
   static const chooseSource = '选择天气来源';
@@ -386,7 +403,9 @@ abstract final class S {
   static const feedbackOpenFailed = '无法打开浏览器，链接已复制到剪贴板';
 
   // 穿衣建议（洋葱法）
-  static const layeringTitle = '穿衣 · 洋葱法';
+  static const layeringTitle = '穿衣建议';
+  static String layeringSummary(List<String> items) => items.join(' · ');
+  static const layeringIncomplete = '部分条件未评估，查看依据';
   static const layeringNoData = '穿衣建议：此来源在选定时间没有气温，无法估计。';
   static const layeringBasis = '依据';
   static const layeringPacked = '背包';
@@ -415,7 +434,7 @@ abstract final class S {
   static const wxMapFailed = '天气图获取失败，稍后重试';
   static const wxMapZoomIn = '放大到省市范围查看';
   static const wxMapForecastNote = '模式预报 · Open-Meteo · 非雷达实况';
-  static const wxMapPrecipUnit = '前一小时降水 mm';
+  static const wxMapPrecipUnit = '随后一小时降水 mm';
   static const wxMapCloudUnit = '云量 %';
   static const wxMapSatelliteNote = '红外云图（实况）· Himawari-9 · NASA GIBS';
   static const wxMapSatelliteTime = '观测';
@@ -424,7 +443,7 @@ abstract final class S {
   static const wxMapLocate = '定位';
   static const wxMapInfo =
       '降水、云量：Open-Meteo 模式预报，按网格点取值后在点间平滑显示，不是雷达或卫星实况；'
-      '降水为该时刻前一小时累计。播放和拖动时，相邻两个整点（或两张云图）之间是线性过渡，'
+      '降水为标注整点起一小时累计，云量按标注整点。播放和拖动时，相邻两个整点（或两张云图）之间是线性过渡，'
       '只为画面连贯；停下后显示的是整点数据。卫星云图：日本 Himawari-9 红外通道，经 NASA GIBS 提供，'
       '颜色越亮越冷，代表云顶越高；约 10 分钟一张，有 20–40 分钟延迟。'
       '台风：日本气象厅（西北太平洋区域专业气象中心）实况与路径预报，风速为 10 分钟平均，'
@@ -571,15 +590,6 @@ abstract final class S {
       '出发前可在线下载线路与预报，再从首页打开离线行程包。离线底图尚未提供，请另备地图。';
   static const onboardingImportMine = '导入我的线路';
   static const onboardingTryExamples = '先看示例线路';
-  // 徒步星球
-  static const planetTitle = '徒步星球 · 全球经典';
-  static const planetRandomTooltip = '随机漫游传送';
-  static String planetRandomTeleported(String name, String region) =>
-      '已随机传送到：$name（$region）';
-  static const planetAllDistances = '全部里程';
-  static String planetLoadFailed(String error) => '加载经典路线失败：$error';
-  static const planetEmptyCategory = '当前分类下暂无经典路线';
-  static String planetAscent(String ascent) => '爬升 $ascent';
   // 行程首页
   static String tripsDeleteTitle(String name) => '删除“$name”？';
   static const tripsOfflineTitle = '离线行程包';
@@ -604,8 +614,6 @@ abstract final class S {
   // 地图页：混合搜索
   static const mapSearchRoutesSubtitle = '有完整几何，可直接进入沿途天气分析';
   static const mapSearchPlacesSubtitle = '先定位到区域，再查附近 OSM 线路';
-  static const mapSearchPlanetTitle = '徒步星球 · 全球经典路线';
-  static const mapSearchPlanetSubtitle = '44+ 条雪山/冰川/森林/峡谷世界顶级徒步线路';
   static const mapSearchPlannerTitle = '线路规划工坊 (Trail Studio)';
   static const mapSearchPlannerSubtitle = '在地图上手绘规划、标记营地水源、即时推演天气与耗时';
   // 地图页：自定义图源
@@ -992,7 +1000,7 @@ abstract final class S {
   }) => '$head：沿途降水最多约 $amount，主要在 $from–$to 时$prob$partial';
   static String detailChipTrip(String t) => '出发 $t';
   static String detailChipFixed(String t) => '固定 $t';
-  static String detailModeFixed(String hhmm) => '全线同一时刻 $hhmm，不是按出发时间推算';
+  static String detailModeFixed(String hhmm) => '全线同一时刻 $hhmm · 非预计到达';
   static String detailModeTrip(String start, String end) =>
       '$start 出发 → 约 $end 到达（配速估算）';
   static const detailSwitchToTrip = '按出发时间看';
@@ -1057,6 +1065,8 @@ abstract final class S {
       '${tempLo == null ? '气温未提供' : '气温 $tempLo 到 $tempHi 度'}，'
       '${precipMm == null ? '降水未提供' : '降水合计约 $precipMm 毫米'}';
   static String meteogramHour(String hh) => '$hh时';
+  static String meteogramViewing(int month, int day, String hh) =>
+      '查看 $month/$day $hh时';
   static String meteogramTempFeels(String temp, String feels) =>
       '$temp / 体感 $feels';
   static const meteogramCloud = '云';

@@ -12,24 +12,34 @@ String fakeFieldResponse(Uri uri, {double? missingAt}) {
       {
         'latitude': double.parse(lats[i]),
         'hourly': {
-          'time': ['2026-10-17T07:00', '2026-10-17T08:00', '2026-10-17T09:00'],
-          'precipitation': [i == missingAt ? null : i * 0.1, 0.0, 2.0],
-          'cloud_cover': [100, 50, 0],
-          'cloud_cover_low': [80, 40, 0],
-          'cloud_cover_mid': [10, 10, 10],
-          'cloud_cover_high': [0, 0, 0],
+          'time': [
+            '2026-10-17T07:00',
+            '2026-10-17T08:00',
+            '2026-10-17T09:00',
+            '2026-10-17T10:00',
+          ],
+          'precipitation': [99.0, i == missingAt ? null : i * 0.1, 0.0, 2.0],
+          'cloud_cover': [100, 50, 0, 0],
+          'cloud_cover_low': [80, 40, 0, 0],
+          'cloud_cover_mid': [10, 10, 10, 10],
+          'cloud_cover_high': [0, 0, 0, 0],
         },
       },
   ]);
 }
 
-/// [n] 个格点、3 个时次，降水与云量处处为 [value]。
+/// [n] 个格点、4 个原始时次（3 个展示小时），降水与云量处处为 [value]。
 String fakeUniformResponse(int n, double value) => jsonEncode([
   for (var i = 0; i < n; i++)
     {
       'hourly': {
-        'time': ['2026-10-17T07:00', '2026-10-17T08:00', '2026-10-17T09:00'],
-        for (final v in FieldVar.values) v.api: [value, value, value],
+        'time': [
+          '2026-10-17T07:00',
+          '2026-10-17T08:00',
+          '2026-10-17T09:00',
+          '2026-10-17T10:00',
+        ],
+        for (final v in FieldVar.values) v.api: [value, value, value, value],
       },
     },
 ]);
@@ -71,7 +81,7 @@ void main() {
       const view = FieldBounds(south: 39, west: 115, north: 41, east: 117);
       final g = await s.fetch(view, aspect: 0.5);
       expect(seen!.host, 'api.open-meteo.com');
-      expect(seen!.queryParameters['forecast_hours'], '48');
+      expect(seen!.queryParameters['forecast_hours'], '49');
       expect(seen!.queryParameters['hourly'], contains('cloud_cover_low'));
       expect(
         seen!.queryParameters['latitude']!.split(',').length,

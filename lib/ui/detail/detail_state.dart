@@ -252,12 +252,10 @@ class DayPrecipSummary {
 
 /// 全天降水：每个查询点按来源时间语义合计全天，再取沿途最大。
 ///
-/// [precedingHour]：Open-Meteo 的降水标在“上一小时结束”时刻（t 表示 t−1h~t），
-/// 全天取 (00:00, 24:00]；其他来源按“该小时起”取 [00:00, 24:00)。
+/// 统一使用展示小时 [00:00, 24:00)，时间偏移由 WxPointForecast 处理。
 DayPrecipSummary summarizeDayPrecip({
   required List<WxPointForecast> points,
   required DateTime dayStartUtc,
-  required bool precedingHour,
 }) {
   final dayEnd = dayStartUtc.add(const Duration(hours: 24));
   double? maxDay;
@@ -268,11 +266,9 @@ DayPrecipSummary summarizeDayPrecip({
   for (final p in points) {
     var sum = 0.0;
     var covered = 0;
-    for (final h in p.hours) {
+    for (final h in p.displayHours) {
       final t = h.validFromUtc;
-      final inDay = precedingHour
-          ? t.isAfter(dayStartUtc) && !t.isAfter(dayEnd)
-          : !t.isBefore(dayStartUtc) && t.isBefore(dayEnd);
+      final inDay = !t.isBefore(dayStartUtc) && t.isBefore(dayEnd);
       if (!inDay) continue;
       final prob = h.values[WxVar.precipProb];
       if (prob != null && (maxProb == null || prob > maxProb)) maxProb = prob;
@@ -281,7 +277,7 @@ DayPrecipSummary summarizeDayPrecip({
       covered++;
       sum += mm;
       if (mm >= 0.1) {
-        final start = precedingHour ? t.subtract(const Duration(hours: 1)) : t;
+        final start = t;
         if (first == null || start.isBefore(first)) first = start;
         if (last == null || start.isAfter(last)) last = start;
       }

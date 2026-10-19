@@ -199,10 +199,10 @@
    "deps": [
     "T-030"
    ],
-   "status": "blocked",
+   "status": "todo",
    "acceptance": "docs/performance.md 协议执行并记录",
    "verify": "数据入 performance.md",
-   "result": "无真机"
+   "result": "2026-10-18：小米 12S 已连接且可用于测试；已有局部帧率和离线证据，完整 docs/performance.md 性能/耗电协议尚未执行。iOS 真机仍不可用。"
   },
   {
    "id": "T-060",
@@ -332,7 +332,7 @@
    "status": "done",
    "acceptance": "落盘并解析 44 条全球经典神线、高程线性插值、8 大地貌分类与里程区间筛选、随机漫游",
    "verify": "flutter test test/unit/planet_trails_test.dart test/widget/planet_screen_test.dart",
-   "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
+   "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）；2026-10-19 用户决定移除，当前目录、数据与功能删除见 T-196，历史实现记录保留。"
   },
   {
    "id": "T-082",
@@ -538,8 +538,8 @@
    ],
    "status": "in_progress",
    "acceptance": "持久化路线/航点/计划/完整可用预报与溯源；下载校验与重试；飞行模式冷启动、跨小时/午夜、24/48/72小时读取；不受普通LRU淘汰。",
-   "verify": "flutter analyze --no-pub；flutter test --no-pub（offline_trip_test / offline_screens_test 与全部回归）；CI Web/APK + 无签名 iOS；原生飞行模式待真机。",
-   "result": "2026-10-16：基础离线包、24/48/72小时下载、快照/溯源、完整性与坐标校验、失败保留/重试、首页入口和无天气/地图请求查看已实现。本地 analyze 0 / 263 tests；最终 03090e2 的 Web/APK CI 38881636861 与 iOS 无签名 CI 38881655873 成功。首批同功能 b51b11e 实际浏览器下载72小时/7节点/504地点时段，页面重启后恢复并断网读到最后一小时；最终构建引导修正另行验证。原生飞行模式/强制结束/低存储/升级与24/48/72小时真实老化仍待 B-002 真机，保持 in_progress；Web 字体离线限制已记录。"
+   "verify": "flutter analyze --no-pub；flutter test --no-pub（offline_trip_test / offline_screens_test 与全部回归）；CI Web/APK + 无签名 iOS；原生飞行模式待真机。；2026-10-18 小米 12S 真机：docs/verification/offline-device-2026-10-18/README.md",
+   "result": "2026-10-16：基础离线包、24/48/72小时下载、快照/溯源、完整性与坐标校验、失败保留/重试、首页入口和无天气/地图请求查看已实现。本地 analyze 0 / 263 tests；最终 03090e2 的 Web/APK CI 38881636861 与 iOS 无签名 CI 38881655873 成功。首批同功能 b51b11e 实际浏览器下载72小时/7节点/504地点时段，页面重启后恢复并断网读到最后一小时；最终构建引导修正另行验证。原生飞行模式/强制结束/低存储/升级与24/48/72小时真实老化仍待 B-002 真机，保持 in_progress；Web 字体离线限制已记录。 2026-10-18 真机（小米 12S，HyperOS 3 / Android 15，profile 包，提交 a1b9c3c）：通过——在线下载 24h（Open-Meteo best_match）/48h（best_match）/72h（MET Norway，行程模式）各一个包；飞行模式（无任何网络）冷启动后三包的线路示意、逐节点预报、溯源、计划到达时刻均可读，缺失时次显示“此来源未提供该时次预报”；am force-stop 后断网重开三包正常；联网状态打开全部包时应用 UID 流量增量 0 字节（同法打开线路详情页有流量，作为对照）；清除普通天气缓存（742 KB→0）后离线包仍在；断网“联网更新”失败并保留原包（md5 不变）；断网查看跨午夜 10-18 23:00→10-19 00:00 与窗口最后一小时；前台跨整点（15:59→16:01）自动切到新小时；超过来源建议间隔后出现“旧预报”；导入带 3 个航点的 GPX 下载 ecmwf_ifs025 48h 包，断网冷启动航点名称与坐标完整；低存储约 117 MB 可下载；磁盘写满（df 可用 0）时更新失败并保留原包、无 .tmp 残留，写满状态冷启动仍可读；下载中强制结束（0.7–3.5 s 多次）不留损坏包或临时文件；同版本覆盖安装后离线可读。恢复联网后第一次重试更新失败一次（原包保留），第二次成功。未完成——真实 24/48/72 小时老化与“行程时段已结束”提示（未改系统时间，不能代替）；本地真实午夜跨越；写入瞬间被杀（窗口仅毫秒级，未命中）；跨版本升级；iOS 真机。保持 in_progress。发现：Android“用山晴打开”（VIEW，file:// 与 content://）先显示 GoRouter 英文“Page Not Found”，点 Go to home page 后导入框才出现（T-194）；固定时刻模式的包从本地 00:00 开始，Open-Meteo 只返回 UTC 当天起的数据，北京时间 00:00–07:59 永远缺失，24/48h 包总显示“覆盖不全”（T-195）。"
   },
   {
    "id": "T-144",
@@ -623,7 +623,7 @@
    "status": "blocked",
    "acceptance": "取得本项目所需地图接入/商业/离线许可；取得徒步星球作者及上游数据复制/分发权利，或移除/替换对应数据；更新许可清单。",
    "verify": "作者/服务商可留档授权、官方SDK/API与实际配置核对。",
-   "result": "B-011/B-012；上游公开仓库license=null，已在a699aca纠正虚假MIT声明；标签纠正没有解除分发阻塞。详见iOS优先商业化报告。"
+   "result": "B-011/B-012；上游公开仓库license=null，已在a699aca纠正虚假MIT声明；标签纠正没有解除分发阻塞。详见iOS优先商业化报告。 2026-10-19：按用户决定移除徒步星球目录与源码数据（T-196）；高德继续保留，B-012 仍待核验；历史 Git/旧发布材料的 B-011 未因工作树删除而关闭。"
   },
   {
    "id": "T-152",
@@ -710,10 +710,10 @@
    "p": "P0",
    "title": "统一天气各页面的瞬时值与小时累计时间语义",
    "deps": [],
-   "status": "todo",
+   "status": "done",
    "acceptance": "在统一天气模型中保留逐变量原始时次/有效区间；固定时刻、行程节点、未来小时、离线页和出发窗口一致解释；Open-Meteo前一小时降水/阵风与MET下一小时降水分别处理，不能整体平移瞬时气温；旧离线包仍可读并说明语义。",
-   "verify": "官方字段契约、跨小时边界fixture、应用出发时刻后各页面一致性回归；本地analyze/test通过后一次CI。",
-   "result": "2026-10-16：T-130已在独立评估器中正确对齐Open-Meteo累计量并保留原始时次；现有NodeWxRow/hourAt与未来小时列表仍按来源原始记录展示，需明确区间并统一查询语义，避免用户把之前一小时累计量当作当前/之后一小时。不能把本轮局部对齐声称为所有天气页面已统一整改。"
+   "verify": "flutter analyze --no-pub；flutter test --no-pub（451/451）；CI 39120608464；小米 12S .qa 数值/区间核对",
+   "result": "2026-10-18（04011d2，D-044）：hourAt/displayHours 集中处理瞬时值与区间值；接入节点、时间图、多来源对比、点位、离线、全天摘要、降水地图。保留原始 hours/sourceTimesUtc，旧缓存不二次偏移；缺累计端点则 null；meteoblue basic 概率保留前三小时；和风区间未确认单独标注。analyze 0、451/451；CI 39120608464 Web/APK/.qa 全绿。小米 12S：节点与时间图的 20:00 气温取原始 12:00Z 10.2°C（显示10），20–21阵风取原始13:00Z 13.3km/h（显示13），区间标签一致；独立 API 响应对照见 docs/verification/time-and-import-2026-10-18/。未验 iOS 真机。"
   },
   {
    "id": "T-159",
@@ -1089,6 +1089,48 @@
    "acceptance": "同一查询点且同一小时（数据完全相同）的连续普通节点在时间线默认折叠，可展开；起终点、高点、关键航点不折叠；行程模式下同网格不同小时不折叠。营地/垭口/险段/下撤点/休息点及设了停留时长的航点仍是独立节点；打卡点/水源/补给点不占节点、不计入上限，挂到沿线最近的节点上显示名称，地图上不显示为偏离线路，可在节点详情编辑/移除；离线包保存并兼容旧包；展开/收起动画真机满帧",
    "verify": "flutter analyze；flutter test test/unit/timeline_fold_test.dart test/widget/route_detail_v2_test.dart；真机 profile 包测帧（VM service Flutter.Frame）",
    "result": "2026-10-18：见 D-041。analyze 0；全量 406/406（HEAD+本改动的干净副本 385/385）。小米 12S profile 包（干净副本，不含地形 WIP）：香山示例线路固定时刻显示“另 1 个节点 · 1.6 km · 预报同上”，展开后节点 2 与起点数值一致；12 次展开/收起，每次 200 ms 动画 26–27 帧（120 Hz 满帧），动画内 build ≤ 6.6 ms、raster ≤ 7.1 ms。第一版把展开状态放在整页 State，点按首帧 build 10.6 ms，已改为折叠行自持状态。"
+  },
+  {
+   "id": "T-194",
+   "p": "P1",
+   "title": "Android“用山晴打开”先显示 GoRouter 404 页",
+   "deps": [],
+   "status": "done",
+   "acceptance": "冷启动与运行中两种情况下，从文件管理器/微信以 VIEW 打开 GPX/KML/KMZ/GeoJSON（file:// 与 content://）都直接出现导入确认框，不出现“Page Not Found”；SEND 分享不回退。",
+   "verify": "tool/device_incoming_smoke.py；CI 39120608464 .qa；docs/verification/time-and-import-2026-10-18/",
+   "result": "2026-10-18（04011d2）：旧 .dev 合成 GPX 的 file/content VIEW 冷启动可复现 GoRouter 404。关闭 Flutter 默认深链，文件只经 incoming_file 通道。CI 全绿后在小米 12S 的 .qa 包通过 file/content VIEW 冷启动及运行中打开、SEND 冷启动及运行中接收（均实际显示导入确认，无404）；保存后普通入口冷启动只保留1条合成线路，不重复导入。使用有权读取的合成夹具；未逐一测试微信/两步路/奥维真实应用。证据见 verification。"
+  },
+  {
+   "id": "T-195",
+   "p": "P2",
+   "title": "固定时刻离线包从本地 00:00 开始，UTC+8 下前 8 小时永远缺失",
+   "deps": [
+    "T-143"
+   ],
+   "status": "todo",
+   "acceptance": "决定并实现其一：请求覆盖本地整天（如 Open-Meteo past_days=1 或 start_hour/end_hour），或离线包起点改为不早于当前小时；“覆盖不全”只在来源确实缺数时出现，并补单元测试（UTC+8 固定时刻 24h 包）。",
+   "verify": "flutter test test/unit/offline_trip_test.dart；真机下载 24h 固定时刻包检查覆盖提示",
+   "result": "2026-10-18 T-143 真机发现：香山/西湖固定时刻 24h、48h 包均缺 56 个节点小时（7 节点 × 北京时间 00:00–07:59），ecmwf_ifs025 包同样缺 8 小时 × 5 节点。原因：_utcWindow 固定模式从本地日 00:00 起，open_meteo_provider 以 timezone=UTC + forecast_days 请求，响应从 UTC 当天 00:00（北京 08:00）开始。缺口如实显示为“此来源未提供”，不违反真实性，但让“覆盖不全”常亮、削弱提示意义；已过去的小时是否需要保留由产品决定。"
+  },
+  {
+   "id": "T-196",
+   "p": "P0",
+   "title": "按用户决定移除徒步星球目录与第三方线路数据",
+   "deps": [],
+   "status": "done",
+   "acceptance": "当前工作树删除第三方数据、加载器、目录页、入口与编译开关；旧 /planet 回首页；历史收藏/离线来源保持兼容；导入、手绘、OSM 与高德不变。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions CI（Web/APK）；工作树扫描",
+   "result": "提交 8986b54；本地 analyze 0 issues、448/448 tests 通过；扫描确认数据、加载器、页面与编译开关已删除。CI 39180822420 成功（静态检查、全量测试、Web/APK 构建与 APK 上传）；旧链接/混合历史收藏回归通过。保留历史序列化兼容，未改高德或依赖。已推送 codex/weather-time-and-import，未合并 main、未发布新 Release，B-011 历史材料仍待处置。证据 docs/verification/planet-removal-2026-10-19/。"
+  },
+  {
+   "id": "T-197",
+   "p": "P1",
+   "title": "天气详情减负：说明去重与次要内容按需展开",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "默认隐藏重复小时读数；穿衣与海拔估算收起；时段解释按需查看；缺失、过期、三小时概率和未确认区间仍明确显示。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK",
+   "result": "2026-10-19：本地 analyze 0 issues，451/451 tests；含390px与1.6倍字号时段说明、图表点选/拖动/关闭、穿衣偏好回归。CI 待验证，未做真机视觉验收。"
   }
  ]
 }

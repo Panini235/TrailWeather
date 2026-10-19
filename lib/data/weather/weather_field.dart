@@ -10,7 +10,7 @@ import 'weather_provider.dart';
 ///
 /// 数据：Open-Meteo 模式预报（best_match），按视野内规则格点批量请求；
 /// 不是雷达或卫星实况。格点之间的平滑只用于显示，取值仍是格点上的来源值；
-/// 降水为该时刻前一小时累计（Open-Meteo precipitation 语义）。
+/// 降水为标注整点起一小时累计（读取下一原始时次）；云量按标注整点。
 enum FieldVar {
   precip('precipitation'),
   cloud('cloud_cover'),
@@ -191,7 +191,7 @@ class WeatherFieldService {
       'hourly': [for (final v in FieldVar.values) v.api].join(','),
       'models': 'best_match',
       'timezone': 'UTC',
-      'forecast_hours': '$hours',
+      'forecast_hours': '${hours + 1}',
     });
     final body = await fetcher(uri, cancelToken: cancelToken);
     final grid = parse(
@@ -224,8 +224,12 @@ class WeatherFieldService {
     }
     final first =
         (arr.first as Map<String, dynamic>)['hourly'] as Map<String, dynamic>;
+    final rawTimes = (first['time'] as List?) ?? const [];
+    if (rawTimes.length < 2) {
+      throw const FormatException('来源时次数不足，无法对齐小时降水');
+    }
     final times = [
-      for (final t in (first['time'] as List? ?? const []))
+      for (final t in rawTimes.take(rawTimes.length - 1))
         DateTime.parse('${t}Z'),
     ];
     final values = <FieldVar, List<Float32List>>{
@@ -243,7 +247,10 @@ class WeatherFieldService {
         final list = h[v.api] as List?;
         if (list == null) continue;
         for (var t = 0; t < times.length && t < list.length; t++) {
-          final x = list[t] as num?;
+          final sourceIndex = v == FieldVar.precip ? t + 1 : t;
+          final x = sourceIndex < list.length
+              ? list[sourceIndex] as num?
+              : null;
           if (x != null) values[v]![t][i] = x.toDouble();
         }
       }

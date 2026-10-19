@@ -1,0 +1,8 @@
+{
+  "cold": true,
+  "action": "SEND",
+  "uri_scheme": "file",
+  "grant_data": false,
+  "no_router_error": true,
+  "import_confirmation": true
+}

@@ -48,6 +48,112 @@ class WxVarTile extends StatelessWidget {
   }
 }
 
+/// 区间口径常驻；计算说明和原始时次按需查看。
+class WeatherHourNotice extends StatelessWidget {
+  const WeatherHourNotice({super.key, required this.wx});
+  final WxHourValue wx;
+
+  @override
+  Widget build(BuildContext context) {
+    String clock(DateTime t) {
+      final l = t.toLocal();
+      return '${l.month}/${l.day} ${l.hour.toString().padLeft(2, '0')}:00';
+    }
+
+    final labels = wx.intervalVariables.map((v) => v.label).join('、');
+    final unknown = wx.unconfirmedIntervalVariables
+        .map((v) => v.label)
+        .join('、');
+    final threeHour = wx.precedingThreeHourVariables
+        .map((v) => v.label)
+        .join('、');
+    if (labels.isEmpty && unknown.isEmpty && threeHour.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final text = [
+      if (labels.isNotEmpty)
+        S.wxIntervalNote(
+          labels,
+          clock(wx.validFromUtc),
+          clock(wx.validFromUtc.add(const Duration(hours: 1))),
+        ),
+      if (threeHour.isNotEmpty)
+        S.wxPreviousThreeHourNote(
+          threeHour,
+          clock(wx.validFromUtc.subtract(const Duration(hours: 3))),
+          clock(wx.validFromUtc),
+        ),
+      if (unknown.isNotEmpty) S.wxUnknownIntervalNote(unknown),
+    ].join('\n');
+    final from = wx.validFromUtc;
+    String endClock(DateTime start, DateTime end) {
+      final s = start.toLocal();
+      final e = end.toLocal();
+      return s.year == e.year && s.month == e.month && s.day == e.day
+          ? '${e.hour.toString().padLeft(2, '0')}:00'
+          : clock(end);
+    }
+
+    final previous = from.subtract(const Duration(hours: 3));
+    final short = [
+      if (labels.isNotEmpty)
+        S.wxIntervalShort(
+          labels,
+          clock(from),
+          endClock(from, from.add(const Duration(hours: 1))),
+        ),
+      if (threeHour.isNotEmpty)
+        S.wxThreeHourShort(
+          threeHour,
+          clock(previous),
+          endClock(previous, from),
+        ),
+      if (unknown.isNotEmpty) S.wxUnknownIntervalShort(unknown),
+    ].join('\n');
+    final originalTimes = S.wxOriginalTimes(
+      wx.sourceTimesUtc.entries
+          .where((e) => wx.values[e.key] != null)
+          .map((e) => '${e.key.label} ${e.value.toIso8601String()}')
+          .join('\n'),
+    );
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Tooltip(
+      message: S.wxTimeDetails,
+      child: InkWell(
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text(S.wxTimeDetails),
+            scrollable: true,
+            content: Text('$text\n\n$originalTimes'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(S.close),
+              ),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  short,
+                  style: TextStyle(fontSize: 11, height: 1.4, color: muted),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.info_outline, size: 16, color: muted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MissingValue extends StatelessWidget {
   const MissingValue({super.key});
 
@@ -74,11 +180,13 @@ class WxVarGrid extends StatelessWidget {
     required this.wx,
     required this.settings,
     this.exclude = const {},
+    this.showHourNotice = true,
   });
 
   final WxHourValue wx;
   final AppSettings settings;
   final Set<WxVar> exclude;
+  final bool showHourNotice;
 
   static const _order = [
     WxVar.temperature,
@@ -182,6 +290,7 @@ class WxVarGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (showHourNotice) WeatherHourNotice(wx: wx),
         if (phen != null && !exclude.contains(WxVar.precip))
           Padding(
             padding: const EdgeInsets.only(bottom: 4),

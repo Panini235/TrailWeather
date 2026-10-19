@@ -163,14 +163,9 @@ DepartureAssessment assessDeparture({
     final values = <WxVar, double?>{};
     final times = <WxVar, DateTime>{};
     for (final v in instantOnly ? [WxVar.temperature] : departureRequiredVars) {
-      // Open-Meteo 的降水量和最大阵风标在“上一小时结束”的时刻。
-      // 将 09:00 原始记录用于 08:00–09:00，而气温仍取 08:00 瞬时值。
-      final precedingHour =
-          bundle.result.providerId.startsWith('open-meteo:') &&
-          (v == WxVar.precip || v == WxVar.windGust);
-      final time = precedingHour ? hour.add(const Duration(hours: 1)) : hour;
-      times[v] = time;
-      final raw = point?.hourAt(time)?.values[v];
+      final wx = point?.hourAt(hour);
+      times[v] = wx?.sourceTimesUtc[v] ?? hour;
+      final raw = wx?.values[v];
       final value =
           raw != null && raw.isFinite && (v == WxVar.temperature || raw >= 0)
           ? raw

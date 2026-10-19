@@ -12,7 +12,6 @@ import '../../core/units.dart';
 import '../../data/app_providers.dart';
 import '../../data/geocode.dart';
 import '../../data/location/location_service.dart';
-import '../../data/routes/planet_trails_repository.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/favorites_repository.dart';
 import '../../data/map/tianditu.dart';
@@ -196,12 +195,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
 
   List<HikingRoute> _allKnownRoutes() {
     final byId = <String, HikingRoute>{};
-    final planetTrails = ref.read(planetTrailsProvider).value ?? const [];
-    for (final route in [
-      ...ref.read(localRoutesProvider),
-      ..._osmRoutes,
-      ...planetTrails,
-    ]) {
+    for (final route in [...ref.read(localRoutesProvider), ..._osmRoutes]) {
       byId[route.id] = route;
     }
     return byId.values.toList();
@@ -751,7 +745,7 @@ class _MapHomeScreenState extends ConsumerState<MapHomeScreen> {
                           color: r.id == selectedId
                               ? Semantic.route
                               : (r.isDemo
-                                    ? Semantic.planetRoute
+                                    ? Semantic.demoRoute
                                     : Semantic.osmRoute),
                           borderStrokeWidth: r.id == selectedId ? 2 : 0,
                           borderColor: Colors.white,

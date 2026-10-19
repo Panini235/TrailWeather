@@ -1,0 +1,7 @@
+{
+  "cold": true,
+  "action": "VIEW",
+  "uri_scheme": "content",
+  "no_router_error": false,
+  "import_confirmation": false
+}

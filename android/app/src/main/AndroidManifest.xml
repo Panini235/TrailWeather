@@ -21,6 +21,8 @@
               android:name="io.flutter.embedding.android.NormalThemeMeta"
               android:resource="@style/NormalTheme"
               />
+            <!-- 文件 URI 只交给 incoming_file 通道，不作为 Flutter 页面路由。 -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

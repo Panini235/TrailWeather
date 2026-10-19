@@ -390,12 +390,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     final arrivalHour = arrival.toLocal().hour.toString().padLeft(2, '0');
-    expect(find.textContaining('$arrivalHour时'), findsOneWidget);
+    expect(find.textContaining('$arrivalHour时'), findsNothing);
     // 点最右侧一列
     final box = tester.getRect(find.byType(CustomPaint).last);
     await tester.tapAt(Offset(box.right - 4, box.center.dy));
     await tester.pump();
     expect(find.textContaining('$arrivalHour时'), findsNothing);
+    expect(find.textContaining('查看 '), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

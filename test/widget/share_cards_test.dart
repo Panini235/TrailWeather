@@ -75,15 +75,16 @@ List<NodeWxRow> _rows() => [
         lon: 117,
         provenance: _prov(),
         hours: [
-          WxHourValue(
-            validFromUtc: _t,
-            values: {
-              WxVar.temperature: 10.0,
-              WxVar.precip: i == 4 ? 4.2 : 0.0,
-              WxVar.windGust: i == 7 ? 19.0 : 5.0,
-            },
-            symbols: {'wmo_code': i == 4 ? '81' : '3'},
-          ),
+          for (final t in [_t, _t.add(const Duration(hours: 1))])
+            WxHourValue(
+              validFromUtc: t,
+              values: {
+                WxVar.temperature: 10.0,
+                WxVar.precip: i == 4 ? 4.2 : 0.0,
+                WxVar.windGust: i == 7 ? 19.0 : 5.0,
+              },
+              symbols: {'wmo_code': i == 4 ? '81' : '3'},
+            ),
         ],
       ),
       sharedWithPrev: false,
