@@ -32,5 +32,18 @@
     "pubspec.lock"
   ],
   "scope": "current source tree and subsequent builds; no public history rewrite, old tag/release removal, real user data cleanup or new store release",
-  "ci": "pending"
+  "ci": {
+    "id": 39180822420,
+    "url": "https://github.com/Panini235/TrailWeather/actions/runs/39180822420",
+    "head": "8986b54d9d7964f2fbac259ed06e30f85bff4666",
+    "conclusion": "success",
+    "verified": [
+      "analyze",
+      "tests",
+      "Web release",
+      "Android release APK",
+      "APK signing verification",
+      "APK artifact upload"
+    ]
+  }
 }

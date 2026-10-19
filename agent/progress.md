@@ -728,4 +728,6 @@ CI 增加默认关闭的真机测试包选项，构建 .qa 与正式版/.dev 并
 
 用户决定直接移除。已删除 44 条第三方线路数据、解析器、目录页、入口、编译开关与相关测试。旧 /planet 回首页；保留旧来源枚举与海拔估算提示，避免历史收藏/离线包无法读取。更新许可、来源、产品和架构文档；历史实现与审计证据保留。高德继续使用，未改图源、未添加项目许可证，未删除公共 Git 历史/旧发布附件。
 
-本地验证：flutter analyze --no-pub 0 issues；flutter test --no-pub --reporter expanded 448/448 通过。新增旧 /planet 回首页、历史目录收藏与普通导入混存不清空且来源不变的回归。扫描确认数据、加载器、页面和编译开关已删除；高德图源与缓存、pubspec/lock、导入/手绘/OSM 与演示 GPX 无改动。证据 docs/verification/planet-removal-2026-10-19/summary.json。待一次 CI Web/APK 验证。
+本地验证：flutter analyze --no-pub 0 issues；flutter test --no-pub --reporter expanded 448/448 通过。新增旧 /planet 回首页、历史目录收藏与普通导入混存不清空且来源不变的回归。扫描确认数据、加载器、页面和编译开关已删除；高德图源与缓存、pubspec/lock、导入/手绘/OSM 与演示 GPX 无改动。证据 docs/verification/planet-removal-2026-10-19/summary.json。
+
+CI 验证完成：业务提交 8986b54，唯一一次运行 39180822420 全绿（静态检查、全量测试、Web Release、Android Release APK、签名核验与 APK 产物上传），8 分 43 秒。已推送 codex/weather-time-and-import；T-196 完成。未合并 main、未发布新 Release、未重写历史或删除旧附件；B-011 历史分发问题与 B-012 保留。审查报告与研究笔记仍在原有未跟踪目录，本轮仅提交移除改动及验证记录。

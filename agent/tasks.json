@@ -1117,10 +1117,10 @@
    "p": "P0",
    "title": "按用户决定移除徒步星球目录与第三方线路数据",
    "deps": [],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "当前工作树删除第三方数据、加载器、目录页、入口与编译开关；旧 /planet 回首页；历史收藏/离线来源保持兼容；导入、手绘、OSM 与高德不变。",
    "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions CI（Web/APK）；工作树扫描",
-   "result": "本地 analyze 0 issues、448/448 tests 通过；扫描确认数据、加载器、页面与编译开关均已删除；旧链接与混合历史收藏回归通过。待一次 CI Web/APK 验证；保留历史序列化兼容，未改高德或依赖。"
+   "result": "提交 8986b54；本地 analyze 0 issues、448/448 tests 通过；扫描确认数据、加载器、页面与编译开关已删除。CI 39180822420 成功（静态检查、全量测试、Web/APK 构建与 APK 上传）；旧链接/混合历史收藏回归通过。保留历史序列化兼容，未改高德或依赖。已推送 codex/weather-time-and-import，未合并 main、未发布新 Release，B-011 历史材料仍待处置。证据 docs/verification/planet-removal-2026-10-19/。"
   }
  ]
 }
