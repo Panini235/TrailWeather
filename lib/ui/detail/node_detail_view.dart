@@ -155,13 +155,16 @@ class _NodeDetailViewState extends State<NodeDetailView> {
           ),
         ],
         const SizedBox(height: 10),
-        AltitudeWeatherCard(
-          key: ValueKey('alt-$_idx-${row.validUtc}'),
-          point: node.pos,
-          atUtc: row.validUtc,
-          nodeElevationM: node.elevationM,
-          routeMinM: _routeMinMax().$1,
-          routeMaxM: _routeMinMax().$2,
+        _fold(
+          S.altitudeExploreTitle,
+          AltitudeWeatherCard(
+            key: ValueKey('alt-$_idx-${row.validUtc}'),
+            point: node.pos,
+            atUtc: row.validUtc,
+            nodeElevationM: node.elevationM,
+            routeMinM: _routeMinMax().$1,
+            routeMaxM: _routeMinMax().$2,
+          ),
         ),
         const SizedBox(height: 4),
         if (wx != null)
@@ -170,6 +173,7 @@ class _NodeDetailViewState extends State<NodeDetailView> {
             WxVarGrid(
               wx: wx,
               settings: widget.settings,
+              showHourNotice: false,
               exclude: const {
                 WxVar.temperature,
                 WxVar.apparentTemp,

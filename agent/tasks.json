@@ -1121,6 +1121,16 @@
    "acceptance": "当前工作树删除第三方数据、加载器、目录页、入口与编译开关；旧 /planet 回首页；历史收藏/离线来源保持兼容；导入、手绘、OSM 与高德不变。",
    "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions CI（Web/APK）；工作树扫描",
    "result": "提交 8986b54；本地 analyze 0 issues、448/448 tests 通过；扫描确认数据、加载器、页面与编译开关已删除。CI 39180822420 成功（静态检查、全量测试、Web/APK 构建与 APK 上传）；旧链接/混合历史收藏回归通过。保留历史序列化兼容，未改高德或依赖。已推送 codex/weather-time-and-import，未合并 main、未发布新 Release，B-011 历史材料仍待处置。证据 docs/verification/planet-removal-2026-10-19/。"
+  },
+  {
+   "id": "T-197",
+   "p": "P1",
+   "title": "天气详情减负：说明去重与次要内容按需展开",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "默认隐藏重复小时读数；穿衣与海拔估算收起；时段解释按需查看；缺失、过期、三小时概率和未确认区间仍明确显示。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK",
+   "result": "2026-10-19：本地 analyze 0 issues，451/451 tests；含390px与1.6倍字号时段说明、图表点选/拖动/关闭、穿衣偏好回归。CI 待验证，未做真机视觉验收。"
   }
  ]
 }

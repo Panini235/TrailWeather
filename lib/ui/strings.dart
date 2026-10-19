@@ -14,6 +14,12 @@ abstract final class S {
   static String wxUnknownIntervalNote(String labels) =>
       '$labels：来源标注小时的值，区间起止未确认，未作时间偏移。';
   static String wxOriginalTimes(String times) => '来源原始时次（UTC）：\n$times';
+  static const wxTimeDetails = '时段说明';
+  static String wxIntervalShort(String labels, String start, String end) =>
+      '$labels：$start–$end';
+  static String wxThreeHourShort(String labels, String start, String end) =>
+      '$labels：前三小时 $start–$end';
+  static String wxUnknownIntervalShort(String labels) => '$labels：区间起止未确认';
 
   static const appTitle = '山晴';
 
@@ -136,6 +142,7 @@ abstract final class S {
   static const save = '保存';
   static const onDemandQuery = '查询此点（消耗 1 次额度）';
   static const altitudeCardTitle = '同一地点不同海拔';
+  static const altitudeExploreTitle = '海拔影响（模型估算）';
   static const altitudeCardNote = 'Open-Meteo 按海拔统计降尺度的模型估算，非实测；▶ 为当前节点/地面海拔。';
   static const airQualityTitle = '空气质量（雾霾）';
   static const phenomenonLabel = '天气现象';
@@ -143,7 +150,7 @@ abstract final class S {
   static const shareImage = '分享图片';
   static const shareNeedsData = '天气数据加载完成后才能分享';
   static const probVsAmountNote = '概率与降水量来自不同模型，可能不一致';
-  static const noHintsTriggered = '当前数据未触发任何阈值提示（这不代表安全）。';
+  static const noHintsTriggered = '已覆盖数据未触发提示阈值，不代表安全。';
   static const dataNotesTitle = '数据说明与来源';
   static const dataNotesSubtitle = '颗粒度、模型、官方预警与线路来源';
   static const chooseSource = '选择天气来源';
@@ -396,7 +403,9 @@ abstract final class S {
   static const feedbackOpenFailed = '无法打开浏览器，链接已复制到剪贴板';
 
   // 穿衣建议（洋葱法）
-  static const layeringTitle = '穿衣 · 洋葱法';
+  static const layeringTitle = '穿衣建议';
+  static String layeringSummary(List<String> items) => items.join(' · ');
+  static const layeringIncomplete = '部分条件未评估，查看依据';
   static const layeringNoData = '穿衣建议：此来源在选定时间没有气温，无法估计。';
   static const layeringBasis = '依据';
   static const layeringPacked = '背包';
@@ -991,7 +1000,7 @@ abstract final class S {
   }) => '$head：沿途降水最多约 $amount，主要在 $from–$to 时$prob$partial';
   static String detailChipTrip(String t) => '出发 $t';
   static String detailChipFixed(String t) => '固定 $t';
-  static String detailModeFixed(String hhmm) => '全线同一时刻 $hhmm，不是按出发时间推算';
+  static String detailModeFixed(String hhmm) => '全线同一时刻 $hhmm · 非预计到达';
   static String detailModeTrip(String start, String end) =>
       '$start 出发 → 约 $end 到达（配速估算）';
   static const detailSwitchToTrip = '按出发时间看';
@@ -1056,6 +1065,8 @@ abstract final class S {
       '${tempLo == null ? '气温未提供' : '气温 $tempLo 到 $tempHi 度'}，'
       '${precipMm == null ? '降水未提供' : '降水合计约 $precipMm 毫米'}';
   static String meteogramHour(String hh) => '$hh时';
+  static String meteogramViewing(int month, int day, String hh) =>
+      '查看 $month/$day $hh时';
   static String meteogramTempFeels(String temp, String feels) =>
       '$temp / 体感 $feels';
   static const meteogramCloud = '云';
