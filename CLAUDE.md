@@ -43,11 +43,11 @@ flutter run -d chrome                             # run Web locally
 lib/core/        geo (haversine, RDP simplify), units, gcj02, WxHttp (dio + 429/5xx backoff), CacheStore (TTL/LRU/namespaces over shared_preferences)
 lib/data/        business layer; app_providers.dart is the Riverpod wiring hub
   weather/       WeatherProvider adapters → WeatherRepository → ETA / risk rules
-  routes/        HikingRoute model, RouteFileImport (GPX/KML/KMZ/GeoJSON), incoming files, Overpass discovery, planet trails, exporter
+  routes/        HikingRoute model, RouteFileImport (GPX/KML/KMZ/GeoJSON), incoming files, Overpass discovery, exporter
   settings/      AppSettings + favorites (Notifier + shared_preferences)
   terrain/       DEM tiles (AWS Terrain Tiles), contours/hillshade compute, 3D preview grid/camera
   monetization/  subscription models/repository (paywall, pro benefits)
-lib/ui/          screens (trips home, map, route detail, settings, import, planet, planner, onboarding, paywall); router.dart (shell); strings.dart
+lib/ui/          screens (trips home, map, route detail, settings, import, planner, onboarding, paywall); router.dart (shell); strings.dart
 ```
 
 - **Riverpod wiring:** `lib/data/app_providers.dart` defines the service/provider graph. `prefsProvider` must be overridden with a real `SharedPreferences` instance (`main.dart` does this; tests override it the same way). Override these providers in tests instead of hitting the network.

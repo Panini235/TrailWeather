@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-19",
+  "baseline": "0faac78f066008ede6655e52a5f9b740a41daa3d",
+  "removed_files": [
+    "assets/planet/planet_trails.json",
+    "lib/core/features.dart",
+    "lib/data/routes/planet_trails_repository.dart",
+    "lib/ui/planet/planet_screen.dart",
+    "test/unit/planet_trails_test.dart",
+    "test/widget/planet_screen_test.dart"
+  ],
+  "checks": {
+    "flutter analyze --no-pub": "No issues found! (ran in 3.1s)",
+    "flutter test --no-pub --reporter expanded": {
+      "passed": 448,
+      "failed": 0
+    },
+    "working_tree_scan": "no dataset, catalogue loader, catalogue page or feature flag remains"
+  },
+  "regressions": [
+    "old /planet URL redirects to /",
+    "mixed legacy catalogue + imported favorites load without source changes or preference writes"
+  ],
+  "compatibility": "RouteOrigin.planet is retained solely for stored favorites/offline packages; original provenance and estimated elevation notice remain",
+  "unchanged": [
+    "AMap source and tile cache",
+    "route imports",
+    "planned routes",
+    "OSM discovery",
+    "demo GPX assets",
+    "pubspec.yaml",
+    "pubspec.lock"
+  ],
+  "scope": "current source tree and subsequent builds; no public history rewrite, old tag/release removal, real user data cleanup or new store release",
+  "ci": "pending"
+}

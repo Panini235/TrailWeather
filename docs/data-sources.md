@@ -320,9 +320,11 @@ vec/img/ter/cva/cia/cta 六个图层实测（原始记录：claude/zealous-cori-
 
 见 `docs/licenses.md`（由 pub 依赖树人工整理，发布前用 `flutter pub deps` 复核）。
 
-## 内置徒步星球目录（2026-10-15复核）
+## 已移除的徒步星球目录（2026-10-19）
 
-上游 SpaceZephyr/trail-planet 公开仓库未提供许可证，GitHub license=null、license接口404，README没有授权声明。代码原MIT标注已纠正。正式分发前须取得作者及上游数据所需权利，或移除/替换该数据；当前仍是发布阻塞。
+上游 SpaceZephyr/trail-planet 未提供许可证。按用户决定，已从当前工作树删除 44 条线路数据、解析加载器、目录页面、入口与编译开关，后续构建不再包含该目录。
+保留 `RouteOrigin.planet` 仅用于读取历史收藏和离线包，保留原始来源字段与海拔估算说明，不将这些旧记录改标为自有/导入数据。
+旧 `/planet` 链接返回首页。公共 Git 历史与既有发布附件未删除，历史记录中的授权风险仍需另行盘点（B-011）。
 
 ## 展示小时与来源区间
 

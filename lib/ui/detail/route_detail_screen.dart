@@ -853,7 +853,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       if (rows.any((r) => r.node.nearbyWaypoints.isNotEmpty)) S.nearbyMarksNote,
       if (!route.analysisPath.coversAllSegments) S.multiSegmentNote,
       if (_reversed) S.reversedNote,
-      if (route.origin == RouteOrigin.planet) S.planetElevationNote,
+      if (route.origin == RouteOrigin.planet) S.legacyCatalogueElevationNote,
       if (tripMode &&
           etas.length > 1 &&
           etas.last.difference(etas.first) > const Duration(hours: 12))

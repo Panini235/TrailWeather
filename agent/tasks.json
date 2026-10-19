@@ -332,7 +332,7 @@
    "status": "done",
    "acceptance": "落盘并解析 44 条全球经典神线、高程线性插值、8 大地貌分类与里程区间筛选、随机漫游",
    "verify": "flutter test test/unit/planet_trails_test.dart test/widget/planet_screen_test.dart",
-   "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）"
+   "result": "完成；本地测试通过 + CI 38537198873 全绿（Web+APK）；2026-10-19 用户决定移除，当前目录、数据与功能删除见 T-196，历史实现记录保留。"
   },
   {
    "id": "T-082",
@@ -623,7 +623,7 @@
    "status": "blocked",
    "acceptance": "取得本项目所需地图接入/商业/离线许可；取得徒步星球作者及上游数据复制/分发权利，或移除/替换对应数据；更新许可清单。",
    "verify": "作者/服务商可留档授权、官方SDK/API与实际配置核对。",
-   "result": "B-011/B-012；上游公开仓库license=null，已在a699aca纠正虚假MIT声明；标签纠正没有解除分发阻塞。详见iOS优先商业化报告。"
+   "result": "B-011/B-012；上游公开仓库license=null，已在a699aca纠正虚假MIT声明；标签纠正没有解除分发阻塞。详见iOS优先商业化报告。 2026-10-19：按用户决定移除徒步星球目录与源码数据（T-196）；高德继续保留，B-012 仍待核验；历史 Git/旧发布材料的 B-011 未因工作树删除而关闭。"
   },
   {
    "id": "T-152",
@@ -1111,6 +1111,16 @@
    "acceptance": "决定并实现其一：请求覆盖本地整天（如 Open-Meteo past_days=1 或 start_hour/end_hour），或离线包起点改为不早于当前小时；“覆盖不全”只在来源确实缺数时出现，并补单元测试（UTC+8 固定时刻 24h 包）。",
    "verify": "flutter test test/unit/offline_trip_test.dart；真机下载 24h 固定时刻包检查覆盖提示",
    "result": "2026-10-18 T-143 真机发现：香山/西湖固定时刻 24h、48h 包均缺 56 个节点小时（7 节点 × 北京时间 00:00–07:59），ecmwf_ifs025 包同样缺 8 小时 × 5 节点。原因：_utcWindow 固定模式从本地日 00:00 起，open_meteo_provider 以 timezone=UTC + forecast_days 请求，响应从 UTC 当天 00:00（北京 08:00）开始。缺口如实显示为“此来源未提供”，不违反真实性，但让“覆盖不全”常亮、削弱提示意义；已过去的小时是否需要保留由产品决定。"
+  },
+  {
+   "id": "T-196",
+   "p": "P0",
+   "title": "按用户决定移除徒步星球目录与第三方线路数据",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "当前工作树删除第三方数据、加载器、目录页、入口与编译开关；旧 /planet 回首页；历史收藏/离线来源保持兼容；导入、手绘、OSM 与高德不变。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions CI（Web/APK）；工作树扫描",
+   "result": "本地 analyze 0 issues、448/448 tests 通过；扫描确认数据、加载器、页面与编译开关均已删除；旧链接与混合历史收藏回归通过。待一次 CI Web/APK 验证；保留历史序列化兼容，未改高德或依赖。"
   }
  ]
 }

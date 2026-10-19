@@ -452,3 +452,10 @@ T-158：`hours` 永久保留原始时间；`hourAt`/`displayHours` 组合瞬时�
 T-194：文件 VIEW/SEND 由 MainActivity + incoming_file 通道消费，关闭 Flutter 默认深链，避免 URI 同时进入 GoRouter。通过实际 Android intent 回归，不用仅检查 manifest 字面内容的测试冒充设备验证。
 
 CI 增加手动可选 device_test 输入（默认关闭）：同一次全量 CI 附产 `.qa` profile 包，使用 CI debug 证书和仅开发模式生效的反向代理；独立包名避免覆盖本机 .dev 与正式版。构建仍在 GitHub Actions 完成，不新增依赖。
+
+## D-045 移除徒步星球目录与源码数据（2026-10-19）
+
+- 用户决定：不补充两步路轨迹，直接去掉徒步星球；高德继续保留。
+- 删除 44 条目录数据、仓库加载器、页面、入口及 SHANQING_PLANET_TRAILS 编译开关。历史记录仅作审计证据，不代表功能可重新开启。
+- 旧 /planet 链接回首页；RouteOrigin.planet 仅作旧收藏和离线包序列化兼容，展示为历史线路；保留原始 sourceName/sourceLicense 与海拔估算说明，避免读取一条旧记录导致整份收藏不可读。
+- 导入、手绘、自制演示与 OSM 线路保留，高德配置不变。公共 Git 历史与旧发布附件另行处理，B-011 只部分解决；未添加项目许可证（此前仅推荐 Apache-2.0）。

@@ -44,8 +44,8 @@ abstract final class Semantic {
   /// 地图上的线路。白底 6.1:1，与绿色起点、红色终点区分。
   static const route = Color(0xFF2F62A8);
 
-  /// 地图上的其他线路：徒步星球、OSM 区域线路（半透明叠加）。
-  static const planetRoute = Color(0xCC3F7D4E);
+  /// 地图上的其他线路：自制演示线路、OSM 区域线路（半透明叠加）。
+  static const demoRoute = Color(0xCC3F7D4E);
   static const osmRoute = Color(0xCC7B4FA0);
 
   /// 黄色阈值的容器底色（浅 / 深），配 [SemanticInk.caution]。

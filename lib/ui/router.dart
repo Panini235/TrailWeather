@@ -8,7 +8,6 @@ import 'import/incoming_file_listener.dart';
 import 'map/map_home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 import 'offline/offline_screens.dart';
-import 'planet/planet_screen.dart';
 import 'planner/route_planner_screen.dart';
 import 'privacy/privacy_screen.dart';
 import 'settings/settings_screen.dart';
@@ -81,10 +80,8 @@ GoRouter buildRouter() => GoRouter(
           OfflineTripScreen(id: state.pathParameters['id']!),
     ),
     GoRoute(path: '/import', builder: (context, state) => const ImportScreen()),
-    GoRoute(
-      path: '/planet',
-      builder: (context, state) => const PlanetTrailsScreen(),
-    ),
+    // 已移除的线路目录：旧链接回首页，不再加载第三方数据。
+    GoRoute(path: '/planet', redirect: (context, state) => '/'),
     GoRoute(
       path: '/planner',
       builder: (context, state) => const RoutePlannerScreen(),

@@ -60,8 +60,6 @@ abstract final class S {
       '从两步路、六只脚、奥维等导出 GPX / KML / KMZ，导入后按出发时间查看沿途天气。';
   static const openWithHint = '也可以在两步路、奥维、微信或文件管理器里打开轨迹文件时，选择“山晴”直接导入。';
   static const exampleRoutes = '示例线路';
-  static const planetEntry = '徒步星球 · 全球经典线路';
-  static const planetEntryHint = '44 条经典线路，可直接体验沿途天气';
   static const saveToTrips = '保存到我的行程';
   static const importPrivacyNote =
       '线路将保存在本机（不上传）。注意：线路数据可能包含住宅、常去出发点等敏感位置，分享前请自行判断。';
@@ -127,7 +125,8 @@ abstract final class S {
   static const cachedAt = '缓存于';
   static const fetchedAt = '数据获取于';
   static const noElevation = '此线路无海拔数据，未显示海拔剖面，配速未计入爬升影响';
-  static const planetElevationNote = '经典线路的海拔由路线剖面按距离线性插值得到，为估算值；高点位置与爬升量仅供参考。';
+  static const legacyCatalogueElevationNote =
+      '历史目录线路的海拔由路线剖面按距离线性插值得到，为估算值；高点位置与爬升量仅供参考。';
   static const longTripNote =
       '按当前配速估算全程超过 12 小时：行程模式按连续行走推算，未计入夜间宿营。'
       '多日线路的后段到达时间与对应天气仅供参考，请按每日行程分段查看。';
@@ -582,15 +581,6 @@ abstract final class S {
       '出发前可在线下载线路与预报，再从首页打开离线行程包。离线底图尚未提供，请另备地图。';
   static const onboardingImportMine = '导入我的线路';
   static const onboardingTryExamples = '先看示例线路';
-  // 徒步星球
-  static const planetTitle = '徒步星球 · 全球经典';
-  static const planetRandomTooltip = '随机漫游传送';
-  static String planetRandomTeleported(String name, String region) =>
-      '已随机传送到：$name（$region）';
-  static const planetAllDistances = '全部里程';
-  static String planetLoadFailed(String error) => '加载经典路线失败：$error';
-  static const planetEmptyCategory = '当前分类下暂无经典路线';
-  static String planetAscent(String ascent) => '爬升 $ascent';
   // 行程首页
   static String tripsDeleteTitle(String name) => '删除“$name”？';
   static const tripsOfflineTitle = '离线行程包';
@@ -615,8 +605,6 @@ abstract final class S {
   // 地图页：混合搜索
   static const mapSearchRoutesSubtitle = '有完整几何，可直接进入沿途天气分析';
   static const mapSearchPlacesSubtitle = '先定位到区域，再查附近 OSM 线路';
-  static const mapSearchPlanetTitle = '徒步星球 · 全球经典路线';
-  static const mapSearchPlanetSubtitle = '44+ 条雪山/冰川/森林/峡谷世界顶级徒步线路';
   static const mapSearchPlannerTitle = '线路规划工坊 (Trail Studio)';
   static const mapSearchPlannerSubtitle = '在地图上手绘规划、标记营地水源、即时推演天气与耗时';
   // 地图页：自定义图源

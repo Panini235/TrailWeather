@@ -6,7 +6,6 @@ import '../../data/routes/route_models.dart';
 import '../strings.dart';
 import '../widgets/common.dart';
 import '../../core/coord_parse.dart';
-import '../../core/features.dart';
 
 class HybridRouteSearchResults extends StatelessWidget {
   const HybridRouteSearchResults({
@@ -132,15 +131,6 @@ class HybridRouteSearchResults extends StatelessWidget {
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Text(S.noDirectRoutes, style: TextStyle(fontSize: 12)),
-                ),
-              if (kPlanetTrailsEnabled)
-                ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.public, size: 20),
-                  title: const Text(S.mapSearchPlanetTitle),
-                  subtitle: const Text(S.mapSearchPlanetSubtitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/planet'),
                 ),
               ListTile(
                 dense: true,
