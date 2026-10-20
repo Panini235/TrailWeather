@@ -405,6 +405,13 @@ abstract final class S {
   // 穿衣建议（洋葱法）
   static const layeringTitle = '穿衣建议';
   static String layeringSummary(List<String> items) => items.join(' · ');
+  static String layeringWearForScene(String scene, List<String> items) =>
+      '$scene穿：${layeringSummary(items)}';
+  static String layeringCarry(List<String> items) =>
+      '随身带：${items.isEmpty ? '未列出额外备装' : layeringSummary(items)}';
+  static const layeringDetails = '调整与详情';
+  static String layeringPreference(String preference) => '按$preference偏好';
+  static const nodeWeatherTools = '更多天气与工具';
   static const layeringIncomplete = '部分条件未评估，查看依据';
   static const layeringNoData = '穿衣建议：此来源在选定时间没有气温，无法估计。';
   static const layeringBasis = '依据';

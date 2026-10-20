@@ -91,7 +91,7 @@ CI 有这些 Secrets 时用正式签名构建 APK，没有时退回 debug 签名
 
 ### iOS
 
-“iOS Build (manual)”工作流做无签名 release 构建，并打包成未签名 IPA（产物 `ios-unsigned-ipa`），
+`CI` 工作流在 Android/Web 作业通过后做 iOS 无签名 release 构建，并打包成未签名 IPA（产物 `ios-unsigned-ipa`），
 供测试者用自己的 Apple ID 自签安装（步骤见 [使用文档](user-guide.md#ios自签安装)）。
 正式分发需要 Apple 开发者账号与签名证书，尚未配置。
 
@@ -103,9 +103,11 @@ CI 有这些 Secrets 时用正式签名构建 APK，没有时退回 debug 签名
 ## CI（`.github/workflows/`）
 
 - `ci.yml`：push 到 `main`、pull request 与手动触发时运行；只改 `**.md`、`docs/**`、`agent/**` 时跳过。
-  步骤：flutter create → analyze → test → web release → APK release → 上传产物。
+  Linux 作业：flutter create → analyze → test → web release → APK release → 上传产物。
+  随后同一次运行的 macOS 作业生成 iOS 平台目录，按锁文件安装依赖、构建无签名 IPA 并上传 `ios-unsigned-ipa`。
+  Linux 作业失败时不消耗 iOS 构建分钟；两端仍共用同一提交与整次运行的取消规则。
   同一 ref 的新运行会取消旧运行。推到功能分支只有在开了 PR 时才会触发。
-- `ios-build.yml`（iOS 构建）与 `live-smoke.yml`（真实网络 smoke，消耗外部 API 配额）只手动触发。
+- iOS 已并入 `ci.yml`；`live-smoke.yml`（真实网络 smoke，消耗外部 API 配额）仍只手动触发。
 - 查看运行：`gh run list --limit 3`、`gh run watch`、`gh run view <id> --log-failed`。
 
 ## 配置

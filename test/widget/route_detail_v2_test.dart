@@ -11,8 +11,11 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/favorites_repository.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
+import 'package:trailweather/ui/detail/environment_cards.dart';
+import 'package:trailweather/ui/detail/node_detail_sheet.dart';
 import 'package:trailweather/ui/map/map_layers_ui.dart';
 import 'package:trailweather/ui/strings.dart';
+import 'package:trailweather/ui/theme.dart';
 
 import '../integration/core_flow_test.dart' show IntegrationFakeProvider;
 
@@ -34,10 +37,13 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   bool missingTemperature = false,
   double width = 900,
+  double height = 2400,
+  double textScale = 1,
+  bool dark = false,
   Map<String, Object> initialPrefs = const {},
   HikingRoute? route,
 }) async {
-  tester.view.physicalSize = Size(width, 2400);
+  tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   SharedPreferences.setMockInitialValues(initialPrefs);
@@ -53,6 +59,12 @@ Future<ProviderContainer> _pump(
         ]),
       ],
       child: MaterialApp(
+        theme: dark ? AppTheme.dark() : AppTheme.light(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         home: RouteDetailScreen(
           args: RouteDetailArgs(route: route ?? _route()),
         ),
@@ -96,7 +108,11 @@ class _MissingTemperatureProvider extends IntegrationFakeProvider {
             for (final h in p.hours)
               WxHourValue(
                 validFromUtc: h.validFromUtc,
-                values: {...h.values, WxVar.temperature: null},
+                values: {
+                  ...h.values,
+                  WxVar.temperature: null,
+                  WxVar.apparentTemp: null,
+                },
               ),
           ],
         ),
@@ -105,9 +121,25 @@ class _MissingTemperatureProvider extends IntegrationFakeProvider {
 }
 
 void main() {
+  testWidgets('手机默认直接看见穿什么和带什么，无需先展开穿衣卡', (tester) async {
+    await _pump(tester, width: 390, height: 844);
+    final worn = find.textContaining('出发穿：');
+    final packed = find.textContaining('随身带：');
+    expect(worn, findsOneWidget);
+    expect(packed, findsOneWidget);
+    expect(worn.hitTestable(), findsOneWidget);
+    expect(packed.hitTestable(), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text(S.layeringTitle)).dy,
+      lessThan(tester.getTopLeft(find.text(S.weatherAlongRoute)).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('移动端天气摘要先于地图；缺气温不显示成零度', (tester) async {
     await _pump(tester, missingTemperature: true, width: 390);
     expect(find.text('${S.notProvided} / ${S.notProvided}'), findsOneWidget);
+    expect(find.text(S.layeringNoData), findsOneWidget);
     expect(
       tester.getTopLeft(find.text(S.routeSummary)).dy,
       lessThan(tester.getTopLeft(find.byType(FlutterMap).first).dy),
@@ -148,14 +180,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(S.markAs), findsOneWidget);
     expect(find.text(S.meteogramTitle), findsOneWidget);
+    expect(find.text(S.altitudeExploreTitle), findsNothing);
+    expect(find.text(S.multiSourceCompare), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text(S.nodeWeatherTools),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text(S.nodeWeatherTools));
+    await tester.pumpAndSettle();
     expect(find.text(S.multiSourceCompare), findsOneWidget);
+    expect(find.byType(AirQualityCard), findsNothing);
+    expect(find.byType(AltitudeWeatherCard), findsNothing);
+    expect(find.byType(NodeComparePanel), findsNothing);
   });
 
   testWidgets('穿衣卡片：切换场景、怕冷偏好会加厚保暖层并保存', (tester) async {
     final container = await _pump(tester);
     expect(find.text(S.layeringTitle), findsOneWidget);
     expect(find.text(S.layeringColdy), findsNothing);
-    await tester.tap(find.text(S.layeringTitle));
+    expect(find.textContaining('出发穿：长袖速干'), findsOneWidget);
+    expect(find.textContaining('随身带：薄抓绒'), findsOneWidget);
+    expect(find.text(S.layeringIncomplete), findsOneWidget);
+    await tester.tap(find.text(S.layeringDetails));
     await tester.pumpAndSettle();
     // 保暖层那一行是否带“背包”标记（防护层随假数据的时刻变化，不参与断言）。
     Finder midPacked(String name) => find.descendant(
@@ -170,16 +217,34 @@ void main() {
     await tester.pumpAndSettle();
     // 停留时保暖层穿上
     expect(midPacked('薄抓绒'), findsNothing);
+    expect(find.textContaining('停留穿：长袖速干 · 薄抓绒'), findsOneWidget);
 
     await tester.tap(find.text(S.layeringColdy));
     await tester.pumpAndSettle();
     expect(container.read(settingsProvider).coldSensitivity, -1);
+    expect(find.text(S.layeringPreference(S.layeringColdy)), findsOneWidget);
     expect(find.text('抓绒衣'), findsOneWidget);
 
     await tester.tap(find.text(S.layeringBasis));
     await tester.pumpAndSettle();
     expect(find.textContaining('经验建议'), findsOneWidget);
   });
+
+  for (final dark in [false, true]) {
+    testWidgets('390px 大字号穿衣摘要和调整可用（dark=$dark）', (tester) async {
+      await _pump(tester, width: 390, height: 844, textScale: 1.6, dark: dark);
+      await tester.ensureVisible(find.text(S.layeringDetails));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(S.layeringDetails));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(S.layeringColdy));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(S.layeringColdy));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('随身带：抓绒衣'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('把节点标为营地：保存到我的行程并出现在时间线', (tester) async {
     final container = await _pump(tester);

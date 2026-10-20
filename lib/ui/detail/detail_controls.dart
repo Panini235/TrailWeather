@@ -278,16 +278,23 @@ class _ControlBar extends ConsumerWidget {
     final current = providers
         .where((p) => p.caps.providerId == providerId)
         .firstOrNull;
-    // 一行排下：时间按内容宽度，来源占剩余宽度并省略过长名称（大字号手机上不再折成两行）。
+    // 两个控件都受可用宽度约束；大字号时省略标签，完整时间保留在提示中。
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Space.xs),
       child: Row(
         children: [
-          ActionChip(
-            avatar: const Icon(Icons.schedule, size: 16),
-            label: Text('$timeLabel ${timeOpen ? '▴' : '▾'}'),
-            tooltip: S.detailTimeAndPace,
-            onPressed: onToggleTime,
+          Flexible(
+            flex: 2,
+            child: ActionChip(
+              avatar: const Icon(Icons.schedule, size: 16),
+              label: Text(
+                '$timeLabel ${timeOpen ? '▴' : '▾'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              tooltip: '$timeLabel · ${S.detailTimeAndPace}',
+              onPressed: onToggleTime,
+            ),
           ),
           const SizedBox(width: Space.sm),
           Flexible(

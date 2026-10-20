@@ -1128,9 +1128,19 @@
    "title": "天气详情减负：说明去重与次要内容按需展开",
    "deps": [],
    "status": "in_progress",
-   "acceptance": "默认隐藏重复小时读数；穿衣与海拔估算收起；时段解释按需查看；缺失、过期、三小时概率和未确认区间仍明确显示。",
-   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK",
-   "result": "2026-10-19：本地 analyze 0 issues，451/451 tests；含390px与1.6倍字号时段说明、图表点选/拖动/关闭、穿衣偏好回归。CI 待验证，未做真机视觉验收。"
+   "acceptance": "天气摘要后默认显示穿什么/带什么（含配件），场景与偏好按需展开；节点次要信息从单一工具入口进入且保持懒加载；390px/1.6倍字号深浅色无溢出；缺失、过期、三小时概率和未确认区间仍明确显示。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；手机尺寸组件截图；Gemini/DeepSeek/GLM 独立评审投票；统一 GitHub Actions Web/APK/iOS",
+   "result": "2026-10-20：已复现默认态找不到穿/带建议；修复默认摘要、页面排序和节点工具入口。三个用户指定 CLI 基于公开源码独立投票 A=3/B=0/C=0。详情组件13/13通过，含缺温、懒加载、场景/怕冷偏好和390px大字号深浅色；全量analyze 0 issues、454/454测试通过；CI进行中。上一轮93e7574的CI 39194063393已确认成功。"
+  },
+  {
+   "id": "T-198",
+   "p": "P1",
+   "title": "iOS 构建并入 Android 所在 CI 工作流",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "删除独立 ios-build.yml，同一 CI 运行先完成 Linux analyze/test/Web/APK，再由macOS构建未签名IPA；保留平台生成、锁文件、品牌验证和产物名，共用取消规则。",
+   "verify": "YAML结构校验；GitHub Actions CI Web/APK/iOS与产物上传",
+   "result": "2026-10-20：已合并为ci.yml两个有依赖的作业；YAML结构检查通过，CI待验证。"
   }
  ]
 }

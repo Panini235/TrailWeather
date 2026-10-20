@@ -1,0 +1,58 @@
+{
+  "rule": "simple majority, as clarified by user",
+  "public_source_commit": "93e7574e1f2347a33a9e2779d381208785a8dfe2",
+  "review_type": "source-based independent vote, not device testing",
+  "votes": [
+    {
+      "reviewer": "Claude Code / DeepSeek v4.1 Flash",
+      "vote": "A",
+      "reason": "现状 layering_card.dart 用 ExpansionTile，_expanded 初始为 false，收起时 subtitle 只渲染 S.layeringSummary 生成的衣物名称串；route_detail_screen.dart 里 LayeringCard 又排在结论卡与山脊天气带之后。这正是用户说的“穿衣建议像消失了”。A 在首屏保留“出发穿：…/随身带：…（含配件）”这类可执行结论，把场景切换、怕冷偏好、人形剪影和完整依据收进“调整与详情”，同时把节点次要项合并为一个“更多天气与工具”入口，既解决可发现性，也回应“太杂”。B 回到全量展开旧卡，与用户“太杂”的反馈直接冲突；C 就是现状，不解决“像消失了”。A 也能守住数据真实：plan == null 时仍显示 S.layeringNoData，plan.notes 非空时仍提示 layeringIncomplete，缺失不补 0；只需在实现时把陈旧、未确认区间和三小时概率明确留在可见层，不随折叠一起藏起来。本次仅基于源码评估，390x844 的实际排版与滚动需靠测试和真机确认，不能由本次投票代替。",
+      "up_to_3_risks": [
+        "把节点次要项合并进“更多天气与工具”时，可能连带收起三小时降水概率、未确认区间（WeatherHourNotice / 部分覆盖）和陈旧来源提示，违反“仍可见”的硬要求；需用白名单让这些状态在节点行或首屏内联保留，不进入折叠区。",
+        "紧凑的“出发穿/随身带”由 plan 生成字符串，容易漏掉 Wear.none 之外的缺失语义或 plan.notes（S.layeringIncomplete），也可能在无数据时渲染成空串，让用户再次以为“建议消失”；必须保留 layeringNoData 与 notes 提示，且缺失值不得显示为 0。",
+        "场景（行进/停留）和怕冷偏好被收进“调整与详情”后，首屏摘要只代表“出发”时刻，用户可能误读为全程建议；需要在摘要上明确标注“出发”，并保证“调整与详情”入口在 390x844 首屏可发现，且切换场景后的摘要更新逻辑有断言覆盖。"
+      ],
+      "required_tests": [
+        "test/widget/layering_card_test.dart：默认态断言出现“出发穿：”和“随身带：”及重要配件，且不再只剩衣物名称串。",
+        "test/widget/layering_card_test.dart：plan == null 时渲染 S.layeringNoData；plan.notes 非空时默认态仍显示 S.layeringIncomplete，且文本中不出现伪造的 0 值。",
+        "test/widget/layering_card_test.dart：点击“调整与详情”后出现场景 SegmentedButton、怕冷偏好、人形 Semantics 与“依据”入口；切换行进/停留场景后，摘要与展开内容一致，不串场景。",
+        "test/widget/route_detail_v2_test.dart：断言主页面区块顺序为天气摘要 → 穿衣建议 → 山脊天气带/地图/沿途节点，且“更多天气与工具”默认收起但入口可见。",
+        "test/widget/route_detail_v2_test.dart：断言节点折叠后陈旧来源、部分/未确认区间、三小时降水概率仍在可见区域（非折叠 children 内）。",
+        "390x844 表面尺寸下的 widget 测试：默认穿衣摘要与节点行无 RenderFlex overflow，长衣物名/多配件时按省略或多行处理。",
+        "test/widget/route_detail_v2_test.dart：折叠的空气质量、多来源对比保持懒加载，展开前不触发额外 provider 请求，沿用现有 _fold 行为。"
+      ]
+    },
+    {
+      "reviewer": "Antigravity / Gemini 3.8 Flash High",
+      "vote": "A",
+      "reason": "当前默认折叠仅呈现无上下文的衣物名列表（如 S.layeringSummary），丢弃了核心决策维度（出门当前穿哪件、包里备哪件、防晒/防雨配件），导致穿衣建议形同虚设；而全量展开（方案 B）包含人形剪影动效、三场景切片与偏好切换，在 390x844 屏幕上单卡片即侵占 300+ 像素高度，严重挤压气象带与核心节点空间。方案 A 通过在紧凑态直接提炼“出发穿”和“随身带”（含关键配件），兼顾了首屏即时决策效率与空间紧凑度；次要工具合并也能收束 NodeDetailView 中过多的散落折叠项，信息层级清晰且符合数据真实性红线。",
+      "up_to_3_risks": [
+        "在 390 逻辑像素宽度下，多件衣物与多配件并存时（如恶劣天气多层堆叠）存在紧凑文本折行溢出或行高失衡风险，需严谨设计 Wrap/排版规则。",
+        "将偏好设置（怕冷/怕热）与场景切换收进‘调整与详情’后，若用户当前处于非标准偏好，紧凑态若不标注偏好标签可能导致用户误判推荐基准；同时需确保 plan.notes 的未确认/不完整数据警示在紧凑态绝对显眼，不可漏警。",
+        "节点详情页将空气质量、多源对比、海拔推演等收拢至‘更多天气与工具’入口时，若处理不当可能破坏原有的点开才发起网络请求的懒加载机制，或增加安全对比工具的操作深度。"
+      ],
+      "required_tests": [
+        "针对 LayerPlan 生成‘出发穿’与‘随身带’映射逻辑的单元测试：覆盖极端严寒、暴雨（防水硬壳+雨裤）、高温强紫外线等边界用例，验证衣物与配件归类无遗漏且语义严谨。",
+        "数据缺失与残缺输入回归测试：构造包含 null 观测值、陈旧缓存数据或部分节点缺失的气象数据集，验证穿衣卡紧凑态及警告标签正常展示，绝对不回退为 0 或隐藏缺失警示。",
+        "390x844 视口下的 Widget 布局与无溢出测试：在标准 390 宽屏及字体缩放模式下运行 widget 测试，确保紧凑态卡片及展开‘调整与详情’弹层/面板均无 RenderFlex 溢出错误。",
+        "节点次要项懒加载与联动测试：验证合并‘更多天气与工具’入口后，多源对比和空气质量组件仅在用户显式展开时实例化与拉取数据，且随节点前后切换能正确注销与更新。"
+      ]
+    },
+    {
+      "reviewer": "pi / GLM 5.3 (auto route)",
+      "vote": "A",
+      "reason": "现状（代码证实）：LayeringCard 是默认折叠的 ExpansionTile，折叠态 subtitle 只有 S.layeringSummary 拼出的衣物名称串，没有任何穿着/背包区分，也没有配件提示——这正是用户'穿衣建议像消失了'的来源。但数据层已具备 A 所需的一切：LayerPlan 每层有 per-scene 的 Wear.worn/packed/none，plan.accessories 已算出重要配件，plan.notes 保留数据不全标记，因此'出发穿：…/随身带：…'可直接从 wear[LayerScene.start] 推导，不需要改数据逻辑，满足'数据真实、缺失不变0'。页面顺序上，现有代码已是 结论卡→天气带→穿衣→地图→节点，A 只是把穿衣的折叠态从'名称串'升级为可行动摘要，并把节点页多个平铺的 _fold（海拔探测/更多指标/空气质量/多来源/照片）合并为一个入口，与'太杂'的反馈一致。B 会重新制造用户刚抱怨的杂乱并推翻已做的减负；C 无视'建议消失了'的核心反馈。唯一实质改动风险在展示层，可控。",
+      "up_to_3_risks": [
+        "'出发穿/随身带'摘要只反映 LayerScene.start 一个场景；行进/停留场景状态可能不同（如保暖层 packed），紧凑摘要若无场景限定词会误导，需在文案中锚定'出发'并保留展开后的场景切换。",
+        "390 宽度下紧凑摘要 + 配件可能被 ellipsis 截断（现有 _LayerRow 已用 TextOverflow.ellipsis），且折叠态的语义（semantics）目前只在展开的人形图里有 worn/packed 区分，紧凑行需补充无障碍语义，否则读屏用户仍只听到名称串。",
+        "节点次要项合并为'更多天气与工具'以及主页面重排时，若把 WeatherCacheNotice（陈旧缓存）、WeatherHourNotice（三小时概率/小时口径）、GranularityNotice（未确认区间）一并收进折叠，会违反'未确认区间/陈旧/三小时概率仍可见'的硬约束；另外现有 _fold 是惰性构建（展开才发空气质量/对比请求），合并入口后必须保持惰性，避免一次拉起全部请求。"
+      ],
+      "required_tests": [
+        "Widget 测试：LayeringCard 默认（未展开）即渲染'出发穿：…'与'随身带：…'，含至少一个重要配件；展开后出现怕冷偏好切换、场景 SegmentedButton（显示各场景体感温度）、人形图与'依据'入口，行为与现有一致。",
+        "数据真实性测试：plan 为 null 时显示 S.layeringNoData；plan.notes 非空时紧凑摘要仍显示'数据不全'标记（S.layeringIncomplete 不得因改版消失）；缺失值仍为 0/占位，不产生伪造数值。",
+        "可见性回归测试：主页面 390x844 下 WeatherCacheNotice、WeatherHourNotice、数据说明（含未确认区间、陈旧提示、三小时概率口径）在默认首屏或紧邻结论卡位置可见，未被折叠进'更多'入口；节点页合并入口展开后空气质量/多来源对比/照片仍按需（惰性）加载。",
+        "布局与无障碍测试：390x844 紧凑摘要行不溢出或关键衣物名不被截断（用最大长度 mock plan 验证）；semantics 标签能区分'穿着/背包'，读屏可获取与视觉一致的信息。"
+      ]
+    }
+  ]
+}

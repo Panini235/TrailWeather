@@ -136,3 +136,60 @@ jobs:
         with:
           name: apk-release
           path: build/app/outputs/flutter-apk/app-release.apk
+
+  # 共用一次运行；Linux 静态检查、测试与构建通过后才使用 macOS runner。
+  ios:
+    name: ios (unsigned IPA)
+    needs: build
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+          cache: true
+
+      - name: 生成 iOS 平台目录
+        run: flutter create --no-pub --platforms=ios --org dev.trailweather --project-name trailweather .
+
+      - name: 应用山晴名称与图标（平台生成后）
+        run: python3 tool/apply_branding.py --platforms ios
+
+      - name: 设置 Bundle ID（app.shanqing.hiking）
+        run: python3 tool/configure_release.py --platform ios
+
+      - name: 依赖（严格按 pubspec.lock）
+        # 必须用仓库锁定的版本：flutter create / 普通 pub get 会把传递依赖升到最新，
+        # 0.2.0-beta.1 就因此带上了未经测试的 shared_preferences_android 2.5.0，
+        # 正式包被 R8 裁掉 JNI 方法、启动即崩（D-038）。锁文件里是国内镜像地址，
+        # CI 换成 pub.dev 下载（内容哈希相同）；任何版本变化都会让这一步失败。
+        run: |
+          git checkout -- pubspec.lock
+          sed -i.bak 's#https://pub.flutter-io.cn#https://pub.dev#' pubspec.lock && rm pubspec.lock.bak
+          flutter pub get --enforce-lockfile
+          if git diff -U0 pubspec.lock | grep -E '^[-+] +version:'; then
+            echo "::error::依赖版本与 pubspec.lock 不一致"; exit 1
+          fi
+
+      - name: iOS 构建（无签名）
+        run: flutter build ios --release --no-codesign
+
+      - name: 验证 iOS 名称与图标资源
+        run: python3 tool/verify_build_branding.py --ios-app build/ios/iphoneos/Runner.app
+
+      - name: 打包未签名 IPA（测试者用自己的 Apple ID 自签安装，见 docs/user-guide.md）
+        run: |
+          VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+          mkdir -p build/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ipa/Payload/
+          (cd build/ipa && zip -qry "shanqing-${VERSION}-ios-unsigned.ipa" Payload)
+          ls -la build/ipa
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-ipa
+          path: build/ipa/*.ipa

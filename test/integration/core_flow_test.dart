@@ -254,9 +254,10 @@ void main() {
     expect(find.textContaining(officialAlertsText0), findsWidgets);
 
     // 6. 回到顶部，从时间标签展开时间设置，切换行程模式。
-    await tester.scrollUntilVisible(find.byTooltip('设置时间与配速'), -400);
+    final timeControl = find.byTooltip(RegExp(S.detailTimeAndPace));
+    await tester.scrollUntilVisible(timeControl, -400);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('设置时间与配速'));
+    await tester.tap(timeControl);
     await tester.pumpAndSettle();
     await tester.tap(find.text(S.modeTrip));
     await tester.pumpAndSettle();
