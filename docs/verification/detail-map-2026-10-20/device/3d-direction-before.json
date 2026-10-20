@@ -1,0 +1,10 @@
+{
+  "bearing_before": 8.326672684688674e-17,
+  "bearing_after_right_drag": -0.6898913352272721,
+  "bearing_after_left_drag": 0.13076420454545176,
+  "right_drag_increases_bearing": false,
+  "left_drag_decreases_bearing": false,
+  "evidence": "actual profile app gesture and VM state, own QA package only",
+  "source_commit": "b654af419232b1a24e57eb0467048edf1463809d",
+  "baseline_expected_failure": true
+}

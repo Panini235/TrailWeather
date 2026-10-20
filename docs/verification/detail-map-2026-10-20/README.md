@@ -17,6 +17,19 @@
 
 [独立结果](votes.json)：B=3/A=0，保留全屏一级入口，其余收菜单。仅通用设计说明，经7897代理；本机网关NO_PROXY。此为方案复核，不是设备测试。
 
-## 验证状态
+## 验证结果
 
-本地全量、单次CI及真机结果在收尾记录更新。
+业务提交 **6836d828d7792b17c13f6878eaed1e6869bbc7cd**。
+
+- [本地结果](local.json)：analyze无问题，**461/461**测试通过。含原衣物动画、缺失/区间口径、390px/1.6x深浅色、地图/节点/3D与完整闭环。本地未构建。
+- [CI 39394169941](https://github.com/Panini235/TrailWeather/actions/runs/39394169941)：Linux与macOS均成功，Web/APK/android-device-test/未签名IPA全部完成，[详情](ci.json)。本批只运行这一次，收尾证据skip ci不重复构建。
+- [手机结果](device/result.json)：小米12S / Android15，安装此CI的独立profile QA包，使用自制40点约5.5km/780m并带命名营地的GPX。公开Open-Meteo预报在旧QA中获取，修复版从测试缓存读取，UI如实显示已保存及覆盖不足；不是实测天气。
+- [摘要与衣物动画](device/01-summary-clothing.png)、[实际底图与剖面](device/06-map-with-tiles.png)、[单指平移后](device/07-map-pan-with-tiles.png)、[隐藏线路看地名](device/08-visible-labels-without-route.png)、[节点3同步高亮](device/09-numbered-selected-nodes.png)、[单击进详情](device/10-single-tap-node-detail.png)。[平移记录](device/map-pan-with-tiles.json)、[节点联动](device/node-link.json)。
+- [3D新旧方向对照](device/3d-direction-before.json)、[修复后角度](device/3d-direction.json)：同一手势，旧右拖减0.68989rad；新右拖增0.68989rad，左拖减0.82066rad。[新右拖图](device/3d-right.png)、[新左拖图](device/3d-left.png)。profile/AOT的getObject把未装箱double字段以Int位模式暴露，按IEEE754 float64解码；首次误把原始Int当角度的临时采集已丢弃，旧/新版均重新采集。不据此宣称完整帧率/性能。
+- [新QA进程错误检查](device/error-check.json)：无Fatal/Flutter错误。[清理](device/cleanup.json)：本轮新旧QA卸载，测试数据和临时XML随之清理，新增ADB反向代理移除。正式版和原.dev保留，系统代理/字体/主题未变。
+
+## 未验证边界
+
+高德在旧/新版QA中均灰底，OpenTopoMap实际瓦片正常。桌面请求代表性高德瓦片200且有图并不证明手机加载通过，已登记B-016继续定位，不因本次手势修复而声称高德已验收；高德仍保留，未改默认配置。截图底图来源为OpenTopoMap（© OpenStreetMap贡献者、SRTM；© OpenTopoMap，CC-BY-SA）。
+
+手机为深色/字体1.0x；大字号与浅色验证来自组件测试。iOS仅编译未签名IPA，未进行iPhone真机验收。本PR未合并main，也未发布Release或商店版本。
