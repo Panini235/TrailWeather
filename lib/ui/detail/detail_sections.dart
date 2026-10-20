@@ -156,11 +156,14 @@ class _ConclusionCard extends StatelessWidget {
                   ),
                 ],
               ),
-            if (dayLine != null)
-              Padding(
-                padding: const EdgeInsets.only(top: Space.sm),
-                child: Text(dayLine!, style: const TextStyle(fontSize: 13)),
+            if (dayLine != null) ...[
+              const Divider(height: Space.lg),
+              Text(
+                S.detailDayPrecip,
+                style: theme.textTheme.labelSmall?.copyWith(color: muted),
               ),
+              Text(dayLine!, style: theme.textTheme.bodySmall),
+            ],
             if (sorted.length > 1) ...[
               const SizedBox(height: Space.sm),
               Wrap(
@@ -299,42 +302,22 @@ class _NodeTile extends StatelessWidget {
     super.key,
     required this.row,
     required this.index,
-    required this.isLast,
     required this.tripMode,
     required this.selected,
     required this.settings,
     required this.onTap,
-    required this.onDetail,
   });
 
   final NodeWxRow row;
   final int index;
-  final bool isLast;
   final bool tripMode;
   final bool selected;
   final AppSettings settings;
   final VoidCallback onTap;
-  final VoidCallback onDetail;
 
   @override
   Widget build(BuildContext context) {
     final wp = row.node.waypoint;
-    final Widget leading;
-    if (wp != null) {
-      leading = WaypointMarker(type: wp.type, size: 16);
-    } else if (index == 0) {
-      leading = const Icon(Icons.flag, size: 18, color: Semantic.go);
-    } else if (isLast) {
-      leading = const Icon(
-        Icons.sports_score,
-        size: 18,
-        color: Semantic.danger,
-      );
-    } else if (row.node.label == '高点') {
-      leading = const Icon(Icons.terrain_outlined, size: 18);
-    } else {
-      leading = const Icon(Icons.circle, size: 10);
-    }
     final name = row.node.label ?? S.detailNodeFallback(index + 1);
     final ele = row.node.elevationM == null
         ? ''
@@ -351,7 +334,22 @@ class _NodeTile extends StatelessWidget {
       selected: selected,
       selectedTileColor: Theme.of(context).colorScheme.primaryContainer
           .withValues(alpha: 0.3),
-      leading: SizedBox(width: 24, child: Center(child: leading)),
+      leading: Container(
+        width: 26,
+        height: 26,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          border: selected
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 2,
+                )
+              : null,
+        ),
+        child: Text('${index + 1}', style: const TextStyle(fontSize: 12)),
+      ),
       title: Text(title, style: const TextStyle(fontSize: 13)),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,17 +368,7 @@ class _NodeTile extends StatelessWidget {
               S.detailStopMinutes(wp!.stopMinutes!),
               style: TextStyle(fontSize: 11, color: muted),
             ),
-          if (selected)
-            Text(
-              S.tapAgainForDetail,
-              style: TextStyle(fontSize: 11, color: muted),
-            ),
         ],
-      ),
-      trailing: IconButton(
-        tooltip: S.nodeDetail2,
-        icon: const Icon(Icons.info_outline, size: 20),
-        onPressed: onDetail,
       ),
       onTap: onTap,
     );
@@ -394,6 +382,7 @@ class _FoldedRun extends StatefulWidget {
   const _FoldedRun({
     super.key,
     required this.rows,
+    required this.firstIndex,
     required this.tripMode,
     required this.containsSelected,
     required this.lowPower,
@@ -401,6 +390,7 @@ class _FoldedRun extends StatefulWidget {
   });
 
   final List<NodeWxRow> rows;
+  final int firstIndex;
   final bool tripMode;
 
   /// 其中含有选中节点（地图或剖面上选的）：收起时高亮这一行。
@@ -491,7 +481,8 @@ class _FoldedRunState extends State<_FoldedRun>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${S.foldedNodes(widget.rows.length)} · ${_range()}'
+                      '${S.foldedNodes(widget.rows.length)}'
+                      '（${widget.firstIndex + 1}–${widget.firstIndex + widget.rows.length}） · ${_range()}'
                       ' · ${S.foldedSameForecast}',
                       style: TextStyle(fontSize: 12, color: muted),
                     ),

@@ -8,6 +8,9 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/routes/route_sampling.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
+import 'package:trailweather/data/weather/node_wx_class.dart';
+import 'package:trailweather/ui/detail/node_wx_style.dart';
+import 'package:trailweather/ui/tokens.dart';
 import 'package:trailweather/ui/detail/detail_state.dart';
 import 'package:trailweather/ui/detail/ridge_band.dart';
 import 'package:trailweather/ui/strings.dart';
@@ -116,6 +119,11 @@ Future<void> _pump(
 }
 
 void main() {
+  test('未触发提示阈值使用中性信息图标，不显示通过对勾或绿色', () {
+    expect(nodeWxIcon(NodeWxClass.calm), Icons.info_outline);
+    expect(nodeWxColor(NodeWxClass.calm), Semantic.unknown);
+  });
+
   testWidgets('点击剖面选中最近节点；说明行显示距离、海拔与天气类别', (tester) async {
     int? selected;
     await _pump(
@@ -139,6 +147,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(RegExp('6 个节点，2 个触发天气提示')), findsOneWidget);
+    expect(find.text('点选剖面节点，与下方编号对应'), findsOneWidget);
     // 右侧末端附近点一下 → 选中最后一个节点。
     final box = tester.getRect(find.byType(CustomPaint).last);
     await tester.tapAt(Offset(box.right - 4, box.center.dy));

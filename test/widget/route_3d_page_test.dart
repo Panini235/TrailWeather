@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,6 +45,49 @@ Future<void> _pump(WidgetTester tester, DemService dem) async {
 }
 
 void main() {
+  testWidgets('单指向右拖时模型正向旋转，向左拖反向；指北针同步反转', (tester) async {
+    final dem = DemService(
+      fetcher: (uri, {cancelToken}) async => Uint8List(0),
+      decoder: (_) async => terrariumRgba(cone),
+    );
+    addTearDown(dem.dispose);
+    await _pump(tester, dem);
+    await tester.pumpAndSettle();
+    double compassAngle() {
+      final transform = tester
+          .widget<Transform>(
+            find
+                .descendant(
+                  of: find.byTooltip(S.route3dCompass),
+                  matching: find.byType(Transform),
+                )
+                .last,
+          )
+          .transform;
+      return math.atan2(transform.storage[1], transform.storage[0]);
+    }
+
+    expect(compassAngle(), closeTo(0, 1e-6));
+    final terrain = find.byWidgetPredicate(
+      (w) => w is GestureDetector && w.onScaleUpdate != null,
+    );
+    await tester.timedDrag(
+      terrain,
+      const Offset(120, 0),
+      const Duration(milliseconds: 300),
+    );
+    await tester.pump();
+    expect(compassAngle(), lessThan(-0.3));
+    await tester.timedDrag(
+      terrain,
+      const Offset(-240, 0),
+      const Duration(milliseconds: 500),
+    );
+    await tester.pumpAndSettle();
+    expect(compassAngle(), greaterThan(0.3));
+    expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
   testWidgets('加载高程 → 画出地形；切换高程放大倍数时标注跟着变', (tester) async {
     final dem = DemService(
       fetcher: (uri, {cancelToken}) async => Uint8List(0),

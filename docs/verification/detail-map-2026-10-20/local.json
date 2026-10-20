@@ -1,0 +1,12 @@
+{
+  "analyze": "No issues found",
+  "tests": 461,
+  "passed": 461,
+  "command": [
+    "flutter analyze --no-pub",
+    "flutter test --no-pub --reporter expanded"
+  ],
+  "targeted": "先复现5项既有UI回归与3D反向；修复后全绿",
+  "dependenciesChanged": false,
+  "localBuild": false
+}

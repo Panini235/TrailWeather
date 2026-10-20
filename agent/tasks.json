@@ -1141,6 +1141,26 @@
    "acceptance": "删除独立 ios-build.yml，同一 CI 运行先完成 Linux analyze/test/Web/APK，再由macOS构建未签名IPA；保留平台生成、锁文件、品牌验证和产物名，共用取消规则。",
    "verify": "YAML结构校验；GitHub Actions CI Web/APK/iOS与产物上传",
    "result": "2026-10-20：ci.yml保留Linux并追加needs: build的macOS作业，删除ios-build.yml。CI39389755680（b654af4，device_test=true）两个作业均success，apk-release/android-device-test/ios-unsigned-ipa全部上传；平台生成、锁文件、签名/品牌核验与统一取消均保留。手机包已用于小米12S验收；IPA未签名，不代表iPhone真机或发布。后续批量改动完成后集中CI，收尾证据用[skip ci]避免重复构建。"
+  },
+  {
+   "id": "T-199",
+   "p": "P1",
+   "title": "详情页提示中性化、地图减负和单指拖动、剖面与节点统一编号、降水口径分隔",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "未触发阈值使用灰色信息图标；地图保留全屏和菜单、支持单指平移/隐藏恢复线路；剖面可点且序号与命名节点一致，选中同步高亮；海拔网格/距离刻度；整行进详情；次要来源标题降级；时段与当天汇总分隔，缺失/区间信息和原衣物动画保留。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；单次统一CI；小米12S真机",
+   "result": "局部回归已复现并修复单指拖动无效、命名节点无可见编号、重复信息按钮和剖面无提示。三CLI通用方案投票B=3:0，保留全屏常驻，其余收菜单。最终全量和CI/设备验收进行中。"
+  },
+  {
+   "id": "T-200",
+   "p": "P1",
+   "title": "3D地形单指水平旋转方向与拖动相反",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "单指向右/左拖动时模型朝相应方向转；双指缩放/扭转/平移和松手停止行为保持。",
+   "verify": "flutter test test/widget/route_3d_page_test.dart；CI测试包真机",
+   "result": "持续右拖回归先失败（指北针+0.6而非负角）；根因为bearing减去dx。改为加dx后左右方向、双指与静止回归通过，待同批CI/真机。"
   }
  ]
 }

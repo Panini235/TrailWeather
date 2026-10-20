@@ -316,7 +316,10 @@ abstract final class S {
   static const miniMapNeedsTiandituKey = '国内官方图源，需要天地图 Key：点此填写（Key 只保存在本机）';
   static const miniMapTiandituNote = '国内官方图源，山体晕渲显示起伏（天地图不提供等高线），自动叠加地形注记。';
   static const miniMapFit = '回到全线';
-  static const miniMapGestureHint = '双指缩放、拖动；单指上下滑动页面';
+  static const miniMapTools = '地图工具';
+  static const miniMapHideRoute = '隐藏线路，查看地名';
+  static const miniMapShowRoute = '显示线路';
+  static const miniMapGestureHint = '单指拖动地图 · 双指缩放；在地图外滑动页面';
   static const miniMapLayerFailed = '图源加载缓慢或连不上（国内网络常连不上海外图源）。';
   static const miniMapRevert = '切回';
 
@@ -332,6 +335,7 @@ abstract final class S {
       '$ridgeBandTitle：$nodes 个节点，$flagged 个触发天气提示'
       '${hasElevation ? '' : '，$ridgeNoElevation'}';
   static String ridgeNodeN(int n) => '节点 $n';
+  static const ridgeInteractionHint = '点选剖面节点，与下方编号对应';
   static String ridgeArrive(String eta) => '$eta 到达';
 
   // 开屏
@@ -972,7 +976,8 @@ abstract final class S {
   static const detailMinMaxTemp = '最低/最高温';
   static const detailMaxGust = '最大阵风';
   static const detailTripPrecip = '行程降水';
-  static const detailHourPrecip = '该时次降水';
+  static const detailHourPrecip = '选定时段降水';
+  static const detailDayPrecip = '当天降水汇总';
   static const detailCompareDepartures = '比较出发窗口';
   static String detailMoreHints(int n) => '  等 $n 项提示';
   static String detailStopMinutes(int min) => '停留 $min 分钟';

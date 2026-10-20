@@ -11,6 +11,7 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/favorites_repository.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
+import 'package:trailweather/ui/detail/ridge_band.dart';
 import 'package:trailweather/ui/detail/layering_card.dart';
 import 'package:trailweather/ui/detail/environment_cards.dart';
 import 'package:trailweather/ui/detail/node_detail_sheet.dart';
@@ -122,6 +123,41 @@ class _MissingTemperatureProvider extends IntegrationFakeProvider {
 }
 
 void main() {
+  testWidgets('小地图单指拖动改变中心，工具收进一个菜单，线路可临时隐藏看地名', (tester) async {
+    await _pump(tester);
+    final map = find.byType(FlutterMap).first;
+    final before = MapCamera.of(
+      tester.element(
+        find.descendant(of: map, matching: find.byType(TileLayer)).first,
+      ),
+    ).center;
+    await tester.drag(map, const Offset(-80, 0));
+    await tester.pumpAndSettle();
+    final after = MapCamera.of(
+      tester.element(
+        find.descendant(of: map, matching: find.byType(TileLayer)).first,
+      ),
+    ).center;
+    expect(after, isNot(before));
+    expect(find.byTooltip('地图工具'), findsOneWidget);
+    expect(find.byTooltip(S.routeMapFullscreen), findsOneWidget);
+    await tester.tap(find.byTooltip('地图工具'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('隐藏线路，查看地名'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: map, matching: find.byType(PolylineLayer)),
+      findsNothing,
+    );
+    expect(find.text('显示线路'), findsOneWidget);
+    await tester.tap(find.text('显示线路'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: map, matching: find.byType(PolylineLayer)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('手机默认显示衣物动画和场景，无需先展开穿衣卡', (tester) async {
     await _pump(tester, width: 390, height: 844);
     final figure = find.byWidgetPredicate(
@@ -162,7 +198,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('显示行进方向；点节点选中，再点或点详情打开节点详情', (tester) async {
+  testWidgets('显示行进方向；点击整行直接打开节点详情，不再重复信息按钮', (tester) async {
     await _pump(tester);
 
     expect(
@@ -175,10 +211,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(_tileTitle('起点 · 0.0 km'));
     await tester.pumpAndSettle();
-    expect(find.text(S.tapAgainForDetail), findsOneWidget);
-
-    await tester.tap(_tileTitle('起点 · 0.0 km'));
-    await tester.pumpAndSettle();
+    expect(find.byTooltip(S.nodeDetail2), findsNothing);
     expect(find.text(S.markAs), findsOneWidget);
     expect(find.text(S.meteogramTitle), findsOneWidget);
     expect(find.text(S.altitudeExploreTitle), findsNothing);
@@ -194,6 +227,48 @@ void main() {
     expect(find.byType(AirQualityCard), findsNothing);
     expect(find.byType(AltitudeWeatherCard), findsNothing);
     expect(find.byType(NodeComparePanel), findsNothing);
+  });
+
+  testWidgets('命名航点同样显示顺序编号，不占用一个看不见的编号', (tester) async {
+    final base = _route();
+    await _pump(
+      tester,
+      route: base.copyWith(
+        waypoints: [
+          RouteWaypoint(
+            name: '山腰营地',
+            point: base.segments.first[20],
+            type: WaypointType.camp,
+          ),
+        ],
+      ),
+    );
+    await tester.scrollUntilVisible(_tileTitle('山腰营地'), 300);
+    final tile = find.ancestor(
+      of: _tileTitle('山腰营地'),
+      matching: find.byType(ListTile),
+    );
+    expect(find.descendant(of: tile, matching: find.text('3')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('点选剖面末节点后，列表终点同步高亮并保留统一编号', (tester) async {
+    await _pump(tester);
+    final chart = find
+        .descendant(
+          of: find.byType(RidgeWeatherBand),
+          matching: find.byType(CustomPaint),
+        )
+        .last;
+    final box = tester.getRect(chart);
+    await tester.tapAt(Offset(box.right - 8, box.center.dy));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('节点 5 · 终点'), findsOneWidget);
+    final end = _tileTitle('终点 · ');
+    await tester.scrollUntilVisible(end, 300);
+    final tile = find.ancestor(of: end, matching: find.byType(ListTile));
+    expect(tester.widget<ListTile>(tile).selected, isTrue);
+    expect(find.descendant(of: tile, matching: find.text('5')), findsOneWidget);
   });
 
   testWidgets('穿衣卡片：切换场景、怕冷偏好会加厚保暖层并保存', (tester) async {
@@ -263,10 +338,10 @@ void main() {
   testWidgets('把节点标为营地：保存到我的行程并出现在时间线', (tester) async {
     final container = await _pump(tester);
 
-    final detailButtons = find.byTooltip(S.nodeDetail2);
-    await tester.scrollUntilVisible(detailButtons.at(1), 300);
+    final endNode = _tileTitle('终点 · ');
+    await tester.scrollUntilVisible(endNode, 300);
     await tester.pumpAndSettle();
-    await tester.tap(detailButtons.at(1));
+    await tester.tap(endNode);
     await tester.pumpAndSettle();
 
     // 节点详情只保留一个“标记为”按钮，类型在二级面板里选。
@@ -352,7 +427,9 @@ void main() {
 
   testWidgets('小地图图层只给平面地形：跟随设置 / 天地图地形（推荐）/ 等高线（海外）', (tester) async {
     final container = await _pump(tester);
-    await tester.tap(find.byTooltip(S.miniMapLayers));
+    await tester.tap(find.byTooltip(S.miniMapTools));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.miniMapLayers));
     await tester.pumpAndSettle();
     expect(find.text(S.miniMapFollowSettings), findsOneWidget);
     expect(find.text('天地图地形晕渲（推荐）'), findsOneWidget);
@@ -370,7 +447,9 @@ void main() {
     );
 
     // 没有天地图 Key：点“天地图地形”直接进入填 Key 页面。
-    await tester.tap(find.byTooltip(S.miniMapLayers));
+    await tester.tap(find.byTooltip(S.miniMapTools));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.miniMapLayers));
     await tester.pumpAndSettle();
     await tester.tap(find.text('天地图地形晕渲（推荐）'));
     await tester.pumpAndSettle();

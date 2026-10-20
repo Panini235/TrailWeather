@@ -161,11 +161,7 @@ class RouteShareCard extends StatelessWidget {
       ],
     );
     final Widget hintsView = sorted.isEmpty
-        ? _pill(
-            Icons.check_circle_outline,
-            S.shareNoHints,
-            SemanticInk.goOnLight,
-          )
+        ? _pill(Icons.info_outline, S.shareNoHints, Semantic.unknown)
         : Wrap(
             spacing: 6,
             runSpacing: 6,

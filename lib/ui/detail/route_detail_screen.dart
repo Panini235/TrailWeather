@@ -872,15 +872,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       key: _tileKeys.putIfAbsent(i, GlobalKey.new),
       row: rows[i],
       index: i,
-      isLast: i == rows.length - 1,
       tripMode: tripMode,
       selected: _selectedNode == i,
       settings: settings,
-      // 第一次点选中（地图/剖面同步高亮），再点打开详情。
-      onTap: () => _selectedNode == i
-          ? _showNodeSheet(rows, settings, initialIndex: i)
-          : _select(i),
-      onDetail: () {
+      onTap: () {
         _select(i);
         _showNodeSheet(rows, settings, initialIndex: i);
       },
@@ -894,6 +889,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           _FoldedRun(
             key: _foldKeys.putIfAbsent(e.index, GlobalKey.new),
             rows: [for (final i in e.folded) rows[i]],
+            firstIndex: e.folded.first,
             tripMode: tripMode,
             containsSelected: e.folded.contains(_selectedNode),
             lowPower: settings.lowPower,
@@ -904,7 +900,12 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
       // 第三层：默认收起。
       ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-        title: const Text(S.dataNotesTitle),
+        dense: true,
+        title: Text(
+          S.dataNotesTitle,
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
         subtitle: Text(
           S.dataNotesSubtitle,
           style: TextStyle(

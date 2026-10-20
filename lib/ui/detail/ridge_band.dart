@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/geo.dart';
@@ -12,11 +13,13 @@ import '../strings.dart';
 import '../tokens.dart';
 import 'detail_state.dart';
 import 'node_wx_style.dart';
+import 'ridge_axis.dart';
 
 /// 山脊天气带（D-032）：海拔剖面作主视觉，山脊线按最近节点的天气分类着色。
 ///
 /// 颜色只来自节点的真实分类（与地图标记同一套），节点之间不插值；
-/// 触发提示的节点画图标，未触发的只画小圆点；行程模式下日落后的路段铺夜色。
+/// 节点序号与列表一致，密集处保留圆点，选中时始终显示该节点序号；
+/// 触发提示的节点另画天气图标；行程模式下日落后的路段铺夜色。
 /// 首次拿到数据时山脊线从左到右画出一次，减少动效或低耗电时直接显示。
 class RidgeWeatherBand extends ConsumerStatefulWidget {
   const RidgeWeatherBand({
@@ -138,6 +141,8 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
                         classes: classes,
                         selected: sel,
                         nightFromIndex: widget.nightFromIndex,
+                        numberNodes: true,
+                        onTapNode: widget.onTapNode,
                         progress: _curve,
                         fill: scheme.primary.withValues(
                           alpha: dark ? 0.16 : 0.10,
@@ -155,6 +160,14 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
                 );
               },
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: Space.xs),
+          child: Text(
+            S.ridgeInteractionHint,
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ),
         if (sel != null && sel >= 0 && sel < rows.length)
@@ -244,7 +257,8 @@ class _SelectedLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final n = row.node;
     final parts = [
-      n.label ?? S.ridgeNodeN(index + 1),
+      S.ridgeNodeN(index + 1),
+      if (n.label != null) n.label!,
       '${(n.distFromStartM / 1000).toStringAsFixed(1)} km',
       if (n.elevationM != null) '${n.elevationM!.round()} m',
       if (eta != null) S.ridgeArrive(eta!),
@@ -362,6 +376,8 @@ class _RidgePainter extends CustomPainter {
     required this.nightFromIndex,
     this.keyNodes = const [],
     this.keyLabels,
+    this.numberNodes = false,
+    this.onTapNode,
     required this.progress,
     required this.fill,
     required this.neutral,
@@ -380,6 +396,8 @@ class _RidgePainter extends CustomPainter {
   /// 画成编号徽章的节点（分享图）；App 内为空。
   final List<int> keyNodes;
   final List<String>? keyLabels;
+  final bool numberNodes;
+  final ValueChanged<int>? onTapNode;
   final Animation<double> progress;
   final Color fill, neutral, label, guide, night;
   final TextDirection textDirection;
@@ -391,6 +409,41 @@ class _RidgePainter extends CustomPainter {
     final t = progress.value;
     final plot = Rect.fromLTWH(_Geometry.left, _Geometry.top, g.plotW, g.plotH);
     final floorY = size.height - _Geometry.bottom;
+
+    // 细网格与四级海拔刻度；无海拔不生成任何海拔值。
+    if (p.hasElevation) {
+      final span = math.max(p.maxE - p.minE, 30);
+      for (var i = 0; i <= 3; i++) {
+        final elevation = p.minE + span * i / 3;
+        final y = g.y(elevation);
+        canvas.drawLine(
+          Offset(plot.left, y),
+          Offset(plot.right, y),
+          Paint()
+            ..color = label.withValues(alpha: 0.12)
+            ..strokeWidth = 0.5,
+        );
+        _text(canvas, '${elevation.round()} m', Offset(0, y - 6), 10);
+      }
+    }
+    for (final d in ridgeDistanceTicks(p.total, g.plotW)) {
+      final x = g.x(d);
+      canvas.drawLine(
+        Offset(x, plot.top),
+        Offset(x, floorY),
+        Paint()
+          ..color = label.withValues(alpha: 0.08)
+          ..strokeWidth = 0.5,
+      );
+      final km = d / 1000;
+      _text(
+        canvas,
+        km == km.roundToDouble() ? '${km.round()}' : '$km',
+        Offset(x, floorY + 3),
+        10,
+        center: true,
+      );
+    }
 
     // 夜色：日落后到达的路段（从该节点与前一节点的中点起）。
     final nf = nightFromIndex;
@@ -447,6 +500,10 @@ class _RidgePainter extends CustomPainter {
 
     // 节点：山脊上的小圆点。
     final revealX = plot.left + plot.width * t + 0.5;
+    final numberedX = <double>[];
+    final selectedX = s != null && s >= 0 && s < rows.length
+        ? g.x(rows[s].node.distFromStartM)
+        : null;
     for (var i = 0; i < rows.length; i++) {
       final n = rows[i].node;
       final nx = g.x(n.distFromStartM);
@@ -458,11 +515,26 @@ class _RidgePainter extends CustomPainter {
         _numberBadge(canvas, Offset(nx, ny), k + 1, color);
         final kl = keyLabels;
         if (kl != null && k < kl.length) {
-          _text(canvas, kl[k], Offset(nx, ny + 9), 9, center: true);
+          _text(canvas, kl[k], Offset(nx, ny + 12), 9, center: true);
         }
         continue;
       }
       final isSel = i == s;
+      if (numberNodes &&
+          (isSel ||
+              (numberedX.every((x) => (x - nx).abs() >= 22) &&
+                  (selectedX == null || (selectedX - nx).abs() >= 22)))) {
+        numberedX.add(nx);
+        if (isSel) {
+          canvas.drawCircle(
+            Offset(nx, ny),
+            12,
+            Paint()..color = guide.withValues(alpha: 0.25),
+          );
+        }
+        _numberBadge(canvas, Offset(nx, ny), i + 1, color);
+        continue;
+      }
       canvas
         ..drawCircle(
           Offset(nx, ny),
@@ -496,11 +568,8 @@ class _RidgePainter extends CustomPainter {
       _badge(canvas, Offset(nx, plot.top - 16), classes[i], color);
     }
 
-    // 坐标：最高 / 最低海拔与总距离。
-    if (p.hasElevation) {
-      _text(canvas, '${p.maxE.round()} m', Offset(0, plot.top - 2), 10);
-      _text(canvas, '${p.minE.round()} m', Offset(0, floorY - 12), 10);
-    } else {
+    // 无海拔说明与起终距离。
+    if (!p.hasElevation) {
       _text(canvas, S.ridgeNoElevation, Offset(plot.left, floorY - 14), 10);
     }
     _text(canvas, '0', Offset(plot.left, floorY + 3), 10);
@@ -549,13 +618,13 @@ class _RidgePainter extends CustomPainter {
 
   void _numberBadge(Canvas canvas, Offset c, int n, Color color) {
     canvas
-      ..drawCircle(c, 8, Paint()..color = Colors.white)
-      ..drawCircle(c, 6.5, Paint()..color = color);
+      ..drawCircle(c, 10, Paint()..color = Colors.white)
+      ..drawCircle(c, 8.5, Paint()..color = color);
     final tp = TextPainter(
       text: TextSpan(
         text: '$n',
         style: const TextStyle(
-          fontSize: 8,
+          fontSize: 10,
           color: Colors.white,
           fontWeight: FontWeight.w700,
         ),
@@ -591,12 +660,44 @@ class _RidgePainter extends CustomPainter {
   }
 
   @override
+  SemanticsBuilderCallback? get semanticsBuilder => !numberNodes
+      ? null
+      : (size) => [
+          for (var i = 0; i < rows.length; i++)
+            CustomPainterSemantics(
+              rect: Rect.fromCenter(
+                center: Offset(
+                  geom.x(rows[i].node.distFromStartM),
+                  geom.y(
+                    rows[i].node.elevationM ??
+                        geom.profile.eleAt(rows[i].node.distFromStartM),
+                  ),
+                ),
+                width: 24,
+                height: 24,
+              ),
+              properties: SemanticsProperties(
+                label:
+                    '${S.ridgeNodeN(i + 1)}${rows[i].node.label == null ? '' : ' · ${rows[i].node.label}'}',
+                button: true,
+                selected: i == selected,
+                textDirection: textDirection,
+                onTap: onTapNode == null ? null : () => onTapNode!(i),
+              ),
+            ),
+        ];
+
+  @override
+  bool shouldRebuildSemantics(covariant _RidgePainter old) => true;
+
+  @override
   bool shouldRepaint(covariant _RidgePainter old) =>
       old.rows != rows ||
       old.selected != selected ||
       old.nightFromIndex != nightFromIndex ||
       old.keyNodes != keyNodes ||
       old.keyLabels != keyLabels ||
+      old.numberNodes != numberNodes ||
       old.geom.size != geom.size ||
       old.geom.profile != geom.profile ||
       old.fill != fill;

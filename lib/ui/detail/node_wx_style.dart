@@ -12,7 +12,7 @@ Color nodeWxColor(NodeWxClass c) => switch (c.level) {
     NodeWxClass.freezing => Semantic.ice,
     _ => Semantic.cold,
   },
-  NodeWxLevel.none => Semantic.go,
+  NodeWxLevel.none => Semantic.unknown,
   NodeWxLevel.unknown => Semantic.unknown,
 };
 
@@ -21,7 +21,7 @@ IconData nodeWxIcon(NodeWxClass c) => switch (c) {
   NodeWxClass.severeCold || NodeWxClass.freezing => Icons.ac_unit,
   NodeWxClass.heavyPrecip => Icons.water_drop,
   NodeWxClass.precip => Icons.grain,
-  NodeWxClass.calm => Icons.check,
+  NodeWxClass.calm => Icons.info_outline,
   NodeWxClass.insufficient => Icons.question_mark,
   NodeWxClass.noData => Icons.remove,
 };

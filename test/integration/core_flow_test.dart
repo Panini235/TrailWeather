@@ -209,6 +209,17 @@ void main() {
     }
     await tester.pumpAndSettle();
 
+    // 小地图支持单指拖动；滚动页面时从地图外的页面边缘开始。
+    Future<void> scrollDetailTo(Finder target, double step) async {
+      for (var i = 0; target.evaluate().isEmpty && i < 30; i++) {
+        final height =
+            tester.view.physicalSize.height / tester.view.devicePixelRatio;
+        await tester.dragFrom(Offset(4, height * 0.7), Offset(0, -step));
+        await tester.pumpAndSettle();
+      }
+      await tester.ensureVisible(target);
+    }
+
     // 4. 详情页：事实卡 + 演示标签（ListView 懒挂载，断言前滚动到目标）
     expect(find.text('集成测试线路'), findsOneWidget);
     expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
@@ -247,7 +258,7 @@ void main() {
     expect(find.textContaining('°C'), findsWidgets);
 
     // 溯源卡片、颗粒度声明与官方预警说明：收在底部“数据说明与来源”，展开可见。
-    await tester.scrollUntilVisible(find.text(S.dataNotesTitle), 600);
+    await scrollDetailTo(find.text(S.dataNotesTitle), 400);
     await tester.pumpAndSettle();
     await tester.tap(find.text(S.dataNotesTitle));
     await tester.pumpAndSettle();
