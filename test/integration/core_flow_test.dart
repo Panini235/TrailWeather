@@ -214,8 +214,12 @@ void main() {
     expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
 
     // 节点按天气阈值着色，并附图例说明（非官方预警）。
-    // 穿衣卡片在地图之上：先滚到小地图（固定距离拖动，避免惯性滚过头）。
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    // 按控件位置滚到地图，兼容穿衣动画卡和大字号带来的高度变化。
+    await tester.scrollUntilVisible(
+      find.byTooltip(S.routeMapFullscreen),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.byType(NodeWxMarker), findsWidgets);
     // 图例说明收进提示（减负后不再占一行），仍可查看。

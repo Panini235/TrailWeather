@@ -11,6 +11,7 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/settings/favorites_repository.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/ui/detail/route_detail_screen.dart';
+import 'package:trailweather/ui/detail/layering_card.dart';
 import 'package:trailweather/ui/detail/environment_cards.dart';
 import 'package:trailweather/ui/detail/node_detail_sheet.dart';
 import 'package:trailweather/ui/map/map_layers_ui.dart';
@@ -121,14 +122,14 @@ class _MissingTemperatureProvider extends IntegrationFakeProvider {
 }
 
 void main() {
-  testWidgets('手机默认直接看见穿什么和带什么，无需先展开穿衣卡', (tester) async {
+  testWidgets('手机默认显示衣物动画和场景，无需先展开穿衣卡', (tester) async {
     await _pump(tester, width: 390, height: 844);
-    final worn = find.textContaining('出发穿：');
-    final packed = find.textContaining('随身带：');
-    expect(worn, findsOneWidget);
-    expect(packed, findsOneWidget);
-    expect(worn.hitTestable(), findsOneWidget);
-    expect(packed.hitTestable(), findsOneWidget);
+    final figure = find.byWidgetPredicate(
+      (widget) => widget is CustomPaint && widget.painter is LayerFigurePainter,
+    );
+    expect(figure, findsOneWidget);
+    expect(find.textContaining('停留 '), findsOneWidget);
+    expect(find.text(S.layeringColdy), findsNothing);
     expect(
       tester.getTopLeft(find.text(S.layeringTitle)).dy,
       lessThan(tester.getTopLeft(find.text(S.weatherAlongRoute)).dy),
@@ -199,11 +200,8 @@ void main() {
     final container = await _pump(tester);
     expect(find.text(S.layeringTitle), findsOneWidget);
     expect(find.text(S.layeringColdy), findsNothing);
-    expect(find.textContaining('出发穿：长袖速干'), findsOneWidget);
-    expect(find.textContaining('随身带：薄抓绒'), findsOneWidget);
     expect(find.text(S.layeringIncomplete), findsOneWidget);
-    await tester.tap(find.text(S.layeringDetails));
-    await tester.pumpAndSettle();
+    // 默认即可切换场景和查看衣物动画，偏好单独展开。
     // 保暖层那一行是否带“背包”标记（防护层随假数据的时刻变化，不参与断言）。
     Finder midPacked(String name) => find.descendant(
       of: find.ancestor(of: find.text(name), matching: find.byType(Row)).first,
@@ -213,11 +211,27 @@ void main() {
     expect(find.text('薄抓绒'), findsOneWidget);
     expect(midPacked('薄抓绒'), findsOneWidget);
 
+    final figure = find.byWidgetPredicate(
+      (widget) => widget is CustomPaint && widget.painter is LayerFigurePainter,
+    );
     await tester.tap(find.textContaining('停留 '));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 160));
+    final transitioning =
+        (tester.widget<CustomPaint>(figure).painter! as LayerFigurePainter)
+            .states;
+    expect(transitioning[1], greaterThan(0.5));
+    expect(transitioning[1], lessThan(1));
     await tester.pumpAndSettle();
-    // 停留时保暖层穿上
+    // 停留时保暖层通过动画由背包态过渡到穿着态。
     expect(midPacked('薄抓绒'), findsNothing);
-    expect(find.textContaining('停留穿：长袖速干 · 薄抓绒'), findsOneWidget);
+    final states =
+        (tester.widget<CustomPaint>(figure).painter! as LayerFigurePainter)
+            .states;
+    expect(states[1], 1);
+    await tester.ensureVisible(find.text(S.layeringDetails));
+    await tester.tap(find.text(S.layeringDetails));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text(S.layeringColdy));
     await tester.pumpAndSettle();
@@ -231,7 +245,7 @@ void main() {
   });
 
   for (final dark in [false, true]) {
-    testWidgets('390px 大字号穿衣摘要和调整可用（dark=$dark）', (tester) async {
+    testWidgets('390px 大字号衣物动画及偏好可用（dark=$dark）', (tester) async {
       await _pump(tester, width: 390, height: 844, textScale: 1.6, dark: dark);
       await tester.ensureVisible(find.text(S.layeringDetails));
       await tester.pumpAndSettle();
@@ -241,7 +255,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(S.layeringColdy));
       await tester.pumpAndSettle();
-      expect(find.textContaining('随身带：抓绒衣'), findsOneWidget);
+      expect(find.text('抓绒衣'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

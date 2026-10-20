@@ -75,15 +75,6 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
     final reduced = Motion.reduced(context, lowPower: settings.lowPower);
     final wet = plan.layer(LayerKind.shell)?.name == '防水硬壳';
 
-    final worn = [
-      for (final layer in plan.layers)
-        if (layer.wear[_scene] == Wear.worn) layer.name,
-    ];
-    final packed = [
-      for (final layer in plan.layers)
-        if (layer.wear[_scene] == Wear.packed) layer.name,
-      for (final pick in plan.accessories) accessoryLabel(pick.item),
-    ];
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -108,12 +99,69 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
               ],
             ),
             const SizedBox(height: Space.sm),
-            Text(
-              S.layeringWearForScene(layerSceneLabel(_scene), worn),
-              style: theme.textTheme.bodyMedium,
+            SegmentedButton<LayerScene>(
+              showSelectedIcon: false,
+              style: const ButtonStyle(visualDensity: VisualDensity.compact),
+              segments: [
+                for (final s in LayerScene.values)
+                  ButtonSegment(
+                    value: s,
+                    label: Text(
+                      '${layerSceneLabel(s)} ${plan.feels[s]!.round()}°',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+              ],
+              selected: {_scene},
+              onSelectionChanged: (v) => setState(() => _scene = v.first),
             ),
-            const SizedBox(height: Space.xs),
-            Text(S.layeringCarry(packed), style: theme.textTheme.bodyMedium),
+            const SizedBox(height: Space.sm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Semantics(
+                  label: _figureSemantics(plan),
+                  child: SizedBox(
+                    width: 92,
+                    height: 104,
+                    // 首次出现与切换场景都由里到外依次过渡；减少动效时直接到终态。
+                    child: TweenAnimationBuilder<_States>(
+                      tween: _StaggerTween(
+                        begin: (0, 0, 0),
+                        end: _targets(plan, _scene),
+                      ),
+                      duration: reduced ? Duration.zero : Motion.slow * 1.5,
+                      builder: (context, states, _) => CustomPaint(
+                        painter: LayerFigurePainter(
+                          states: [states.$1, states.$2, states.$3],
+                          shellColor: wet ? Semantic.route : _windShell,
+                          outline: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Space.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final l in plan.layers)
+                        _LayerRow(
+                          item: l,
+                          wear: l.wear[_scene]!,
+                          color: _layerColor(l.kind, wet),
+                          muted: muted,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (plan.accessories.isNotEmpty) ...[
+              const SizedBox(height: Space.sm),
+              _Accessories(picks: plan.accessories, muted: muted),
+            ],
             if (plan.notes.isNotEmpty) ...[
               const SizedBox(height: Space.xs),
               Text(
@@ -127,9 +175,6 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
               expansionAnimationStyle: AnimationStyle(
                 duration: reduced ? Duration.zero : Motion.base,
               ),
-              onExpansionChanged: (expanded) => setState(() {
-                if (!expanded) _scene = LayerScene.start;
-              }),
               title: Text(S.layeringDetails, style: theme.textTheme.bodySmall),
               children: [
                 Column(
@@ -152,74 +197,6 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
                       ],
                     ),
                     const SizedBox(height: Space.sm),
-                    SegmentedButton<LayerScene>(
-                      showSelectedIcon: false,
-                      style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      segments: [
-                        for (final s in LayerScene.values)
-                          ButtonSegment(
-                            value: s,
-                            label: Text(
-                              '${layerSceneLabel(s)} ${plan.feels[s]!.round()}°',
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                      ],
-                      selected: {_scene},
-                      onSelectionChanged: (v) =>
-                          setState(() => _scene = v.first),
-                    ),
-                    const SizedBox(height: Space.sm),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Semantics(
-                          label: _figureSemantics(plan),
-                          child: SizedBox(
-                            width: 92,
-                            height: 104,
-                            // 首次出现与切换场景都由里到外依次过渡；减少动效时直接到终态。
-                            child: TweenAnimationBuilder<_States>(
-                              tween: _StaggerTween(
-                                begin: (0, 0, 0),
-                                end: _targets(plan, _scene),
-                              ),
-                              duration: reduced
-                                  ? Duration.zero
-                                  : Motion.slow * 1.5,
-                              builder: (context, states, _) => CustomPaint(
-                                painter: LayerFigurePainter(
-                                  states: [states.$1, states.$2, states.$3],
-                                  shellColor: wet ? Semantic.route : _windShell,
-                                  outline: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: Space.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final l in plan.layers)
-                                _LayerRow(
-                                  item: l,
-                                  wear: l.wear[_scene]!,
-                                  color: _layerColor(l.kind, wet),
-                                  muted: muted,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (plan.accessories.isNotEmpty) ...[
-                      const SizedBox(height: Space.sm),
-                      _Accessories(picks: plan.accessories, muted: muted),
-                    ],
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(

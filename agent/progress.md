@@ -753,3 +753,6 @@ Antigravity/Gemini3.8 Flash、Claude Code/DeepSeek v4.1 Flash、pi/GLM5.3基于�
 保留用户原有CLAUDE.md改动、reports/与research_notes/，不纳入提交；不发布Release或商店版本。
 
 **本地验证完成**：flutter analyze --no-pub 0 issues；flutter test --no-pub --reporter expanded 454/454通过。旧精确tooltip定位导致的集成测试失败已更新后全量复验。准备一次统一CI验证，未本地构建Web/APK/iOS。
+
+
+**用户追加与最终方向**：首版6614c5e推送及PR#10创建后，用户要求保留原衣物动画并已连接手机。最终改为动画/场景默认可见，偏好/依据折叠；首版文本摘要截图保留为过程证据，不作为最终界面。原CI39388972071取消；已识别小米12S，正式版与.dev保留，准备CI的独立.qa包做真机验证。
