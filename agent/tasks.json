@@ -1127,20 +1127,20 @@
    "p": "P1",
    "title": "天气详情减负：说明去重与次要内容按需展开",
    "deps": [],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "天气摘要后默认显示原衣物叠层动画、穿着/背包状态、场景切换及配件；偏好与依据按需展开；节点单一工具入口且保持懒加载；390px/1.6倍字号深浅色无溢出；缺失、过期、三小时概率和未确认区间仍明确。",
    "verify": "flutter analyze --no-pub；flutter test --no-pub；手机尺寸组件截图；Gemini/DeepSeek/GLM 独立评审投票；统一 GitHub Actions Web/APK/iOS",
-   "result": "2026-10-20：先复现折叠后只剩衣物名的问题，三CLI对最初文本摘要方案投3:0；用户随后明确要求保留原衣物动画，最终将人形/衣物动画及场景切换恢复为默认可见，偏好与依据收起。手机已连接，小米12S；将用独立.qa包与合成线路验证，不覆盖正式版。验证进行中。"
+   "result": "2026-10-20，业务提交b654af4：原衣物叠层动画/场景/穿着背包默认可见，偏好依据按需展开；主页面摘要→穿衣→沿途天气，节点单一工具入口保持懒加载。本地analyze 0、454/454 tests（含动画中间态、缺温、390px/1.6x深浅色）；统一CI39389755680全绿。小米12S在该CI .qa包验证默认动画、场景、偏好/依据、节点工具/指标、冷启动恢复；12次切换尾部3.959秒采样UI Frame p99 3.649ms、raster p99 5.486ms，无Fatal/Flutter错误。已清理本轮.qa和临时资源，正式版/.dev保留。首版文本方案CLI投票3:0，后续用户动画要求优先。证据docs/verification/detail-ci-2026-10-20/；未合并main/发布，iOS未真机。"
   },
   {
    "id": "T-198",
    "p": "P1",
    "title": "iOS 构建并入 Android 所在 CI 工作流",
    "deps": [],
-   "status": "in_progress",
+   "status": "done",
    "acceptance": "删除独立 ios-build.yml，同一 CI 运行先完成 Linux analyze/test/Web/APK，再由macOS构建未签名IPA；保留平台生成、锁文件、品牌验证和产物名，共用取消规则。",
    "verify": "YAML结构校验；GitHub Actions CI Web/APK/iOS与产物上传",
-   "result": "2026-10-20：已合并为ci.yml两个有依赖的作业；YAML结构检查通过，CI待验证。"
+   "result": "2026-10-20：ci.yml保留Linux并追加needs: build的macOS作业，删除ios-build.yml。CI39389755680（b654af4，device_test=true）两个作业均success，apk-release/android-device-test/ios-unsigned-ipa全部上传；平台生成、锁文件、签名/品牌核验与统一取消均保留。手机包已用于小米12S验收；IPA未签名，不代表iPhone真机或发布。后续批量改动完成后集中CI，收尾证据用[skip ci]避免重复构建。"
   }
  ]
 }

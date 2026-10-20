@@ -756,3 +756,7 @@ Antigravity/Gemini3.8 Flash、Claude Code/DeepSeek v4.1 Flash、pi/GLM5.3基于�
 
 
 **用户追加与最终方向**：首版6614c5e推送及PR#10创建后，用户要求保留原衣物动画并已连接手机。最终改为动画/场景默认可见，偏好/依据折叠；首版文本摘要截图保留为过程证据，不作为最终界面。原CI39388972071取消；已识别小米12S，正式版与.dev保留，准备CI的独立.qa包做真机验证。
+
+**最终动画版本地复验**：b654af4，analyze 0 issues、454/454测试通过；包含动画160ms中间值与终态，默认可见，390px/1.6倍字号深浅色及懒加载。已启动唯一完整验证39389755680（device_test=true），复用产物进行手机验收。按用户“不要每次更改都提交CI”，此后先批量本地修改与检查，再集中CI；本轮收尾只更新文档证据。
+
+**Round42完成**：业务b654af4；统一CI39389755680的Linux（analyze/test/Web/APK/.qa/签名）与macOS（iOS无签名/品牌/IPA）均通过，三类产物均已上传。小米12S（Android15/HyperOS3.0，深色/1.0字号）实测默认衣物动画、3场景穿着背包、怕冷标签与依据、节点工具/指标、冷启动偏好和线路恢复；QA日志Fatal/Flutter错误0。12次切换尾部3.959秒采样UI Frame p99 3.649ms（414帧），raster p99 5.486ms（415帧）；非端到端延迟或完整FPS结论。证据docs/verification/detail-ci-2026-10-20/device/。本轮新建.qa、私有合成数据、设备临时XML/录像和新增反向代理均清理；正式版和原.dev不变。iOS仅CI编译，未iPhone真机；PR#10仍draft，未合并main/发布。仅验证文档的收尾提交[skip ci]，不新增构建。

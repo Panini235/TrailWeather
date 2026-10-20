@@ -1,0 +1,35 @@
+{
+  "device": "Xiaomi 12S (2206123SC)",
+  "os": "Android 15 / HyperOS 3.0",
+  "font_scale": 1.0,
+  "theme": "system dark",
+  "package": "app.shanqing.hiking.qa",
+  "source_commit": "b654af419232b1a24e57eb0467048edf1463809d",
+  "ci_run": 39389755680,
+  "scenario": "self-authored synthetic GPX, 40 points, ~5.5km, ~780m ascent; live public Open-Meteo forecast",
+  "checks": {
+    "default_animated_clothing_visible": true,
+    "scene_wear_packed_transition": true,
+    "cold_preference_badge": true,
+    "basis_sheet": true,
+    "node_core_weather_and_interval_visible": true,
+    "single_tool_entry": true,
+    "more_metrics_expands": true,
+    "route_and_preference_survive_cold_start": true,
+    "fatal_or_flutter_errors": 0
+  },
+  "cleanup": {
+    "qa_uninstalled": true,
+    "qa_synthetic_data_removed_with_package": true,
+    "test_video_and_xml_removed_from_phone": true,
+    "added_reverse_proxy_removed": true,
+    "formal_and_existing_dev_preserved": true,
+    "system_settings_unchanged": true
+  },
+  "limits": [
+    "Android testing was in profile .qa; not a full release/device acceptance",
+    "iOS CI compilation only; no iPhone test",
+    "phone font_scale=1.0 and dark theme; 1.6x/light-dark covered by widget tests",
+    "animation trace is tail window, not whole interaction latency"
+  ]
+}

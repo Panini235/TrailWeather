@@ -1,0 +1,16 @@
+{
+  "id": 39389755680,
+  "url": "https://github.com/Panini235/TrailWeather/actions/runs/39389755680",
+  "commit": "b654af419232b1a24e57eb0467048edf1463809d",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": {
+    "analyze + test + web + android": "success",
+    "ios (unsigned IPA)": "success"
+  },
+  "artifacts": [
+    "apk-release",
+    "android-device-test",
+    "ios-unsigned-ipa"
+  ]
+}

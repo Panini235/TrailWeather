@@ -1,41 +1,49 @@
-# 详情页穿衣动画可见性与统一移动 CI（2026-10-20）
+# 详情页衣物动画与统一移动 CI（2026-10-20）
 
-**最终要求更新**：用户在首版6614c5e后要求继续使用原衣物动画。最终默认显示原衣物叠层动画、三场景切换、穿着/背包行与配件，只将偏好与依据收起。下方文本摘要截图和三CLI投票属于首版过程证据；最终界面以新增的手机验收证据为准。手机已连接，独立.qa包验证进行中。
+## 最终行为
 
-## 原因与修改
+用户在首版6614c5e后明确要求继续使用原衣物动画。最终业务提交b654af4：天气摘要后默认显示原衣物叠层动画、出发/行进/停留切换、穿着/背包状态及配件，只将偏好与依据收起；不再额外重复两行衣物文字摘要。
+节点主面板保留关键天气、时段和信号；海拔、指标、空气质量、来源对比、照片从“更多天气与工具”进入，仍按需挂载请求组件。
+默认衣物动画不存在的回归先在首版失败，恢复可见后通过；缺气温、部分未评估、非默认怕冷偏好保留明确提示。
 
-上轮穿衣卡默认折叠，只显示衣物名称串，无法区分穿着和备装；主页面把天气带放在穿衣卡前，增加了查找距离。
-当前默认显示“出发穿 / 随身带”（含配件），紧接天气摘要。场景、偏好、图示和依据从“调整与详情”展开，非默认偏好有标签。
-节点主面板保留关键天气、时段和信号；海拔、指标、空气质量、来源对比、照片集中从“更多天气与工具”进入。
+## 本地验证
 
-## 执行证据
+- `flutter analyze --no-pub`：0 issues。
+- `flutter test --no-pub --reporter expanded`：454/454通过。
+- 详情组件13/13：默认衣物图和场景可见、实际动画中间值与终态、怕冷偏好保存、缺温、工具懒加载、390px/1.6倍字号深浅色。
+- 大字号回归发现顶部时间控件溢出63px，修复后通过；完整时间保留在tooltip与摘要模式行。核心闭环测试改为按真实地图按钮定位，兼容卡片高度变化。
+- 未在本地构建Web/APK/iOS。依赖和锁文件不变。
 
-- 修改前已运行 `flutter test --no-pub test/widget/route_detail_v2_test.dart --plain-name '手机默认直接看见穿什么和带什么' --reporter expanded`，失败为 `Found 0 widgets with text containing 出发穿：`。
-- 修改后 `flutter test --no-pub test/widget/route_detail_v2_test.dart --reporter expanded`：13/13通过，含手机默认可见、缺气温、场景/怕冷偏好、工具入口懒加载、390px与1.6倍字号深浅色。
-- 大字号回归另发现顶部时间控件溢出63px；两个控件均约束宽度后通过，完整时间保留在tooltip和摘要时间模式中。
-- 合并工作流YAML已解析：build=ubuntu-latest，ios=macos-latest且needs=build；旧ios-build.yml删除；原concurrency.cancel-in-progress=true保留。
-- `flutter analyze --no-pub`：0 issues；`flutter test --no-pub --reporter expanded`：454/454通过。GitHub Actions结果待补充。
+## 统一 CI
 
-## 组件截图
+ci.yml：Linux analyze/test/Web/APK完成后，同一次运行的macOS作业构建未签名IPA。保留平台生成、锁文件、签名/品牌检查、原产物名和统一取消规则，删除独立ios-build.yml。
+最终验证运行：[39389755680](https://github.com/Panini235/TrailWeather/actions/runs/39389755680)，提交b654af4，device_test=true，同时生成独立.qa手机包。两个作业及三类产物上传均成功，见[CI结果](ci.json)。
+首版运行39388972071因用户追加动画要求取消；随后不含.qa的39389646315也停止，改为上述单次完整验证，未让两套完整构建并行。
+用户再次要求不要每次更改都触发CI：后续同一批修改先完成本地检查，再集中一次CI，复用现有产物；本轮收尾文档不触发构建。
 
-390×844逻辑像素，2倍输出；使用集成测试的**合成线路、合成天气**和AppTheme。临时Flutter test截图夹具加载本机中文/图标字体，对根RepaintBoundary截图（含节点弹层），完成后删除夹具。
-修改前来自公开提交93e7574；修改后来自本次工作树，四份实现文件临时恢复旧版本后已完整还原。
-这些不是Android/iPhone设备截图：测试器不加载网络瓦片，地图背景为空；自绘图表文字仍受测试字体限制，截图不能证明真机字体、联网、帧率或系统无障碍。
+## Android 真机验收
 
-| 状态 | 证据 |
-| --- | --- |
-| 原默认页：只有衣物名串 | [before.png](before.png) |
-| 当前默认页：摘要后直接显示穿/带 | [after.png](after.png) |
-| 原节点面板 | [node-before.png](node-before.png) |
-| 当前节点面板：单一工具入口 | [node-after.png](node-after.png) |
-| 深色1.6倍字号（滚到穿衣区） | [dark-large-after.png](dark-large-after.png) |
+已连接小米12S（Android 15），正式版与.dev均保留，起始无.qa包。仅操作本轮独立.qa和合成线路，不读正式版/旧开发包数据。验收已完成，见[结果](device/result.json)。
 
-## CLI独立投票
+- 默认衣物动画、出发/行进/停留穿着与背包变化、怕冷偏好标签、依据面板、节点工具及更多指标均通过。
+- 强制结束.qa后冷启动，合成线路、怕冷偏好与默认衣物图均恢复；.qa进程日志未见Fatal/Flutter错误。
+- 实际手机为系统深色、字体倍率1.0；390px/1.6倍字号的深浅色验证来自组件测试。
+- 12次场景切换的VM尾部采样保留3.959秒，414个UI Frame与415个GPURasterizer::Draw；P99分别3.649ms/5.486ms，最大4.942ms/6.901ms。不是端到端呈现延迟或完整帧率结论。[统计](device/animation-stats.json)、[样本](device/animation-samples.json)。首次采样因本地WebSocket默认1MB限制读取失败，扩大接收上限后重采成功，无产品改动。
+- [默认页](device/01-default.png)、[停留穿着态](device/02-stop.png)、[偏好](device/03-preference.png)、[依据](device/04-basis.png)、[节点页](device/05-node.png)、[工具入口](device/06-tools.png)、[更多指标](device/07-metrics.png)、[冷启动后](device/08-restart.png)、[切换录像](device/clothing-animation.mp4)。均为本轮.qa合成线路，天气为公开预报。
+- 已卸载本轮.qa、删除其合成数据及设备临时XML/录像，移除新增的7897反向代理，返回桌面。正式版和原.dev保留，未改系统时间、代理、字体或主题设置。
 
-[完整投票](votes.json)：Antigravity CLI的Gemini3.8 Flash High、Claude Code的DeepSeek v4.1 Flash、pi的GLM5.3（auto路由），三票均选择A（紧凑穿/带摘要，详情按需展开），B/C各0票。规则已由用户澄清为少数服从多数；本次没有分歧。
-评审仅基于三份与公开GitHub分支blob完全一致的源码，未把评审冒充截图或设备测试。所有CLI显式使用用户指定的7897代理；GLM首路由429后更换到同模型已配置自动路由成功。原始输出只在临时目录，不入库任何凭据。
-评审建议需核验：未采纳GLM测试项中的“缺失值仍为0”错误表述，缺失继续为null。
+## 组件图片
 
-## 验证边界
+[最终动画预览](animation-widget.png)为390×844逻辑像素的组件测试截图（滚至穿衣卡），使用合成线路/天气及AppTheme。不是设备截图；测试器不加载网络瓦片，自绘图表字体受测试环境限制。
+首版过程图片：[原默认页](before.png)、[文本摘要尝试](after.png)、[原节点面板](node-before.png)、[当前节点面板组件](node-after.png)、[首版深色大字](dark-large-after.png)。文本摘要尝试已被用户要求的动画版替代。
 
-iOS仅构建未签名IPA，仍需用户自行签名安装。本次不合并main，不发布Release或商店版本；Android/iOS真机视觉和性能另验。
+## 辅助 CLI 复核
+
+[完整投票](votes.json)：Antigravity CLI / Gemini3.8 Flash High、Claude Code / DeepSeek v4.1 Flash、pi / GLM5.3自动路由，对首版文本摘要方案独立投票A=3/B=0/C=0。规则由用户澄清为少数服从多数；本次没有模型间分歧。
+用户随后明确的衣物动画要求优先于首版模型建议，最终以动画版为准。所有CLI显式经7897代理；仅发送与公开分支blob一致的源码，无私有记录或密钥。代码复核不替代组件或设备测试。未采纳GLM建议中“缺失值仍为0”的错误表述，缺失继续为null。
+
+## 边界
+
+iOS仅构建未签名IPA，仍需用户自行签名安装；不宣称iPhone真机验收。没有合并main、发布Release或商店版本。
+
+本轮仅补充docs/agent证据的收尾提交使用GitHub官方支持的`[skip ci]`，不为验证记录再次构建。构建证据对应业务提交b654af4。
