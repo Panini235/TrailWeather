@@ -5,21 +5,24 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/geo.dart';
+import '../../core/units.dart';
 import '../../data/routes/route_models.dart';
 import '../../data/settings/settings_repository.dart';
 import '../../data/weather/node_wx_class.dart';
+import '../../data/weather/weather_models.dart';
 import '../motion.dart';
 import '../strings.dart';
 import '../tokens.dart';
 import 'detail_state.dart';
 import 'node_wx_style.dart';
 import 'ridge_axis.dart';
+import 'ridge_key_weather.dart';
 
 /// 山脊天气带（D-032）：海拔剖面作主视觉，山脊线按最近节点的天气分类着色。
 ///
 /// 颜色只来自节点的真实分类（与地图标记同一套），节点之间不插值；
-/// 节点序号与列表一致，密集处保留圆点，选中时始终显示该节点序号；
-/// 触发提示的节点另画天气图标；行程模式下日落后的路段铺夜色。
+/// 保留小圆点的简洁剖面，选中说明中的序号与列表一致。
+/// 重要降水/阵风集中在图下标记，黄红提示保留图标；日落后路段铺夜色。
 /// 首次拿到数据时山脊线从左到右画出一次，减少动效或低耗电时直接显示。
 class RidgeWeatherBand extends ConsumerStatefulWidget {
   const RidgeWeatherBand({
@@ -118,12 +121,14 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
             hasElevation: _profile.hasElevation,
           ),
           child: SizedBox(
+            key: const ValueKey('ridge-profile'),
             height: widget.height,
             child: LayoutBuilder(
               builder: (context, c) {
                 final geom = _Geometry(
                   size: Size(c.maxWidth, widget.height),
                   profile: _profile,
+                  bottom: 26,
                 );
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -141,12 +146,15 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
                         classes: classes,
                         selected: sel,
                         nightFromIndex: widget.nightFromIndex,
-                        numberNodes: true,
+                        compact: true,
+                        calm: Semantic.go,
+                        fontFamily: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.fontFamily,
                         onTapNode: widget.onTapNode,
                         progress: _curve,
-                        fill: scheme.primary.withValues(
-                          alpha: dark ? 0.16 : 0.10,
-                        ),
+                        fill: Semantic.go.withValues(alpha: dark ? 0.25 : 0.10),
                         neutral: scheme.outlineVariant,
                         label: scheme.onSurfaceVariant,
                         guide: scheme.onSurface,
@@ -162,14 +170,15 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: Space.xs),
-          child: Text(
-            S.ridgeInteractionHint,
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(color: scheme.onSurfaceVariant),
+        if (sel == null)
+          Padding(
+            padding: const EdgeInsets.only(top: Space.xs),
+            child: Text(
+              S.ridgeInteractionHint,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: scheme.onSurfaceVariant),
+            ),
           ),
-        ),
         if (sel != null && sel >= 0 && sel < rows.length)
           Padding(
             padding: const EdgeInsets.only(top: Space.xs),
@@ -178,8 +187,15 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
               index: sel,
               cls: classes[sel],
               eta: widget.etaLabels?[sel],
+              settings: ref.watch(settingsProvider),
             ),
           ),
+        const SizedBox(height: Space.sm),
+        RidgeKeyWeather(
+          rows: rows,
+          settings: ref.watch(settingsProvider),
+          onSelect: widget.onTapNode,
+        ),
       ],
     );
   }
@@ -222,6 +238,7 @@ class RidgeBandGraphic extends StatelessWidget {
             geom: _Geometry(size: Size(c.maxWidth, height), profile: profile),
             rows: rows,
             classes: [for (final r in rows) classifyNodeWx(r.wx)],
+            fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
             selected: null,
             nightFromIndex: nightFromIndex,
             keyNodes: keyNodes,
@@ -246,12 +263,14 @@ class _SelectedLine extends StatelessWidget {
     required this.index,
     required this.cls,
     required this.eta,
+    required this.settings,
   });
 
   final NodeWxRow row;
   final int index;
   final NodeWxClass cls;
   final String? eta;
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {
@@ -263,6 +282,8 @@ class _SelectedLine extends StatelessWidget {
       if (n.elevationM != null) '${n.elevationM!.round()} m',
       if (eta != null) S.ridgeArrive(eta!),
       cls.label,
+      '${S.ridgeNodePrecip} ${row.wx?.values[WxVar.precip] == null ? S.notProvided : Units.precipMm(row.wx!.values[WxVar.precip]!, imperial: settings.imperial)}',
+      '${S.ridgeNodeGust} ${row.wx?.values[WxVar.windGust] == null ? S.notProvided : Units.windMs(row.wx!.values[WxVar.windGust]!, unit: settings.windUnit)}',
     ];
     return Row(
       children: [
@@ -322,12 +343,13 @@ class _Profile {
 }
 
 class _Geometry {
-  _Geometry({required this.size, required this.profile});
+  _Geometry({required this.size, required this.profile, this.bottom = 18});
 
   final Size size;
   final _Profile profile;
 
-  static const left = 34.0, right = 8.0, top = 30.0, bottom = 18.0;
+  static const left = 34.0, right = 8.0, top = 30.0;
+  final double bottom;
 
   double get plotW => size.width - left - right;
   double get plotH => size.height - top - bottom;
@@ -376,7 +398,9 @@ class _RidgePainter extends CustomPainter {
     required this.nightFromIndex,
     this.keyNodes = const [],
     this.keyLabels,
-    this.numberNodes = false,
+    this.compact = false,
+    this.calm,
+    this.fontFamily,
     this.onTapNode,
     required this.progress,
     required this.fill,
@@ -396,7 +420,9 @@ class _RidgePainter extends CustomPainter {
   /// 画成编号徽章的节点（分享图）；App 内为空。
   final List<int> keyNodes;
   final List<String>? keyLabels;
-  final bool numberNodes;
+  final bool compact;
+  final Color? calm;
+  final String? fontFamily;
   final ValueChanged<int>? onTapNode;
   final Animation<double> progress;
   final Color fill, neutral, label, guide, night;
@@ -408,13 +434,19 @@ class _RidgePainter extends CustomPainter {
     final p = g.profile;
     final t = progress.value;
     final plot = Rect.fromLTWH(_Geometry.left, _Geometry.top, g.plotW, g.plotH);
-    final floorY = size.height - _Geometry.bottom;
+    final floorY = size.height - g.bottom;
+    Color colorAt(int i) => rows[i].wx == null
+        ? neutral
+        : (compact && classes[i] == NodeWxClass.calm
+              ? calm!
+              : nodeWxColor(classes[i]));
 
     // 细网格与四级海拔刻度；无海拔不生成任何海拔值。
     if (p.hasElevation) {
       final span = math.max(p.maxE - p.minE, 30);
-      for (var i = 0; i <= 3; i++) {
-        final elevation = p.minE + span * i / 3;
+      final divisions = compact ? 2 : 3;
+      for (var i = 0; i <= divisions; i++) {
+        final elevation = p.minE + span * i / divisions;
         final y = g.y(elevation);
         canvas.drawLine(
           Offset(plot.left, y),
@@ -432,14 +464,14 @@ class _RidgePainter extends CustomPainter {
         Offset(x, plot.top),
         Offset(x, floorY),
         Paint()
-          ..color = label.withValues(alpha: 0.08)
+          ..color = label.withValues(alpha: compact ? 0 : 0.08)
           ..strokeWidth = 0.5,
       );
       final km = d / 1000;
       _text(
         canvas,
         km == km.roundToDouble() ? '${km.round()}' : '$km',
-        Offset(x, floorY + 3),
+        Offset(x, floorY + (compact ? 8 : 3)),
         10,
         center: true,
       );
@@ -479,7 +511,7 @@ class _RidgePainter extends CustomPainter {
             ? p.total
             : (d + rows[i + 1].node.distFromStartM) / 2;
         if (d1 <= d0) continue;
-        final c = rows[i].wx == null ? neutral : nodeWxColor(classes[i]);
+        final c = colorAt(i);
         canvas.drawPath(g.segment(d0, d1), _stroke(c));
       }
     }
@@ -500,16 +532,12 @@ class _RidgePainter extends CustomPainter {
 
     // 节点：山脊上的小圆点。
     final revealX = plot.left + plot.width * t + 0.5;
-    final numberedX = <double>[];
-    final selectedX = s != null && s >= 0 && s < rows.length
-        ? g.x(rows[s].node.distFromStartM)
-        : null;
     for (var i = 0; i < rows.length; i++) {
       final n = rows[i].node;
       final nx = g.x(n.distFromStartM);
       if (nx > revealX) continue;
       final ny = g.y(n.elevationM ?? p.eleAt(n.distFromStartM));
-      final color = rows[i].wx == null ? neutral : nodeWxColor(classes[i]);
+      final color = colorAt(i);
       final k = keyNodes.indexOf(i);
       if (k >= 0) {
         _numberBadge(canvas, Offset(nx, ny), k + 1, color);
@@ -520,21 +548,6 @@ class _RidgePainter extends CustomPainter {
         continue;
       }
       final isSel = i == s;
-      if (numberNodes &&
-          (isSel ||
-              (numberedX.every((x) => (x - nx).abs() >= 22) &&
-                  (selectedX == null || (selectedX - nx).abs() >= 22)))) {
-        numberedX.add(nx);
-        if (isSel) {
-          canvas.drawCircle(
-            Offset(nx, ny),
-            12,
-            Paint()..color = guide.withValues(alpha: 0.25),
-          );
-        }
-        _numberBadge(canvas, Offset(nx, ny), i + 1, color);
-        continue;
-      }
       canvas
         ..drawCircle(
           Offset(nx, ny),
@@ -549,8 +562,12 @@ class _RidgePainter extends CustomPainter {
     final order =
         [
           for (var i = 0; i < rows.length; i++)
-            if (i == s ||
-                (rows[i].wx != null && classes[i].level != NodeWxLevel.none))
+            if ((i == s && classes[i].level != NodeWxLevel.none) ||
+                (rows[i].wx != null &&
+                    (compact
+                        ? classes[i].level == NodeWxLevel.red ||
+                              classes[i].level == NodeWxLevel.yellow
+                        : classes[i].level != NodeWxLevel.none)))
               i,
         ]..sort((a, b) {
           if (a == s) return -1;
@@ -572,9 +589,15 @@ class _RidgePainter extends CustomPainter {
     if (!p.hasElevation) {
       _text(canvas, S.ridgeNoElevation, Offset(plot.left, floorY - 14), 10);
     }
-    _text(canvas, '0', Offset(plot.left, floorY + 3), 10);
+    _text(canvas, '0', Offset(plot.left, floorY + (compact ? 8 : 3)), 10);
     final km = '${(p.total / 1000).toStringAsFixed(1)} km';
-    _text(canvas, km, Offset(plot.right, floorY + 3), 10, alignRight: true);
+    _text(
+      canvas,
+      km,
+      Offset(plot.right, floorY + (compact ? 8 : 3)),
+      10,
+      alignRight: true,
+    );
   }
 
   /// 图标之间的最小水平间距（图标直径 20 + 留白）。
@@ -623,8 +646,9 @@ class _RidgePainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: '$n',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 10,
+          fontFamily: fontFamily,
           color: Colors.white,
           fontWeight: FontWeight.w700,
         ),
@@ -645,7 +669,7 @@ class _RidgePainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: s,
-        style: TextStyle(fontSize: size, color: label),
+        style: TextStyle(fontSize: size, color: label, fontFamily: fontFamily),
       ),
       textDirection: textDirection,
     )..layout();
@@ -660,7 +684,7 @@ class _RidgePainter extends CustomPainter {
   }
 
   @override
-  SemanticsBuilderCallback? get semanticsBuilder => !numberNodes
+  SemanticsBuilderCallback? get semanticsBuilder => onTapNode == null
       ? null
       : (size) => [
           for (var i = 0; i < rows.length; i++)
@@ -697,7 +721,9 @@ class _RidgePainter extends CustomPainter {
       old.nightFromIndex != nightFromIndex ||
       old.keyNodes != keyNodes ||
       old.keyLabels != keyLabels ||
-      old.numberNodes != numberNodes ||
+      old.compact != compact ||
+      old.calm != calm ||
+      old.fontFamily != fontFamily ||
       old.geom.size != geom.size ||
       old.geom.profile != geom.profile ||
       old.fill != fill;

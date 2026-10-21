@@ -2,53 +2,6 @@ part of 'route_detail_screen.dart';
 
 // 详情页：结论卡、节点行与数据说明。
 
-/// 结论卡的时间上下文，固定时刻保留切到行程模式的入口。
-class _ModeLine extends StatelessWidget {
-  const _ModeLine({
-    required this.tripMode,
-    required this.label,
-    required this.onSwitchToTrip,
-  });
-
-  final bool tripMode;
-  final String label;
-  final VoidCallback? onSwitchToTrip;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.only(top: Space.xs),
-      child: Row(
-        children: [
-          Icon(
-            tripMode ? Icons.hiking : Icons.schedule,
-            size: 16,
-            color: color,
-          ),
-          const SizedBox(width: Space.xs),
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (onSwitchToTrip != null)
-            TextButton(
-              onPressed: onSwitchToTrip,
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              child: const Text(S.detailSwitchToTrip),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ConclusionCard extends StatelessWidget {
   const _ConclusionCard({
     required this.summary,
@@ -59,7 +12,6 @@ class _ConclusionCard extends StatelessWidget {
     required this.onShowHints,
     required this.onDepartures,
     required this.modeLabel,
-    this.onSwitchToTrip,
   });
 
   final RouteWxSummary summary;
@@ -67,9 +19,6 @@ class _ConclusionCard extends StatelessWidget {
 
   /// 时间模式一行：固定时刻是“全线同一小时”，行程模式是“几点出发、约几点到”。
   final String modeLabel;
-
-  /// 固定时刻模式下“改按出发时间看”的入口；行程模式为 null。
-  final VoidCallback? onSwitchToTrip;
 
   /// 固定时刻模式的全天降水一行；行程模式为 null。
   final String? dayLine;
@@ -96,15 +45,18 @@ class _ConclusionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              S.routeSummary,
-              style: theme.textTheme.labelMedium?.copyWith(color: muted),
+            Tooltip(
+              message: modeLabel,
+              child: Text(
+                S.routeSummary,
+                style: theme.textTheme.labelMedium?.copyWith(color: muted),
+              ),
             ),
-            _ModeLine(
-              tripMode: tripMode,
-              label: modeLabel,
-              onSwitchToTrip: onSwitchToTrip,
-            ),
+            if (tripMode)
+              Text(
+                modeLabel,
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              ),
             const SizedBox(height: Space.xs),
             // 结论先行：最关键的一条提示；未触发时如实说明，不说“适合出发”。
             if (summary.hasAnyData) ...[
@@ -127,6 +79,7 @@ class _ConclusionCard extends StatelessWidget {
                       context,
                       S.detailMinMaxTemp,
                       '${summary.minTempC == null ? S.notProvided : Units.temp(summary.minTempC!, imperial: settings.imperial, digits: 0)} / ${summary.maxTempC == null ? S.notProvided : Units.temp(summary.maxTempC!, imperial: settings.imperial)}',
+                      icon: Icons.thermostat_outlined,
                     ),
                   ),
                   Expanded(
@@ -139,6 +92,12 @@ class _ConclusionCard extends StatelessWidget {
                               summary.maxGustMs!,
                               unit: settings.windUnit,
                             ),
+                      icon: Icons.air,
+                      emphasis: true,
+                      tone: sorted
+                          .where((h) => h.id == 'gust')
+                          .map((h) => _hintInk(context, h))
+                          .firstOrNull,
                     ),
                   ),
                   Expanded(
@@ -152,16 +111,18 @@ class _ConclusionCard extends StatelessWidget {
                               summary.totalPrecipMm!,
                               imperial: settings.imperial,
                             ),
+                      icon: Icons.water_drop_outlined,
+                      emphasis: true,
+                      tone: sorted
+                          .where((h) => h.id == 'precip')
+                          .map((h) => _hintInk(context, h))
+                          .firstOrNull,
                     ),
                   ),
                 ],
               ),
             if (dayLine != null) ...[
-              const Divider(height: Space.lg),
-              Text(
-                S.detailDayPrecip,
-                style: theme.textTheme.labelSmall?.copyWith(color: muted),
-              ),
+              const Divider(height: Space.sm),
               Text(dayLine!, style: theme.textTheme.bodySmall),
             ],
             if (sorted.length > 1) ...[
@@ -204,20 +165,44 @@ class _ConclusionCard extends StatelessWidget {
     );
   }
 
-  Widget _kv(BuildContext context, String k, String v) => Column(
+  Widget _kv(
+    BuildContext context,
+    String k,
+    String v, {
+    required IconData icon,
+    bool emphasis = false,
+    Color? tone,
+  }) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        k,
-        style: TextStyle(
-          fontSize: 11,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: tone ?? Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 3),
+          Expanded(
+            child: Text(
+              k,
+              style: TextStyle(
+                fontSize: 11,
+                color: tone ?? Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
       ),
       RollingText(
         v,
         lowPower: settings.lowPower,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontSize: emphasis ? 17 : 15,
+          fontWeight: emphasis ? FontWeight.w700 : FontWeight.w600,
+          color: tone,
+        ),
       ),
     ],
   );

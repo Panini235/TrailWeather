@@ -1161,6 +1161,16 @@
    "acceptance": "单指向右/左拖动时模型朝相应方向转；双指缩放/扭转/平移和松手停止行为保持。",
    "verify": "flutter test test/widget/route_3d_page_test.dart；CI测试包真机",
    "result": "2026-10-20，6836d82：bearing由减dx改加dx。组件持续左右手势先红后绿，双指/松手停止回归保持。CI39394169941成功；小米12S同一合成线路/同样手势对照：旧QA右拖-0.68989rad，左拖增角；新QA右拖增+0.68989rad、左拖减-0.82066rad，均跟随操作。profile/AOT字段按IEEE754 float64解码（首次未解码原始Int采集已丢弃重采）。QA进程无Fatal/Flutter错误，清理完成；未合并/发布。"
+  },
+  {
+   "id": "T-201",
+   "p": "P1",
+   "title": "按用户截图恢复详情层级并标记时段降水与阵风",
+   "deps": [],
+   "status": "in_progress",
+   "acceptance": "紧凑摘要→干净剖面→原衣物动画→地图；怕冷/适中/怕热及依据直接可用；关键降水/阵风有真实数值、单位与峰值节点联动，缺失/零值/并列与区间保持真实；原地图/3D修复保留。",
+   "verify": "flutter analyze --no-pub；465项全量测试；同尺寸截图对照；三CLI投票；单次统一CI及小米12S QA包验收",
+   "result": "本地analyze 0、465/465通过。截图对照通过，CLI布局A=3、裤装建议A=3；裤装为建议，本批未改下装规则或增加全身图。CI/新包真机待完成；证据docs/verification/detail-reference-2026-10-21/。"
   }
  ]
 }

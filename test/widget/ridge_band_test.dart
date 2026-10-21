@@ -10,6 +10,7 @@ import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
 import 'package:trailweather/data/weather/node_wx_class.dart';
 import 'package:trailweather/ui/detail/node_wx_style.dart';
+import 'package:trailweather/ui/detail/ridge_key_weather.dart';
 import 'package:trailweather/ui/tokens.dart';
 import 'package:trailweather/ui/detail/detail_state.dart';
 import 'package:trailweather/ui/detail/ridge_band.dart';
@@ -59,7 +60,10 @@ WxProvenance _prov() => WxProvenance(
 
 /// 6 个节点：第 2 个较强降水（黄），第 4 个大风（红），其余未触发；
 /// [withWx] 为 false 时模拟还没拿到数据。
-List<NodeWxRow> _rows({bool withWx = true}) => [
+List<NodeWxRow> _rows({
+  bool withWx = true,
+  Map<WxVar, double?> Function(int)? values,
+}) => [
   for (var i = 0; i < 6; i++)
     NodeWxRow(
       node: RouteNode(
@@ -79,11 +83,13 @@ List<NodeWxRow> _rows({bool withWx = true}) => [
                 for (final t in [_t, _t.add(const Duration(hours: 1))])
                   WxHourValue(
                     validFromUtc: t,
-                    values: {
-                      WxVar.temperature: 10.0,
-                      WxVar.precip: i == 2 ? 4.0 : 0.0,
-                      WxVar.windGust: i == 4 ? 19.0 : 5.0,
-                    },
+                    values:
+                        values?.call(i) ??
+                        {
+                          WxVar.temperature: 10.0,
+                          WxVar.precip: i == 2 ? 4.0 : 0.0,
+                          WxVar.windGust: i == 4 ? 19.0 : 5.0,
+                        },
                   ),
               ],
             )
@@ -119,6 +125,82 @@ Future<void> _pump(
 }
 
 void main() {
+  test('关键值定位各自真实峰值；零值、同值不指定虚假特殊节点', () {
+    final rows = _rows();
+    expect(ridgePeak(rows, WxVar.precip).value, 4);
+    expect(ridgePeak(rows, WxVar.precip).target, 2);
+    expect(ridgePeak(rows, WxVar.windGust).value, 19);
+    expect(ridgePeak(rows, WxVar.windGust).target, 4);
+    final same = _rows(values: (_) => {WxVar.precip: 0, WxVar.windGust: 10});
+    expect(ridgePeak(same, WxVar.precip).value, 0);
+    expect(ridgePeak(same, WxVar.precip).target, isNull);
+    expect(ridgePeak(same, WxVar.windGust).target, isNull);
+    final tied = _rows(
+      values: (i) => {WxVar.windGust: i == 1 || i == 3 ? 12 : 0},
+    );
+    expect(ridgePeak(tied, WxVar.windGust).indices, [1, 3]);
+    expect(ridgePeak(tied, WxVar.windGust).target, 1);
+  });
+
+  test('降水概率不能补成量，持续风不能补成阵风；只比较覆盖的节点', () {
+    final missing = _rows(
+      values: (_) => {WxVar.precipProb: 90, WxVar.windSpeed: 30},
+    );
+    expect(ridgePeak(missing, WxVar.precip).value, isNull);
+    expect(ridgePeak(missing, WxVar.windGust).value, isNull);
+    final partial = _rows(values: (i) => {WxVar.precip: i == 3 ? 0.7 : null});
+    final peak = ridgePeak(partial, WxVar.precip);
+    expect(peak.value, 0.7);
+    expect(peak.target, 3);
+    expect(peak.provided, 1);
+    expect(peak.total, 6);
+  });
+
+  testWidgets('降水与阵风标记均可点击，选中说明展示该节点真实量和阵风', (tester) async {
+    int? selected;
+    await _pump(
+      tester,
+      StatefulBuilder(
+        builder: (context, set) => RidgeWeatherBand(
+          route: _route(),
+          rows: _rows(),
+          selectedIndex: selected,
+          onTapNode: (i) => set(() => selected = i),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.ridgePeakPrecip));
+    await tester.pumpAndSettle();
+    expect(selected, 2);
+    expect(find.textContaining('节点 3 · 1.1 km ·'), findsOneWidget);
+    expect(find.textContaining('时段降水 4.0 mm'), findsOneWidget);
+    await tester.tap(find.text(S.ridgePeakGust));
+    await tester.pumpAndSettle();
+    expect(selected, 4);
+    expect(find.textContaining('节点 5 · 2.2 km ·'), findsOneWidget);
+    expect(find.textContaining('阵风 68 km/h'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('缺失关键值保留两个明确缺失标记，不显示0或虚构峰值位置', (tester) async {
+    await _pump(
+      tester,
+      RidgeWeatherBand(
+        route: _route(),
+        rows: _rows(values: (_) => {WxVar.precipProb: 90, WxVar.windSpeed: 30}),
+        selectedIndex: null,
+        onTapNode: (_) => fail('缺失标记不可定位'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(S.notProvided), findsNWidgets(2));
+    expect(find.text('0.0 mm'), findsNothing);
+    await tester.tap(find.text(S.ridgePeakGust));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   test('未触发提示阈值使用中性信息图标，不显示通过对勾或绿色', () {
     expect(nodeWxIcon(NodeWxClass.calm), Icons.info_outline);
     expect(nodeWxColor(NodeWxClass.calm), Semantic.unknown);
@@ -149,7 +231,7 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('6 个节点，2 个触发天气提示')), findsOneWidget);
     expect(find.text('点选剖面节点，与下方编号对应'), findsOneWidget);
     // 右侧末端附近点一下 → 选中最后一个节点。
-    final box = tester.getRect(find.byType(CustomPaint).last);
+    final box = tester.getRect(find.byKey(const ValueKey('ridge-profile')));
     await tester.tapAt(Offset(box.right - 4, box.center.dy));
     await tester.pumpAndSettle();
     expect(selected, 5);

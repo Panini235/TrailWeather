@@ -165,10 +165,10 @@ void main() {
     );
     expect(figure, findsOneWidget);
     expect(find.textContaining('停留 '), findsOneWidget);
-    expect(find.text(S.layeringColdy), findsNothing);
+    expect(find.text(S.layeringColdy), findsOneWidget);
     expect(
       tester.getTopLeft(find.text(S.layeringTitle)).dy,
-      lessThan(tester.getTopLeft(find.text(S.weatherAlongRoute)).dy),
+      greaterThan(tester.getTopLeft(find.byType(RidgeWeatherBand)).dy),
     );
     expect(tester.takeException(), isNull);
   });
@@ -178,16 +178,26 @@ void main() {
     expect(find.text('${S.notProvided} / ${S.notProvided}'), findsOneWidget);
     expect(find.text(S.layeringNoData), findsOneWidget);
     expect(
+      tester.getTopLeft(find.byType(RidgeWeatherBand)).dy,
+      lessThan(tester.getTopLeft(find.byType(LayeringCard)).dy),
+    );
+    expect(
+      tester.getTopLeft(find.byType(LayeringCard)).dy,
+      lessThan(tester.getTopLeft(find.byType(FlutterMap).first).dy),
+    );
+    expect(
       tester.getTopLeft(find.text(S.routeSummary)).dy,
       lessThan(tester.getTopLeft(find.byType(FlutterMap).first).dy),
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('结论卡写明时间模式；固定时刻可一键改按出发时间看', (tester) async {
+  testWidgets('时间控制条切换模式，摘要保留完整时间上下文', (tester) async {
     await _pump(tester);
-    expect(find.textContaining('全线同一时刻'), findsOneWidget);
-    await tester.tap(find.text(S.detailSwitchToTrip));
+    expect(find.byTooltip(RegExp('全线同一时刻')), findsOneWidget);
+    await tester.tap(find.byTooltip(RegExp(S.detailTimeAndPace)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(S.modeTrip));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
@@ -254,12 +264,7 @@ void main() {
 
   testWidgets('点选剖面末节点后，列表终点同步高亮并保留统一编号', (tester) async {
     await _pump(tester);
-    final chart = find
-        .descendant(
-          of: find.byType(RidgeWeatherBand),
-          matching: find.byType(CustomPaint),
-        )
-        .last;
+    final chart = find.byKey(const ValueKey('ridge-profile'));
     final box = tester.getRect(chart);
     await tester.tapAt(Offset(box.right - 8, box.center.dy));
     await tester.pumpAndSettle();
@@ -274,9 +279,9 @@ void main() {
   testWidgets('穿衣卡片：切换场景、怕冷偏好会加厚保暖层并保存', (tester) async {
     final container = await _pump(tester);
     expect(find.text(S.layeringTitle), findsOneWidget);
-    expect(find.text(S.layeringColdy), findsNothing);
+    expect(find.text(S.layeringColdy), findsOneWidget);
     expect(find.text(S.layeringIncomplete), findsOneWidget);
-    // 默认即可切换场景和查看衣物动画，偏好单独展开。
+    // 场景、衣物动画、偏好和依据均直接可用。
     // 保暖层那一行是否带“背包”标记（防护层随假数据的时刻变化，不参与断言）。
     Finder midPacked(String name) => find.descendant(
       of: find.ancestor(of: find.text(name), matching: find.byType(Row)).first,
@@ -304,14 +309,11 @@ void main() {
         (tester.widget<CustomPaint>(figure).painter! as LayerFigurePainter)
             .states;
     expect(states[1], 1);
-    await tester.ensureVisible(find.text(S.layeringDetails));
-    await tester.tap(find.text(S.layeringDetails));
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text(S.layeringColdy));
     await tester.pumpAndSettle();
     expect(container.read(settingsProvider).coldSensitivity, -1);
-    expect(find.text(S.layeringPreference(S.layeringColdy)), findsOneWidget);
+    expect(find.text(S.layeringColdy), findsOneWidget);
     expect(find.text('抓绒衣'), findsOneWidget);
 
     await tester.tap(find.text(S.layeringBasis));
@@ -322,11 +324,7 @@ void main() {
   for (final dark in [false, true]) {
     testWidgets('390px 大字号衣物动画及偏好可用（dark=$dark）', (tester) async {
       await _pump(tester, width: 390, height: 844, textScale: 1.6, dark: dark);
-      await tester.ensureVisible(find.text(S.layeringDetails));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(S.layeringDetails));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text(S.layeringColdy));
+      await tester.scrollUntilVisible(find.text(S.layeringColdy), 250);
       await tester.pumpAndSettle();
       await tester.tap(find.text(S.layeringColdy));
       await tester.pumpAndSettle();

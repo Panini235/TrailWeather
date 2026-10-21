@@ -537,24 +537,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
               modeLabel: tripMode
                   ? S.detailModeTrip(_clock(etas.first), _clock(etas.last))
                   : S.detailModeFixed(_clock(query.fixedUtc)),
-              onSwitchToTrip: _mode == TimeMode.fixed ? _switchToTrip : null,
             ),
           if (!bundleAsync.hasError && rows.isNotEmpty) ...[
             const SizedBox(height: Space.md),
-            // 准备层：穿什么、带什么（决策层之后、地图之前）。
-            LayeringCard(
-              rows: rows,
-              sunriseUtc: tripMode
-                  ? rows.first.point?.sunriseNear(etas.first)
-                  : null,
-              sunsetUtc: sunset,
-            ),
-            const SizedBox(height: Space.lg),
-            Text(
-              S.weatherAlongRoute,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: Space.sm),
             RidgeWeatherBand(
               route: route,
               rows: rows,
@@ -569,6 +554,14 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
               nightFromIndex: nightFrom == null || nightFrom < 0
                   ? null
                   : nightFrom,
+            ),
+            const SizedBox(height: Space.md),
+            LayeringCard(
+              rows: rows,
+              sunriseUtc: tripMode
+                  ? rows.first.point?.sunriseNear(etas.first)
+                  : null,
+              sunsetUtc: sunset,
             ),
           ],
           const SizedBox(height: 8),
@@ -883,6 +876,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
 
     return [
       const SizedBox(height: 4),
+      Text(S.weatherAlongRoute, style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: Space.sm),
       for (final e in timeline) ...[
         tile(e.index),
         if (e.folded.isNotEmpty)

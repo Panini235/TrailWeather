@@ -83,19 +83,16 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Wrap(
-              spacing: Space.sm,
+              alignment: WrapAlignment.spaceBetween,
+              runSpacing: Space.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(S.layeringTitle, style: theme.textTheme.titleSmall),
-                if (settings.coldSensitivity != 0)
-                  Text(
-                    S.layeringPreference(
-                      settings.coldSensitivity < 0
-                          ? S.layeringColdy
-                          : S.layeringWarmy,
-                    ),
-                    style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                  ),
+                _SensitivityToggle(
+                  value: settings.coldSensitivity,
+                  onChanged: (v) =>
+                      ref.read(settingsProvider.notifier).setColdSensitivity(v),
+                ),
               ],
             ),
             const SizedBox(height: Space.sm),
@@ -169,48 +166,12 @@ class _LayeringCardState extends ConsumerState<LayeringCard> {
                 style: theme.textTheme.bodySmall?.copyWith(color: muted),
               ),
             ],
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              childrenPadding: const EdgeInsets.only(bottom: Space.sm),
-              expansionAnimationStyle: AnimationStyle(
-                duration: reduced ? Duration.zero : Motion.base,
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => _showBasis(context, plan),
+                child: const Text(S.layeringBasis),
               ),
-              title: Text(S.layeringDetails, style: theme.textTheme.bodySmall),
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            S.layeringSensitivity,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ),
-                        _SensitivityToggle(
-                          value: settings.coldSensitivity,
-                          onChanged: (v) => ref
-                              .read(settingsProvider.notifier)
-                              .setColdSensitivity(v),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Space.sm),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          textStyle: const TextStyle(fontSize: 12),
-                        ),
-                        onPressed: () => _showBasis(context, plan),
-                        child: const Text(S.layeringBasis),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
           ],
         ),
