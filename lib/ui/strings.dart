@@ -336,13 +336,8 @@ abstract final class S {
       '${hasElevation ? '' : '，$ridgeNoElevation'}';
   static String ridgeNodeN(int n) => '节点 $n';
   static const ridgeInteractionHint = '点选剖面节点，与下方编号对应';
-  static const ridgePeakPrecip = '最大时段降水';
-  static const ridgePeakGust = '最大阵风';
   static const ridgeNodePrecip = '时段降水';
   static const ridgeNodeGust = '阵风';
-  static const ridgePeakPartial = '部分节点缺失';
-  static const ridgePeakScope =
-      '仅比较已覆盖节点的所选时段；降水量不是概率，阵风不是持续风。点击有位置的标记可选中对应节点。';
   static String ridgeArrive(String eta) => '$eta 到达';
 
   // 开屏

@@ -198,6 +198,13 @@ class _ConclusionCard extends StatelessWidget {
       RollingText(
         v,
         lowPower: settings.lowPower,
+        unitStyle: emphasis
+            ? TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: tone ?? Theme.of(context).colorScheme.onSurfaceVariant,
+              )
+            : null,
         style: TextStyle(
           fontSize: emphasis ? 17 : 15,
           fontWeight: emphasis ? FontWeight.w700 : FontWeight.w600,

@@ -16,13 +16,12 @@ import '../tokens.dart';
 import 'detail_state.dart';
 import 'node_wx_style.dart';
 import 'ridge_axis.dart';
-import 'ridge_key_weather.dart';
 
 /// 山脊天气带（D-032）：海拔剖面作主视觉，山脊线按最近节点的天气分类着色。
 ///
 /// 颜色只来自节点的真实分类（与地图标记同一套），节点之间不插值；
 /// 保留小圆点的简洁剖面，选中说明中的序号与列表一致。
-/// 重要降水/阵风集中在图下标记，黄红提示保留图标；日落后路段铺夜色。
+/// 选中说明保留当前节点降水/阵风，黄红提示保留图标；日落后路段铺夜色。
 /// 首次拿到数据时山脊线从左到右画出一次，减少动效或低耗电时直接显示。
 class RidgeWeatherBand extends ConsumerStatefulWidget {
   const RidgeWeatherBand({
@@ -190,12 +189,6 @@ class _RidgeWeatherBandState extends ConsumerState<RidgeWeatherBand>
               settings: ref.watch(settingsProvider),
             ),
           ),
-        const SizedBox(height: Space.sm),
-        RidgeKeyWeather(
-          rows: rows,
-          settings: ref.watch(settingsProvider),
-          onSelect: widget.onTapNode,
-        ),
       ],
     );
   }

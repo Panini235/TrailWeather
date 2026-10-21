@@ -166,6 +166,9 @@ void main() {
     expect(figure, findsOneWidget);
     expect(find.textContaining('停留 '), findsOneWidget);
     expect(find.text(S.layeringColdy), findsOneWidget);
+    expect(find.text(S.detailMaxGust), findsOneWidget);
+    expect(find.text(S.detailHourPrecip), findsOneWidget);
+    expect(find.text('最大时段降水'), findsNothing);
     expect(
       tester.getTopLeft(find.text(S.layeringTitle)).dy,
       greaterThan(tester.getTopLeft(find.byType(RidgeWeatherBand)).dy),

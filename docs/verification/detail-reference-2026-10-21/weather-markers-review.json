@@ -74,5 +74,11 @@
     "Gemini/DeepSeek用短横线代替缺失来源说明的建议不采纳；继续遵守此来源未提供。",
     "GLM提到既有节点循环切换，当前无该交互，不以此假设方案成本。",
     "摘要行程降水估算与节点时段峰值含义不同，不能为去重互相替换。"
-  ]
+  ],
+  "subsequent_implementation": {
+    "authorized": "用户回复可以",
+    "status": "implemented",
+    "evidence": "../detail-summary-2026-10-21/README.md",
+    "scope": "方案A，删除双块，摘要数字/单位分层；本地验证，不新增CI或手机包"
+  }
 }

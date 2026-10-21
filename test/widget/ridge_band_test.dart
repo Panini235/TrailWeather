@@ -10,7 +10,6 @@ import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
 import 'package:trailweather/data/weather/node_wx_class.dart';
 import 'package:trailweather/ui/detail/node_wx_style.dart';
-import 'package:trailweather/ui/detail/ridge_key_weather.dart';
 import 'package:trailweather/ui/tokens.dart';
 import 'package:trailweather/ui/detail/detail_state.dart';
 import 'package:trailweather/ui/detail/ridge_band.dart';
@@ -125,79 +124,46 @@ Future<void> _pump(
 }
 
 void main() {
-  test('关键值定位各自真实峰值；零值、同值不指定虚假特殊节点', () {
-    final rows = _rows();
-    expect(ridgePeak(rows, WxVar.precip).value, 4);
-    expect(ridgePeak(rows, WxVar.precip).target, 2);
-    expect(ridgePeak(rows, WxVar.windGust).value, 19);
-    expect(ridgePeak(rows, WxVar.windGust).target, 4);
-    final same = _rows(values: (_) => {WxVar.precip: 0, WxVar.windGust: 10});
-    expect(ridgePeak(same, WxVar.precip).value, 0);
-    expect(ridgePeak(same, WxVar.precip).target, isNull);
-    expect(ridgePeak(same, WxVar.windGust).target, isNull);
-    final tied = _rows(
-      values: (i) => {WxVar.windGust: i == 1 || i == 3 ? 12 : 0},
-    );
-    expect(ridgePeak(tied, WxVar.windGust).indices, [1, 3]);
-    expect(ridgePeak(tied, WxVar.windGust).target, 1);
-  });
-
-  test('降水概率不能补成量，持续风不能补成阵风；只比较覆盖的节点', () {
-    final missing = _rows(
-      values: (_) => {WxVar.precipProb: 90, WxVar.windSpeed: 30},
-    );
-    expect(ridgePeak(missing, WxVar.precip).value, isNull);
-    expect(ridgePeak(missing, WxVar.windGust).value, isNull);
-    final partial = _rows(values: (i) => {WxVar.precip: i == 3 ? 0.7 : null});
-    final peak = ridgePeak(partial, WxVar.precip);
-    expect(peak.value, 0.7);
-    expect(peak.target, 3);
-    expect(peak.provided, 1);
-    expect(peak.total, 6);
-  });
-
-  testWidgets('降水与阵风标记均可点击，选中说明展示该节点真实量和阵风', (tester) async {
+  testWidgets('剖面不再重复天气块，点选节点仍显示实际雨量与阵风', (tester) async {
     int? selected;
     await _pump(
       tester,
       StatefulBuilder(
         builder: (context, set) => RidgeWeatherBand(
           route: _route(),
-          rows: _rows(),
+          rows: _rows(values: (_) => {WxVar.precip: 4, WxVar.windGust: 19}),
           selectedIndex: selected,
           onTapNode: (i) => set(() => selected = i),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text(S.ridgePeakPrecip));
+    expect(find.text('最大时段降水'), findsNothing);
+    expect(find.text('最大阵风'), findsNothing);
+    final chart = tester.getRect(find.byKey(const ValueKey('ridge-profile')));
+    await tester.tapAt(Offset(chart.right - 4, chart.center.dy));
     await tester.pumpAndSettle();
-    expect(selected, 2);
-    expect(find.textContaining('节点 3 · 1.1 km ·'), findsOneWidget);
+    expect(selected, 5);
+    expect(find.textContaining('节点 6 · 2.8 km ·'), findsOneWidget);
     expect(find.textContaining('时段降水 4.0 mm'), findsOneWidget);
-    await tester.tap(find.text(S.ridgePeakGust));
-    await tester.pumpAndSettle();
-    expect(selected, 4);
-    expect(find.textContaining('节点 5 · 2.2 km ·'), findsOneWidget);
     expect(find.textContaining('阵风 68 km/h'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('缺失关键值保留两个明确缺失标记，不显示0或虚构峰值位置', (tester) async {
+  testWidgets('选中节点缺失雨量或阵风仍明确未提供，不以概率或持续风补值', (tester) async {
     await _pump(
       tester,
       RidgeWeatherBand(
         route: _route(),
         rows: _rows(values: (_) => {WxVar.precipProb: 90, WxVar.windSpeed: 30}),
-        selectedIndex: null,
-        onTapNode: (_) => fail('缺失标记不可定位'),
+        selectedIndex: 5,
+        onTapNode: (_) {},
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text(S.notProvided), findsNWidgets(2));
-    expect(find.text('0.0 mm'), findsNothing);
-    await tester.tap(find.text(S.ridgePeakGust));
-    await tester.pumpAndSettle();
+    expect(find.textContaining('时段降水 ${S.notProvided}'), findsOneWidget);
+    expect(find.textContaining('阵风 ${S.notProvided}'), findsOneWidget);
+    expect(find.textContaining('0.0 mm'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
