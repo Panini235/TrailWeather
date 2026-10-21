@@ -1,0 +1,6 @@
+{
+  "coldSensitivity": -1,
+  "baseLayerId": "amap",
+  "routeMapLayerId": "",
+  "result": "direct cold toggle persisted in own QA preferences; default AMap unchanged"
+}

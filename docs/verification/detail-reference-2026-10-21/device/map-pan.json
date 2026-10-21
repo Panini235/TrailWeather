@@ -1,0 +1,20 @@
+{
+  "gesture": {
+    "from": [
+      740,
+      1970
+    ],
+    "to": [
+      430,
+      1970
+    ],
+    "duration_ms": 650
+  },
+  "basemap": "default AMap (fresh QA, no layer override)",
+  "evidence": [
+    "08-map-before-pan.png",
+    "09-map-after-pan.png"
+  ],
+  "observation": "Visual comparison: map labels and route shifted left after one-finger swipe; clothing/header/page position stayed fixed. AMap tiles loaded without changing the default layer.",
+  "result": "passed"
+}

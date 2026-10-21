@@ -1,0 +1,32 @@
+{
+  "device": "Xiaomi 12S / Android 15",
+  "package": "app.shanqing.hiking.qa",
+  "source_commit": "282a6635c5a029356846596ab46b64d5757d88f6",
+  "ci_run": 39537375943,
+  "fixture": "self-authored 40-point synthetic GPX (~5.5km/780m, named synthetic camp); live public Open-Meteo best_match forecast",
+  "weather_scope": "10/21 fixed 12:00; precipitation/gust displayed as local 12:00–13:00",
+  "theme": "system dark",
+  "font_scale": 1.0,
+  "checks": {
+    "reference_section_order": true,
+    "original_clothing_figure_default_visible": true,
+    "start_moving_stop_wear_and_packed_states": true,
+    "direct_cold_preference_and_persistence": true,
+    "direct_basis_sheet": true,
+    "real_peak_gust_selects_corresponding_node": true,
+    "tied_maximum_locations_explicit": true,
+    "zero_precip_no_invented_hotspot": true,
+    "default_amap_tiles_loaded": true,
+    "single_finger_pan_page_stays_fixed": true,
+    "fatal_or_flutter_errors": 0
+  },
+  "peak": "34 km/h maximum gust at 5 tied nodes; click selects first tied node 1 at 0.0km; selected line reports 34km/h gust / 0.0mm interval precipitation",
+  "pants_extension": "advice only; no full-body animation or new pants rules implemented",
+  "limits": [
+    "QA profile package, not full production release acceptance",
+    "iOS CI unsigned build only, no iPhone device",
+    "physical phone dark/1.0x; 390px/1.6x/light-dark covered by widget tests",
+    "AMap worked this run without changing basemap code; previous B-016 grey root cause not identified; authorization B-012 unchanged"
+  ],
+  "cleanup": "own QA/fixture/XML/added reverse removed; formal/original dev and system settings preserved"
+}

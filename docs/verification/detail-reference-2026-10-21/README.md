@@ -16,4 +16,17 @@
 
 - [本地结果](local.json)：analyze无问题，465/465测试通过，含实际峰值定位/并列/缺失、风速不代替阵风、概率不代替雨量、原衣物动画及窄屏大字。未本地构建。
 - [同尺寸合成对照图](synthetic-dark.png)及[视觉QA](../../../design-qa.md)：参考原图不入库；合成线路/测试来源不是实况，静态渲染不是设备证据。新增标记和真实缓存提示导致高度与参考有意不同。
-- 单次统一CI、新包手机验收：待完成。iOS无真机，不以未签名IPA代表设备验证。
+- 源码 **282a6635c5a029356846596ab46b64d5757d88f6**，[唯一统一CI39537375943](https://github.com/Panini235/TrailWeather/actions/runs/39537375943)成功：[CI详情](ci.json)，Linux/macOS两作业及Web/APK/.qa/未签名IPA均成功。源码提交skip ci避免自动重复，收尾文档skip ci不重建。
+- [小米12S新QA结果](device/result.json)：按此CI的独立QA包验证真实公开预报；[默认布局](device/01-default-layout.png)、[实际最大阵风节点联动](device/peak-link.json)、[默认衣物图](device/03-clothing-default.png)、[停留穿着](device/04-clothing-stop.png)、[怕冷](device/05-clothing-cold.png)、[依据](device/06-clothing-basis.png)、[行进背包状态](device/07-clothing-moving.png)。34km/h最大阵风有5处并列，标签注明并列、点击选择实际节点1；选中行同时为0.0mm时段降水，不把零量解释成全天无雨。
+- 默认高德本轮已出图：[平移前](device/08-map-before-pan.png)、[单指平移后](device/09-map-after-pan.png)，地图向左移动而页面不滚动，[记录](device/map-pan.json)。前批灰底B-016本轮未复现；未改底图代码、不声称根因已修复或许可已解决。
+- [QA进程检查](device/error-check.json)无Fatal/Flutter错误；[清理](device/cleanup.json)已卸载本轮QA/合成数据，删除临时XML/新增ADB反向代理，正式版/原.dev和系统设置保留。
+- 手机深色/1.0x；大字与浅色来自组件测试。iOS无真机，不以未签名IPA代表设备验证。原衣物动画未变，不据此次截图宣称完整帧率/耗电；裤装扩展仍是提案。未合并main/发布。
+
+
+## 用户追加视觉复评：两块天气控件尚未定稿
+
+手机功能验证通过后，用户指出新增阵风/降雨按钮“不太规范美观”。[三CLI重新评审](weather-markers-review.json)：Gemini、DeepSeek选A（2票），GLM选C（1票）；三个都建议移除当前两个实底块。主要问题是外观像主操作、两块高度和可点击性不一致、固定时刻的数值重复、挤压曲线与衣物之间留白。先前“功能/目标顺序通过”不等于用户接受这两块的视觉设计。
+
+按多数形成建议A：重要数据回到摘要，用数字字重/字号与单位层级强调；剖面继续小圆点及选中节点当前值；不再新建图下峰值入口，节点仍从既有曲线/列表查询。全天与行程跨时段估算不与峰值混用。GLM的图上标注是少数方案，需额外处理碰撞、并列和密集节点。本轮用户要求讨论，**尚未实施A、没有追加源码或CI**。当前CI/手机证据只对应282a663的双块实现，视觉方案仍待后续修改。
+
+GLM关于“缺失显示0”的批评与代码不符，不采纳；三者提出的短横线缺失文案不覆盖本仓库“此来源未提供”约束。投票不替代事实核对。
