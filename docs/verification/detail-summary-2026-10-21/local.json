@@ -1,0 +1,30 @@
+{
+  "source_base": "0430771212fdea8ba5a081517d517bb9d1f8f1b5",
+  "source_sha256": {
+    "lib/ui/detail/detail_sections.dart": "42e89a01c09f3395508c98a27b226bc7d7b2e3f9d189f6bc8878450b0802ec05",
+    "lib/ui/detail/ridge_band.dart": "59c85354ca373d882dfc7fb1c3b219495a5e89775076d7edf5ffb3c6aae24d7c",
+    "lib/ui/detail/ridge_key_weather.dart": null,
+    "lib/ui/strings.dart": "6094365ea1024a7fb697ca1543d0a0934fda74b7ca87a98317b1095abd1fff22",
+    "lib/ui/widgets/rolling_text.dart": "68a85017e2a19372b6bf7b13560fbb8a12a23a872f4046ed9b31925c44c9e1e9",
+    "test/widget/ridge_band_test.dart": "a6e804712748628cfcc60899db93e584cae25b922172d9f79e6127cc46548e62",
+    "test/widget/route_detail_v2_test.dart": "3c7efaf1cfbcd0be63e4f99e23397ec87da4c0ed180aceb1c1ddae5ef630471e",
+    "test/widget/rolling_text_test.dart": "d48c03f3f8a250548d8b488bafc2372c886ae696ee94d97609eebf5a3d45d1b5"
+  },
+  "analyze": {
+    "command": "flutter analyze --no-pub",
+    "result": "No issues found"
+  },
+  "tests": {
+    "command": "flutter test --no-pub --reporter expanded",
+    "passed": 464,
+    "failed": 0
+  },
+  "captures": {
+    "440x956 dark": "1/1 passed",
+    "390x844 1.6x light": "1/1 passed",
+    "390x844 1.6x dark": "1/1 passed"
+  },
+  "build_ci": "not run for this small visual change; commit uses skip ci per user request to minimize workflow runs",
+  "device": "not tested on a newly built phone package for this revision; older device evidence is explicitly for 282a663",
+  "fixture": "self-authored synthetic route and fake integration forecast; screenshots are not real weather or user itinerary"
+}

@@ -1127,10 +1127,50 @@
    "p": "P1",
    "title": "天气详情减负：说明去重与次要内容按需展开",
    "deps": [],
-   "status": "in_progress",
-   "acceptance": "默认隐藏重复小时读数；穿衣与海拔估算收起；时段解释按需查看；缺失、过期、三小时概率和未确认区间仍明确显示。",
-   "verify": "flutter analyze --no-pub；flutter test --no-pub；GitHub Actions Web/APK",
-   "result": "2026-10-19：本地 analyze 0 issues，451/451 tests；含390px与1.6倍字号时段说明、图表点选/拖动/关闭、穿衣偏好回归。CI 待验证，未做真机视觉验收。"
+   "status": "done",
+   "acceptance": "天气摘要后默认显示原衣物叠层动画、穿着/背包状态、场景切换及配件；偏好与依据按需展开；节点单一工具入口且保持懒加载；390px/1.6倍字号深浅色无溢出；缺失、过期、三小时概率和未确认区间仍明确。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；手机尺寸组件截图；Gemini/DeepSeek/GLM 独立评审投票；统一 GitHub Actions Web/APK/iOS",
+   "result": "2026-10-20，业务提交b654af4：原衣物叠层动画/场景/穿着背包默认可见，偏好依据按需展开；主页面摘要→穿衣→沿途天气，节点单一工具入口保持懒加载。本地analyze 0、454/454 tests（含动画中间态、缺温、390px/1.6x深浅色）；统一CI39389755680全绿。小米12S在该CI .qa包验证默认动画、场景、偏好/依据、节点工具/指标、冷启动恢复；12次切换尾部3.959秒采样UI Frame p99 3.649ms、raster p99 5.486ms，无Fatal/Flutter错误。已清理本轮.qa和临时资源，正式版/.dev保留。首版文本方案CLI投票3:0，后续用户动画要求优先。证据docs/verification/detail-ci-2026-10-20/；未合并main/发布，iOS未真机。"
+  },
+  {
+   "id": "T-198",
+   "p": "P1",
+   "title": "iOS 构建并入 Android 所在 CI 工作流",
+   "deps": [],
+   "status": "done",
+   "acceptance": "删除独立 ios-build.yml，同一 CI 运行先完成 Linux analyze/test/Web/APK，再由macOS构建未签名IPA；保留平台生成、锁文件、品牌验证和产物名，共用取消规则。",
+   "verify": "YAML结构校验；GitHub Actions CI Web/APK/iOS与产物上传",
+   "result": "2026-10-20：ci.yml保留Linux并追加needs: build的macOS作业，删除ios-build.yml。CI39389755680（b654af4，device_test=true）两个作业均success，apk-release/android-device-test/ios-unsigned-ipa全部上传；平台生成、锁文件、签名/品牌核验与统一取消均保留。手机包已用于小米12S验收；IPA未签名，不代表iPhone真机或发布。后续批量改动完成后集中CI，收尾证据用[skip ci]避免重复构建。"
+  },
+  {
+   "id": "T-199",
+   "p": "P1",
+   "title": "详情页提示中性化、地图减负和单指拖动、剖面与节点统一编号、降水口径分隔",
+   "deps": [],
+   "status": "done",
+   "acceptance": "未触发阈值使用灰色信息图标；地图保留全屏和菜单、支持单指平移/隐藏恢复线路；剖面可点且序号与命名节点一致，选中同步高亮；海拔网格/距离刻度；整行进详情；次要来源标题降级；时段与当天汇总分隔，缺失/区间信息和原衣物动画保留。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub；单次统一CI；小米12S真机",
+   "result": "2026-10-20，业务提交6836d82：九项界面反馈完成，原衣物动画保留。analyze 0、461/461 tests；唯一统一CI39394169941成功（Web/APK/.qa/iOS未签名IPA）。小米12S在该CI QA包验证原衣物图、降水分隔、剖面网格/距离刻度、命名节点3序号及列表高亮、整行进详情、两个常驻地图工具、实际底图单指平移、隐藏线路读地名与直接恢复。三CLI菜单方案B=3:0。手机采用OpenTopoMap；高德灰底在旧/新版QA均出现，登记B-016，不宣称高德底图已验收。证据docs/verification/detail-map-2026-10-20/；QA/临时资源已清理，正式版和原.dev保留。未合并main/发布，iOS未真机。"
+  },
+  {
+   "id": "T-200",
+   "p": "P1",
+   "title": "3D地形单指水平旋转方向与拖动相反",
+   "deps": [],
+   "status": "done",
+   "acceptance": "单指向右/左拖动时模型朝相应方向转；双指缩放/扭转/平移和松手停止行为保持。",
+   "verify": "flutter test test/widget/route_3d_page_test.dart；CI测试包真机",
+   "result": "2026-10-20，6836d82：bearing由减dx改加dx。组件持续左右手势先红后绿，双指/松手停止回归保持。CI39394169941成功；小米12S同一合成线路/同样手势对照：旧QA右拖-0.68989rad，左拖增角；新QA右拖增+0.68989rad、左拖减-0.82066rad，均跟随操作。profile/AOT字段按IEEE754 float64解码（首次未解码原始Int采集已丢弃重采）。QA进程无Fatal/Flutter错误，清理完成；未合并/发布。"
+  },
+  {
+   "id": "T-201",
+   "p": "P1",
+   "title": "按用户截图恢复详情层级并标记时段降水与阵风",
+   "deps": [],
+   "status": "done",
+   "acceptance": "紧凑摘要→干净剖面→原衣物动画→地图；偏好/场景/依据直接可用。按用户确认的2:1方案A删除图下双天气块，摘要突出阵风/降水数字、弱化单位；选中节点仍显示当前实际值，节点从已有剖面/列表查询；时段/当天/行程估算及缺失语义保持，原地图/3D修复保留。",
+   "verify": "flutter analyze --no-pub；flutter test --no-pub（464项）；440x956截图对照；390px/1.6倍字号深浅色；此前平台CI/真机证据单列，本次小改动不重跑CI。",
+   "result": "2026-10-21用户确认方案A后已实施：删除RidgeKeyWeather双实底块与峰值快捷入口/闲置计算，摘要保持重要读数并做数字/单位层级，剖面选中当前雨量/阵风及原衣物动画保持。analyze 0、464/464 tests；3张原生合成截图采集各1/1通过、视觉对照通过，含390px/1.6x深浅色。数值与单位作为完整真实读数一起过渡，缺失不补0；时段雨量/当天汇总/行程估算不混用。按减少CI次数要求，本次小范围视觉改动不新增CI或手机安装；39537375943及小米12S记录仅证明前版282a663，不冒充本版真机。当前证据docs/verification/detail-summary-2026-10-21/，原始三CLI复评A=2/C=1及旧功能验收留档。裤装仍仅建议；PR未合并/发布。"
   }
  ]
 }

@@ -155,56 +155,13 @@ class _NodeDetailViewState extends State<NodeDetailView> {
           ),
         ],
         const SizedBox(height: 10),
-        _fold(
-          S.altitudeExploreTitle,
-          AltitudeWeatherCard(
-            key: ValueKey('alt-$_idx-${row.validUtc}'),
-            point: node.pos,
-            atUtc: row.validUtc,
-            nodeElevationM: node.elevationM,
-            routeMinM: _routeMinMax().$1,
-            routeMaxM: _routeMinMax().$2,
-          ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.tune),
+          title: const Text(S.nodeWeatherTools),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _showTools(row),
         ),
-        const SizedBox(height: 4),
-        if (wx != null)
-          _fold(
-            S.moreMetrics,
-            WxVarGrid(
-              wx: wx,
-              settings: widget.settings,
-              showHourNotice: false,
-              exclude: const {
-                WxVar.temperature,
-                WxVar.apparentTemp,
-                WxVar.precip,
-                WxVar.precipProb,
-                WxVar.windGust,
-              },
-            ),
-          ),
-        _fold(
-          S.airQualityTitle,
-          AirQualityCard(
-            key: ValueKey('aq-$_idx'),
-            point: node.pos,
-            atUtc: row.validUtc,
-          ),
-        ),
-        _fold(
-          S.multiSourceCompare,
-          NodeComparePanel(
-            key: ValueKey('compare-$_idx'),
-            rows: widget.rows,
-            initialIndex: _idx,
-            fixedUtc: widget.tripMode ? null : widget.fixedUtc,
-          ),
-        ),
-        if (widget.routeId != null)
-          _fold(
-            S.nodePhotos,
-            NodePhotosSection(routeId: widget.routeId!, pos: node.pos),
-          ),
         if (wp == null) ...[
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -214,6 +171,84 @@ class _NodeDetailViewState extends State<NodeDetailView> {
           ),
         ],
       ],
+    );
+  }
+
+  /// 一处入口承载次要指标；区间、缺数和信号仍留在主面板。
+  void _showTools(NodeWxRow row) {
+    final node = row.node;
+    final wx = row.wx;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.65,
+        builder: (context, scrollController) => SafeArea(
+          top: false,
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            children: [
+              Text(
+                S.nodeWeatherTools,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              _fold(
+                S.altitudeExploreTitle,
+                AltitudeWeatherCard(
+                  key: ValueKey('alt-$_idx-${row.validUtc}'),
+                  point: node.pos,
+                  atUtc: row.validUtc,
+                  nodeElevationM: node.elevationM,
+                  routeMinM: _routeMinMax().$1,
+                  routeMaxM: _routeMinMax().$2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (wx != null)
+                _fold(
+                  S.moreMetrics,
+                  WxVarGrid(
+                    wx: wx,
+                    settings: widget.settings,
+                    showHourNotice: false,
+                    exclude: const {
+                      WxVar.temperature,
+                      WxVar.apparentTemp,
+                      WxVar.precip,
+                      WxVar.precipProb,
+                      WxVar.windGust,
+                    },
+                  ),
+                ),
+              _fold(
+                S.airQualityTitle,
+                AirQualityCard(
+                  key: ValueKey('aq-$_idx'),
+                  point: node.pos,
+                  atUtc: row.validUtc,
+                ),
+              ),
+              _fold(
+                S.multiSourceCompare,
+                NodeComparePanel(
+                  key: ValueKey('compare-$_idx'),
+                  rows: widget.rows,
+                  initialIndex: _idx,
+                  fixedUtc: widget.tripMode ? null : widget.fixedUtc,
+                ),
+              ),
+              if (widget.routeId != null)
+                _fold(
+                  S.nodePhotos,
+                  NodePhotosSection(routeId: widget.routeId!, pos: node.pos),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

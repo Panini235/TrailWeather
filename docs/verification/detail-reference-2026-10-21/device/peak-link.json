@@ -1,0 +1,10 @@
+{
+  "tag": "最大阵风\n34 km/h\n节点 1等 5 处 · 0.0 km",
+  "selected": [
+    "节点 1 · 起点 · 0.0 km · 0 m · 未触发阈值 · 时段降水 0.0 mm · 阵风 34 km/h\n最大时段降水\n0.0 mm"
+  ],
+  "actual_gust_kmh": 34,
+  "precip_mm": 0,
+  "source": "public Open-Meteo forecast; self-authored route; tied maximum at 5 nodes, first selected explicitly",
+  "result": "passed"
+}

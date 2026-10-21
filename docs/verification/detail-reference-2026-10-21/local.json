@@ -1,0 +1,19 @@
+{
+  "analyze": {
+    "command": "flutter analyze --no-pub",
+    "result": "No issues found"
+  },
+  "tests": {
+    "command": "flutter test --no-pub --reporter expanded",
+    "passed": 465,
+    "failed": 0
+  },
+  "local_build": false,
+  "visual": "1320x2868 synthetic Flutter render (440x956 logical), source reference compared side by side; not device evidence",
+  "scope": "original animation maintained; pants extension advice only",
+  "capture": {
+    "result": "1/1 passed; original rendering state restored before test invariants",
+    "note": "temporary capture harness removed; product sources unchanged"
+  },
+  "source_commit": "282a6635c5a029356846596ab46b64d5757d88f6"
+}

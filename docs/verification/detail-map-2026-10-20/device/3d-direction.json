@@ -1,0 +1,12 @@
+{
+  "bearing_before": -0.0776718749999999,
+  "bearing_after_right_drag": 0.6122194602272728,
+  "bearing_after_left_drag": -0.2084360795454527,
+  "right_drag_increases_bearing": true,
+  "left_drag_decreases_bearing": true,
+  "evidence": "actual profile app gesture and VM state, own QA package only",
+  "source_commit": "6836d828d7792b17c13f6878eaed1e6869bbc7cd",
+  "right_delta_rad": 0.6898913352272728,
+  "left_delta_rad": -0.8206555397727255,
+  "probe_note": "profile/AOT getObject exposes double field as Int storage; decode signed int bits as IEEE754 float64. Initial raw integer read was discarded and both versions resampled."
+}

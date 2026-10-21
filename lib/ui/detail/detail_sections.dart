@@ -2,53 +2,6 @@ part of 'route_detail_screen.dart';
 
 // 详情页：结论卡、节点行与数据说明。
 
-/// 结论卡的时间上下文，固定时刻保留切到行程模式的入口。
-class _ModeLine extends StatelessWidget {
-  const _ModeLine({
-    required this.tripMode,
-    required this.label,
-    required this.onSwitchToTrip,
-  });
-
-  final bool tripMode;
-  final String label;
-  final VoidCallback? onSwitchToTrip;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.only(top: Space.xs),
-      child: Row(
-        children: [
-          Icon(
-            tripMode ? Icons.hiking : Icons.schedule,
-            size: 16,
-            color: color,
-          ),
-          const SizedBox(width: Space.xs),
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (onSwitchToTrip != null)
-            TextButton(
-              onPressed: onSwitchToTrip,
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              child: const Text(S.detailSwitchToTrip),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ConclusionCard extends StatelessWidget {
   const _ConclusionCard({
     required this.summary,
@@ -59,7 +12,6 @@ class _ConclusionCard extends StatelessWidget {
     required this.onShowHints,
     required this.onDepartures,
     required this.modeLabel,
-    this.onSwitchToTrip,
   });
 
   final RouteWxSummary summary;
@@ -67,9 +19,6 @@ class _ConclusionCard extends StatelessWidget {
 
   /// 时间模式一行：固定时刻是“全线同一小时”，行程模式是“几点出发、约几点到”。
   final String modeLabel;
-
-  /// 固定时刻模式下“改按出发时间看”的入口；行程模式为 null。
-  final VoidCallback? onSwitchToTrip;
 
   /// 固定时刻模式的全天降水一行；行程模式为 null。
   final String? dayLine;
@@ -96,15 +45,18 @@ class _ConclusionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              S.routeSummary,
-              style: theme.textTheme.labelMedium?.copyWith(color: muted),
+            Tooltip(
+              message: modeLabel,
+              child: Text(
+                S.routeSummary,
+                style: theme.textTheme.labelMedium?.copyWith(color: muted),
+              ),
             ),
-            _ModeLine(
-              tripMode: tripMode,
-              label: modeLabel,
-              onSwitchToTrip: onSwitchToTrip,
-            ),
+            if (tripMode)
+              Text(
+                modeLabel,
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              ),
             const SizedBox(height: Space.xs),
             // 结论先行：最关键的一条提示；未触发时如实说明，不说“适合出发”。
             if (summary.hasAnyData) ...[
@@ -127,6 +79,7 @@ class _ConclusionCard extends StatelessWidget {
                       context,
                       S.detailMinMaxTemp,
                       '${summary.minTempC == null ? S.notProvided : Units.temp(summary.minTempC!, imperial: settings.imperial, digits: 0)} / ${summary.maxTempC == null ? S.notProvided : Units.temp(summary.maxTempC!, imperial: settings.imperial)}',
+                      icon: Icons.thermostat_outlined,
                     ),
                   ),
                   Expanded(
@@ -139,6 +92,12 @@ class _ConclusionCard extends StatelessWidget {
                               summary.maxGustMs!,
                               unit: settings.windUnit,
                             ),
+                      icon: Icons.air,
+                      emphasis: true,
+                      tone: sorted
+                          .where((h) => h.id == 'gust')
+                          .map((h) => _hintInk(context, h))
+                          .firstOrNull,
                     ),
                   ),
                   Expanded(
@@ -152,15 +111,20 @@ class _ConclusionCard extends StatelessWidget {
                               summary.totalPrecipMm!,
                               imperial: settings.imperial,
                             ),
+                      icon: Icons.water_drop_outlined,
+                      emphasis: true,
+                      tone: sorted
+                          .where((h) => h.id == 'precip')
+                          .map((h) => _hintInk(context, h))
+                          .firstOrNull,
                     ),
                   ),
                 ],
               ),
-            if (dayLine != null)
-              Padding(
-                padding: const EdgeInsets.only(top: Space.sm),
-                child: Text(dayLine!, style: const TextStyle(fontSize: 13)),
-              ),
+            if (dayLine != null) ...[
+              const Divider(height: Space.sm),
+              Text(dayLine!, style: theme.textTheme.bodySmall),
+            ],
             if (sorted.length > 1) ...[
               const SizedBox(height: Space.sm),
               Wrap(
@@ -201,20 +165,51 @@ class _ConclusionCard extends StatelessWidget {
     );
   }
 
-  Widget _kv(BuildContext context, String k, String v) => Column(
+  Widget _kv(
+    BuildContext context,
+    String k,
+    String v, {
+    required IconData icon,
+    bool emphasis = false,
+    Color? tone,
+  }) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        k,
-        style: TextStyle(
-          fontSize: 11,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 13,
+            color: tone ?? Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 3),
+          Expanded(
+            child: Text(
+              k,
+              style: TextStyle(
+                fontSize: 11,
+                color: tone ?? Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
       ),
       RollingText(
         v,
         lowPower: settings.lowPower,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        unitStyle: emphasis
+            ? TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: tone ?? Theme.of(context).colorScheme.onSurfaceVariant,
+              )
+            : null,
+        style: TextStyle(
+          fontSize: emphasis ? 17 : 15,
+          fontWeight: emphasis ? FontWeight.w700 : FontWeight.w600,
+          color: tone,
+        ),
       ),
     ],
   );
@@ -299,42 +294,22 @@ class _NodeTile extends StatelessWidget {
     super.key,
     required this.row,
     required this.index,
-    required this.isLast,
     required this.tripMode,
     required this.selected,
     required this.settings,
     required this.onTap,
-    required this.onDetail,
   });
 
   final NodeWxRow row;
   final int index;
-  final bool isLast;
   final bool tripMode;
   final bool selected;
   final AppSettings settings;
   final VoidCallback onTap;
-  final VoidCallback onDetail;
 
   @override
   Widget build(BuildContext context) {
     final wp = row.node.waypoint;
-    final Widget leading;
-    if (wp != null) {
-      leading = WaypointMarker(type: wp.type, size: 16);
-    } else if (index == 0) {
-      leading = const Icon(Icons.flag, size: 18, color: Semantic.go);
-    } else if (isLast) {
-      leading = const Icon(
-        Icons.sports_score,
-        size: 18,
-        color: Semantic.danger,
-      );
-    } else if (row.node.label == '高点') {
-      leading = const Icon(Icons.terrain_outlined, size: 18);
-    } else {
-      leading = const Icon(Icons.circle, size: 10);
-    }
     final name = row.node.label ?? S.detailNodeFallback(index + 1);
     final ele = row.node.elevationM == null
         ? ''
@@ -351,7 +326,22 @@ class _NodeTile extends StatelessWidget {
       selected: selected,
       selectedTileColor: Theme.of(context).colorScheme.primaryContainer
           .withValues(alpha: 0.3),
-      leading: SizedBox(width: 24, child: Center(child: leading)),
+      leading: Container(
+        width: 26,
+        height: 26,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          border: selected
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 2,
+                )
+              : null,
+        ),
+        child: Text('${index + 1}', style: const TextStyle(fontSize: 12)),
+      ),
       title: Text(title, style: const TextStyle(fontSize: 13)),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,17 +360,7 @@ class _NodeTile extends StatelessWidget {
               S.detailStopMinutes(wp!.stopMinutes!),
               style: TextStyle(fontSize: 11, color: muted),
             ),
-          if (selected)
-            Text(
-              S.tapAgainForDetail,
-              style: TextStyle(fontSize: 11, color: muted),
-            ),
         ],
-      ),
-      trailing: IconButton(
-        tooltip: S.nodeDetail2,
-        icon: const Icon(Icons.info_outline, size: 20),
-        onPressed: onDetail,
       ),
       onTap: onTap,
     );
@@ -394,6 +374,7 @@ class _FoldedRun extends StatefulWidget {
   const _FoldedRun({
     super.key,
     required this.rows,
+    required this.firstIndex,
     required this.tripMode,
     required this.containsSelected,
     required this.lowPower,
@@ -401,6 +382,7 @@ class _FoldedRun extends StatefulWidget {
   });
 
   final List<NodeWxRow> rows;
+  final int firstIndex;
   final bool tripMode;
 
   /// 其中含有选中节点（地图或剖面上选的）：收起时高亮这一行。
@@ -491,7 +473,8 @@ class _FoldedRunState extends State<_FoldedRun>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${S.foldedNodes(widget.rows.length)} · ${_range()}'
+                      '${S.foldedNodes(widget.rows.length)}'
+                      '（${widget.firstIndex + 1}–${widget.firstIndex + widget.rows.length}） · ${_range()}'
                       ' · ${S.foldedSameForecast}',
                       style: TextStyle(fontSize: 12, color: muted),
                     ),

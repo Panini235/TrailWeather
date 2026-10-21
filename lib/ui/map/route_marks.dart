@@ -54,10 +54,15 @@ MarkerLayer routeDirectionLayer(
   HikingRoute route,
   Basemap basemap, {
   Color color = Semantic.route,
+  int count = 8,
+  double size = 16,
 }) {
   return MarkerLayer(
     markers: [
-      for (final (pos, bearing) in routeDirectionMarks(route.segments))
+      for (final (pos, bearing) in routeDirectionMarks(
+        route.segments,
+        count: count,
+      ))
         Marker(
           point: basemap.toDisplay(pos),
           width: 18,
@@ -65,7 +70,7 @@ MarkerLayer routeDirectionLayer(
           child: IgnorePointer(
             child: Transform.rotate(
               angle: bearing * math.pi / 180,
-              child: Icon(Icons.navigation, size: 16, color: color),
+              child: Icon(Icons.navigation, size: size, color: color),
             ),
           ),
         ),

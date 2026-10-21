@@ -8,6 +8,9 @@ import 'package:trailweather/data/routes/route_models.dart';
 import 'package:trailweather/data/routes/route_sampling.dart';
 import 'package:trailweather/data/settings/settings_repository.dart';
 import 'package:trailweather/data/weather/weather_models.dart';
+import 'package:trailweather/data/weather/node_wx_class.dart';
+import 'package:trailweather/ui/detail/node_wx_style.dart';
+import 'package:trailweather/ui/tokens.dart';
 import 'package:trailweather/ui/detail/detail_state.dart';
 import 'package:trailweather/ui/detail/ridge_band.dart';
 import 'package:trailweather/ui/strings.dart';
@@ -56,7 +59,10 @@ WxProvenance _prov() => WxProvenance(
 
 /// 6 个节点：第 2 个较强降水（黄），第 4 个大风（红），其余未触发；
 /// [withWx] 为 false 时模拟还没拿到数据。
-List<NodeWxRow> _rows({bool withWx = true}) => [
+List<NodeWxRow> _rows({
+  bool withWx = true,
+  Map<WxVar, double?> Function(int)? values,
+}) => [
   for (var i = 0; i < 6; i++)
     NodeWxRow(
       node: RouteNode(
@@ -76,11 +82,13 @@ List<NodeWxRow> _rows({bool withWx = true}) => [
                 for (final t in [_t, _t.add(const Duration(hours: 1))])
                   WxHourValue(
                     validFromUtc: t,
-                    values: {
-                      WxVar.temperature: 10.0,
-                      WxVar.precip: i == 2 ? 4.0 : 0.0,
-                      WxVar.windGust: i == 4 ? 19.0 : 5.0,
-                    },
+                    values:
+                        values?.call(i) ??
+                        {
+                          WxVar.temperature: 10.0,
+                          WxVar.precip: i == 2 ? 4.0 : 0.0,
+                          WxVar.windGust: i == 4 ? 19.0 : 5.0,
+                        },
                   ),
               ],
             )
@@ -116,6 +124,54 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('剖面不再重复天气块，点选节点仍显示实际雨量与阵风', (tester) async {
+    int? selected;
+    await _pump(
+      tester,
+      StatefulBuilder(
+        builder: (context, set) => RidgeWeatherBand(
+          route: _route(),
+          rows: _rows(values: (_) => {WxVar.precip: 4, WxVar.windGust: 19}),
+          selectedIndex: selected,
+          onTapNode: (i) => set(() => selected = i),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('最大时段降水'), findsNothing);
+    expect(find.text('最大阵风'), findsNothing);
+    final chart = tester.getRect(find.byKey(const ValueKey('ridge-profile')));
+    await tester.tapAt(Offset(chart.right - 4, chart.center.dy));
+    await tester.pumpAndSettle();
+    expect(selected, 5);
+    expect(find.textContaining('节点 6 · 2.8 km ·'), findsOneWidget);
+    expect(find.textContaining('时段降水 4.0 mm'), findsOneWidget);
+    expect(find.textContaining('阵风 68 km/h'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('选中节点缺失雨量或阵风仍明确未提供，不以概率或持续风补值', (tester) async {
+    await _pump(
+      tester,
+      RidgeWeatherBand(
+        route: _route(),
+        rows: _rows(values: (_) => {WxVar.precipProb: 90, WxVar.windSpeed: 30}),
+        selectedIndex: 5,
+        onTapNode: (_) {},
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('时段降水 ${S.notProvided}'), findsOneWidget);
+    expect(find.textContaining('阵风 ${S.notProvided}'), findsOneWidget);
+    expect(find.textContaining('0.0 mm'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('未触发提示阈值使用中性信息图标，不显示通过对勾或绿色', () {
+    expect(nodeWxIcon(NodeWxClass.calm), Icons.info_outline);
+    expect(nodeWxColor(NodeWxClass.calm), Semantic.unknown);
+  });
+
   testWidgets('点击剖面选中最近节点；说明行显示距离、海拔与天气类别', (tester) async {
     int? selected;
     await _pump(
@@ -139,8 +195,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(RegExp('6 个节点，2 个触发天气提示')), findsOneWidget);
+    expect(find.text('点选剖面节点，与下方编号对应'), findsOneWidget);
     // 右侧末端附近点一下 → 选中最后一个节点。
-    final box = tester.getRect(find.byType(CustomPaint).last);
+    final box = tester.getRect(find.byKey(const ValueKey('ridge-profile')));
     await tester.tapAt(Offset(box.right - 4, box.center.dy));
     await tester.pumpAndSettle();
     expect(selected, 5);

@@ -146,10 +146,10 @@ class _Route3DPageState extends ConsumerState<Route3DPage>
     if (start == null || scene == null) return;
     final v = _view.values;
     if (d.pointerCount == 1) {
-      // 单指：左右转、上下俯仰
+      // 单指：模型朝手指拖动方向旋转；投影中正 bearing 让朝向用户的一侧右移。
       _view.apply(
         v.copyWith(
-          bearing: v.bearing - d.focalPointDelta.dx * 0.006,
+          bearing: v.bearing + d.focalPointDelta.dx * 0.006,
           tilt: (v.tilt - d.focalPointDelta.dy * 0.005).clamp(
             0.0,
             _ViewValues.maxTilt,

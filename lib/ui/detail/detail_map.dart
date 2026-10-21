@@ -16,6 +16,8 @@ AppSettings _miniMapSettings(AppSettings s) {
   return s.copyWith(baseLayerId: s.routeMapLayerId, overlayLayers: overlays);
 }
 
+enum _MiniMapAction { layers, fit, routeVisibility, threeD }
+
 class _RouteMiniMap extends ConsumerStatefulWidget {
   const _RouteMiniMap({
     required this.route,
@@ -39,6 +41,7 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
   final MapController _controller = MapController();
 
   /// 当前图层是否有瓦片加载失败或迟迟加载不出（换图层时重置）。
+  bool _showRoute = true;
   bool _tileFailed = false;
   bool _anyTileLoaded = false;
   String? _signature;
@@ -87,13 +90,17 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
       _signature = basemap.signature;
       _watchLayer(customLayer);
     }
-    final fit = routeCameraFit(route, basemap);
+    final fit = routeCameraFit(
+      route,
+      basemap,
+      // 首屏适配时给右上角工具与端点徽章留出空间。
+      padding: const EdgeInsets.fromLTRB(24, 76, 24, 24),
+    );
     final photos = ref
         .watch(routePhotosProvider)
         .where((p) => p.routeId == route.id)
         .toList();
-    // 只开双指缩放/平移与双击放大：单指拖动留给外层 ListView 上下滚动，
-    // 避免一滑页面就变成拖地图。点节点选中，再点打开节点详情。
+    // 地图内单指平移，地图外由页面滚动；工具集中收进菜单。
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -118,12 +125,15 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                     maxZoom: 18,
                     interactionOptions: const InteractionOptions(
                       flags:
+                          InteractiveFlag.drag |
                           InteractiveFlag.pinchZoom |
                           InteractiveFlag.pinchMove |
                           InteractiveFlag.doubleTapZoom,
                     ),
                   ),
                   children: _routeMapLayers(
+                    compact: true,
+                    showRoute: _showRoute,
                     basemap: basemap,
                     route: route,
                     rows: rows,
@@ -153,7 +163,8 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                 Positioned(
                   top: 6,
                   right: 6,
-                  child: Column(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       _mapButton(
                         context,
@@ -161,46 +172,75 @@ class _RouteMiniMapState extends ConsumerState<_RouteMiniMap> {
                         icon: Icons.fullscreen,
                         onPressed: widget.onOpenFullscreen,
                       ),
-                      const SizedBox(height: Space.xs),
-                      _mapButton(
-                        context,
-                        tooltip: S.miniMapLayers,
-                        icon: Icons.layers_outlined,
-                        onPressed: () => _showLayers(context),
-                      ),
-                      if (fit != null) ...[
-                        const SizedBox(height: Space.xs),
-                        _mapButton(
-                          context,
-                          tooltip: S.miniMapFit,
-                          icon: Icons.fit_screen,
-                          onPressed: () => _controller.fitCamera(fit),
+                      const SizedBox(width: Space.xs),
+                      Material(
+                        color: Theme.of(context).colorScheme.surface
+                            .withValues(alpha: 0.9),
+                        shape: const CircleBorder(),
+                        child: PopupMenuButton<_MiniMapAction>(
+                          tooltip: S.miniMapTools,
+                          icon: const Icon(Icons.more_horiz),
+                          onSelected: (action) {
+                            switch (action) {
+                              case _MiniMapAction.layers:
+                                _showLayers(context);
+                              case _MiniMapAction.fit:
+                                if (fit != null) _controller.fitCamera(fit);
+                              case _MiniMapAction.routeVisibility:
+                                setState(() => _showRoute = !_showRoute);
+                              case _MiniMapAction.threeD:
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => Route3DPage(route: route),
+                                  ),
+                                );
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: _MiniMapAction.layers,
+                              child: Text(S.miniMapLayers),
+                            ),
+                            if (fit != null)
+                              const PopupMenuItem(
+                                value: _MiniMapAction.fit,
+                                child: Text(S.miniMapFit),
+                              ),
+                            PopupMenuItem(
+                              value: _MiniMapAction.routeVisibility,
+                              child: Text(
+                                _showRoute
+                                    ? S.miniMapHideRoute
+                                    : S.miniMapShowRoute,
+                              ),
+                            ),
+                            if (route.flatPoints.length >= 2)
+                              const PopupMenuItem(
+                                value: _MiniMapAction.threeD,
+                                child: Text(S.route3dTitle),
+                              ),
+                          ],
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
+                if (!_showRoute)
+                  Positioned(
+                    left: 6,
+                    bottom: 6,
+                    child: FilledButton.tonalIcon(
+                      icon: const Icon(Icons.route, size: 16),
+                      label: const Text(S.miniMapShowRoute),
+                      onPressed: () => setState(() => _showRoute = true),
+                    ),
+                  ),
                 const Positioned(
                   top: 6,
                   left: 6,
-                  right: 58,
+                  right: 110,
                   child: TiandituErrorBanner(compact: true),
                 ),
-                if (route.flatPoints.length >= 2)
-                  Positioned(
-                    right: 6,
-                    bottom: 6,
-                    child: _mapButton(
-                      context,
-                      tooltip: S.route3dTitle,
-                      icon: Icons.view_in_ar_outlined,
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => Route3DPage(route: route),
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -388,6 +428,8 @@ List<Widget> _routeMapLayers({
   List<RoutePhoto> photos = const [],
   ValueChanged<RoutePhoto>? onTapPhoto,
   bool attribution = false,
+  bool compact = false,
+  bool showRoute = true,
   VoidCallback? onTileError,
   VoidCallback? onTileLoaded,
   Widget? terrain,
@@ -401,112 +443,121 @@ List<Widget> _routeMapLayers({
   return [
     ...basemap.tileLayers(onTileError: onTileError, onTileLoaded: onTileLoaded),
     ?terrain,
-    PolylineLayer(
-      polylines: [
-        for (final seg in route.segments)
-          Polyline(
-            points: [
-              for (final pt in Geo.simplify(seg, 15)) basemap.toDisplay(pt),
-            ],
-            strokeWidth: 4,
-            color: Semantic.route,
-          ),
-      ],
-    ),
-    routeDirectionLayer(route, basemap),
-    MarkerLayer(
-      markers: [
-        // 偏离线路、未进入时间线的航点：半透明显示，不可选。
-        for (final wp in route.waypoints)
-          if (!onRoute.contains(wp))
-            Marker(
-              point: basemap.toDisplay(wp.point),
-              width: 22,
-              height: 22,
-              child: Tooltip(
-                message: '${wp.name}（${S.offRouteWaypoint}）',
-                child: Opacity(
-                  opacity: 0.55,
-                  child: WaypointMarker(type: wp.type, size: 14),
-                ),
-              ),
+    if (showRoute) ...[
+      PolylineLayer(
+        polylines: [
+          for (final seg in route.segments)
+            Polyline(
+              points: [
+                for (final pt in Geo.simplify(seg, 15)) basemap.toDisplay(pt),
+              ],
+              strokeWidth: compact ? 3 : 4,
+              color: Semantic.route.withValues(alpha: compact ? 0.72 : 1),
             ),
-        // 挂在节点上的普通航点：画在自己的位置，点按选中它归属的节点。
-        for (var i = 0; i < rows.length; i++)
-          for (final wp in rows[i].node.nearbyWaypoints)
-            Marker(
-              point: basemap.toDisplay(wp.point),
-              width: 22,
-              height: 22,
-              child: Tooltip(
-                message: '${wp.name}（${S.nearbyMarkTooltip}）',
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onTapNode == null ? null : () => onTapNode(i),
-                  child: Center(child: WaypointMarker(type: wp.type, size: 14)),
-                ),
-              ),
-            ),
-        for (var i = 0; i < rows.length; i++)
-          Marker(
-            point: basemap.toDisplay(rows[i].node.pos),
-            width: 30,
-            height: 30,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onTapNode == null ? null : () => onTapNode(i),
-              child: Center(
-                child: rows[i].node.waypoint != null
-                    ? WaypointMarker(
-                        type: rows[i].node.waypoint!.type,
-                        size: sel == i ? 22 : 16,
-                      )
-                    : NodeWxMarker(
-                        cls: classifyNodeWx(rows[i].wx),
-                        selected: sel == i,
-                      ),
-              ),
-            ),
-          ),
-      ],
-    ),
-    routeEndpointLayer(route, basemap),
-    if (photos.isNotEmpty)
+        ],
+      ),
+      routeDirectionLayer(
+        route,
+        basemap,
+        count: compact ? 4 : 8,
+        size: compact ? 12 : 16,
+      ),
       MarkerLayer(
         markers: [
-          for (final p in photos)
+          // 偏离线路、未进入时间线的航点：半透明显示，不可选。
+          for (final wp in route.waypoints)
+            if (!onRoute.contains(wp))
+              Marker(
+                point: basemap.toDisplay(wp.point),
+                width: 22,
+                height: 22,
+                child: Tooltip(
+                  message: '${wp.name}（${S.offRouteWaypoint}）',
+                  child: Opacity(
+                    opacity: 0.55,
+                    child: WaypointMarker(type: wp.type, size: 14),
+                  ),
+                ),
+              ),
+          // 挂在节点上的普通航点：画在自己的位置，点按选中它归属的节点。
+          for (var i = 0; i < rows.length; i++)
+            for (final wp in rows[i].node.nearbyWaypoints)
+              Marker(
+                point: basemap.toDisplay(wp.point),
+                width: 22,
+                height: 22,
+                child: Tooltip(
+                  message: '${wp.name}（${S.nearbyMarkTooltip}）',
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onTapNode == null ? null : () => onTapNode(i),
+                    child: Center(
+                      child: WaypointMarker(type: wp.type, size: 14),
+                    ),
+                  ),
+                ),
+              ),
+          for (var i = 0; i < rows.length; i++)
             Marker(
-              point: basemap.toDisplay(p.pos),
-              width: 24,
-              height: 24,
-              alignment: Alignment.topRight,
+              point: basemap.toDisplay(rows[i].node.pos),
+              width: 30,
+              height: 30,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: onTapPhoto == null ? null : () => onTapPhoto(p),
-                child: const PhotoMapMarker(),
-              ),
-            ),
-        ],
-      ),
-    if (sel != null)
-      MarkerLayer(
-        markers: [
-          Marker(
-            point: basemap.toDisplay(rows[sel].node.pos),
-            width: 38,
-            height: 38,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  // 选中外圈不用红色：红色专指“触发红色阈值”。
-                  border: Border.all(color: Palette.pine, width: 3),
+                onTap: onTapNode == null ? null : () => onTapNode(i),
+                child: Center(
+                  child: rows[i].node.waypoint != null
+                      ? WaypointMarker(
+                          type: rows[i].node.waypoint!.type,
+                          size: sel == i ? 22 : 16,
+                        )
+                      : NodeWxMarker(
+                          cls: classifyNodeWx(rows[i].wx),
+                          selected: sel == i,
+                        ),
                 ),
               ),
             ),
-          ),
         ],
       ),
+      routeEndpointLayer(route, basemap),
+      if (photos.isNotEmpty)
+        MarkerLayer(
+          markers: [
+            for (final p in photos)
+              Marker(
+                point: basemap.toDisplay(p.pos),
+                width: 24,
+                height: 24,
+                alignment: Alignment.topRight,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTapPhoto == null ? null : () => onTapPhoto(p),
+                  child: const PhotoMapMarker(),
+                ),
+              ),
+          ],
+        ),
+      if (sel != null)
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: basemap.toDisplay(rows[sel].node.pos),
+              width: 38,
+              height: 38,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    // 选中外圈不用红色：红色专指“触发红色阈值”。
+                    border: Border.all(color: Palette.pine, width: 3),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+    ],
     if (terrain != null && attribution) const ContourIntervalBadge(),
     if (attribution)
       basemap.attributionWidget(

@@ -1,0 +1,29 @@
+{
+  "device": "Xiaomi 12S / Android 15",
+  "package": "app.shanqing.hiking.qa",
+  "source_commit": "6836d828d7792b17c13f6878eaed1e6869bbc7cd",
+  "ci_run": 39394169941,
+  "fixture": "self-authored synthetic GPX, 40 points, ~5.5km/780m, named camp waypoint; public Open-Meteo forecast fetched in baseline QA, reused from QA cache",
+  "theme": "system dark",
+  "font_scale": 1.0,
+  "checks": {
+    "clothing_animation_default_visible": true,
+    "precipitation_scopes_separated": true,
+    "profile_grid_and_distance_ticks_visible": true,
+    "named_node_3_numbered": true,
+    "profile_selection_highlights_same_list_row": true,
+    "whole_row_single_tap_opens_details": true,
+    "two_persistent_map_controls": true,
+    "single_finger_pan_with_actual_basemap": true,
+    "hide_route_read_labels_and_direct_restore": true,
+    "three_d_right_and_left_follow_gesture": true,
+    "fatal_or_flutter_errors": 0
+  },
+  "basemap": "OpenTopoMap loaded and tested; default AMap grey in both previous and current QA, separately recorded as B-016",
+  "limits": [
+    "QA profile device test, not full release acceptance",
+    "iOS compilation only, no iPhone device",
+    "1.6x/light-dark covered by widget tests; physical phone dark/1.0x"
+  ],
+  "cleanup": "QA uninstalled, synthetic app data and temporary XML removed; added ADB reverse removed; formal/old dev and system settings retained"
+}

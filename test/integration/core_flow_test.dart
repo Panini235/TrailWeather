@@ -209,13 +209,28 @@ void main() {
     }
     await tester.pumpAndSettle();
 
+    // 小地图支持单指拖动；滚动页面时从地图外的页面边缘开始。
+    Future<void> scrollDetailTo(Finder target, double step) async {
+      for (var i = 0; target.evaluate().isEmpty && i < 30; i++) {
+        final height =
+            tester.view.physicalSize.height / tester.view.devicePixelRatio;
+        await tester.dragFrom(Offset(4, height * 0.7), Offset(0, -step));
+        await tester.pumpAndSettle();
+      }
+      await tester.ensureVisible(target);
+    }
+
     // 4. 详情页：事实卡 + 演示标签（ListView 懒挂载，断言前滚动到目标）
     expect(find.text('集成测试线路'), findsOneWidget);
     expect(find.byType(DemoBadge), findsWidgets); // AppBar 与来源行各一处
 
     // 节点按天气阈值着色，并附图例说明（非官方预警）。
-    // 穿衣卡片在地图之上：先滚到小地图（固定距离拖动，避免惯性滚过头）。
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    // 按控件位置滚到地图，兼容穿衣动画卡和大字号带来的高度变化。
+    await tester.scrollUntilVisible(
+      find.byTooltip(S.routeMapFullscreen),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.byType(NodeWxMarker), findsWidgets);
     // 图例说明收进提示（减负后不再占一行），仍可查看。
@@ -243,7 +258,7 @@ void main() {
     expect(find.textContaining('°C'), findsWidgets);
 
     // 溯源卡片、颗粒度声明与官方预警说明：收在底部“数据说明与来源”，展开可见。
-    await tester.scrollUntilVisible(find.text(S.dataNotesTitle), 600);
+    await scrollDetailTo(find.text(S.dataNotesTitle), 400);
     await tester.pumpAndSettle();
     await tester.tap(find.text(S.dataNotesTitle));
     await tester.pumpAndSettle();
@@ -254,9 +269,10 @@ void main() {
     expect(find.textContaining(officialAlertsText0), findsWidgets);
 
     // 6. 回到顶部，从时间标签展开时间设置，切换行程模式。
-    await tester.scrollUntilVisible(find.byTooltip('设置时间与配速'), -400);
+    final timeControl = find.byTooltip(RegExp(S.detailTimeAndPace));
+    await tester.scrollUntilVisible(timeControl, -400);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('设置时间与配速'));
+    await tester.tap(timeControl);
     await tester.pumpAndSettle();
     await tester.tap(find.text(S.modeTrip));
     await tester.pumpAndSettle();
